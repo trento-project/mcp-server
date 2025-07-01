@@ -1,4 +1,4 @@
-# Trentp MCP Server
+# Trento MCP Server
 
 TBD
 
