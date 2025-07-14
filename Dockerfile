@@ -40,5 +40,3 @@ COPY api api
 USER 1001
 
 ENTRYPOINT [ "/mcp-server-trento" ]
-
-# CMD [ "--help" ]
