@@ -10,7 +10,7 @@ BIN ?= ${CURDIR}/bin
 BIN_NAME = mcp-server-trento
 
 IMAGE_REGISTRY ?= ghcr.io/trento-project
-IMAGE_NAME ?= mcp-server-trento
+IMAGE_NAME ?= mcp-server
 IMAGE_TAG ?= latest
 IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 
@@ -56,15 +56,15 @@ generate: install-tools ## Run code autogeneration from protobuf.
 ##@ Container
 
 .PHONY: build-container
-build-container: ## Build container image (eg. IMAGE=ghcr.io/trento-project/mcp-server-trento:dev make build-container).
+build-container: ## Build container image (eg. IMAGE=ghcr.io/trento-project/mcp-server:dev make build-container).
 	$(DOCKER) build -t ${IMAGE} -f Dockerfile .
 
 .PHONY: push-container
-push-container: ## Push container image (eg. IMAGE=ghcr.io/trento-project/mcp-server-trento make push-container).
+push-container: ## Push container image (eg. IMAGE=ghcr.io/trento-project/mcp-server make push-container).
 	$(DOCKER) push ${IMAGE}
 
 .PHONY: run-container
-run-container: ## Push container image (eg. IMAGE=ghcr.io/trento-project/mcp-server-trento make push-container).
+run-container: ## Push container image (eg. IMAGE=ghcr.io/trento-project/mcp-server make push-container).
 	$(DOCKER) run -p ${PORT}:${PORT} ${IMAGE}
 
 ##@ Linters
