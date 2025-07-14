@@ -1,0 +1,285 @@
+# Copyright 2025 SUSE LLC
+---
+name: Lib - Pipeline definition
+on:
+  workflow_call:
+
+env:
+  BRANCH_TRENTO_REPO: "main"
+  TRENTO_REPO: "trento-project/mcp-server"
+  IMG_DEV_TAG: "build-${{ github.sha }}"
+  IMG_MODIFIER: "-ci"
+  IMG_PLATFORMS: "linux/amd64" # TODO: add more? "linux/arm64"
+  IMG_PREFIX: "ghcr.io/trento-project/"
+  IMG_PREFIX_FOR_FORKS: "your-registry-username/"
+  IMAGES_TO_PUSH: "mcp-server"
+
+  # Versions
+  GOLANG_VERSION: "1.24.4" # See https://go.dev/dl/, must be aligned with "toolchain goX.X.X" in go.mod
+  HELM_VERSION: "v3.18.4" # See https://github.com/helm/helm/releases
+
+jobs:
+  # Setup the environment and set outputs
+  setup:
+    timeout-minutes: 3
+    runs-on: ubuntu-latest
+    outputs:
+      golang_version: ${{ steps.set-outputs.outputs.golang_version }}
+      img_modifier: ${{ steps.set-outputs.outputs.img_modifier }}
+      img_prefix: ${{ steps.set-outputs.outputs.img_prefix }}
+      img_dev_tag: ${{ steps.set-outputs.outputs.img_dev_tag }}
+      img_prod_tag: ${{ steps.set-outputs.outputs.img_prod_tag }}
+      running_on_main: ${{ steps.set-outputs.outputs.running_on_main }}
+      triggered_from_fork: ${{ steps.set-outputs.outputs.triggered_from_fork }}
+      gh_username: ${{ steps.set-outputs.outputs.gh_username }}
+    steps:
+      - name: Show GitHub event
+        env:
+          EVENT_CONTEXT: ${{ toJSON(github.event) }}
+        run: echo $EVENT_CONTEXT | jq
+      - name: Show PR context
+        env:
+          PR_CONTEXT: ${{ toJSON(github.event.pull_request) }}
+        run: echo $PR_CONTEXT | jq
+      - name: Set outputs
+        id: set-outputs
+        env:
+          PR_CONTEXT: ${{ toJSON(github.event.pull_request) }}
+          PR_SOURCE_REPO_NAME: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REPOSITORY}" == "${TRENTO_REPO}" ]]; then
+            echo "img_prefix=${IMG_PREFIX}" >> $GITHUB_OUTPUT
+          else
+            # When running in forks, push the images to a personal namespace if configured
+            echo "img_prefix=${IMG_PREFIX_FOR_FORKS}" >> $GITHUB_OUTPUT
+          fi;
+
+          # Check if the workflow is triggered due to a PR from an external fork
+          if [[ ("${PR_CONTEXT}" != "" && "${PR_CONTEXT}" != null) && "${PR_SOURCE_REPO_NAME}" != "${GITHUB_REPOSITORY}" ]]; then
+            echo "triggered_from_fork=true" >> $GITHUB_OUTPUT
+          else
+            echo "triggered_from_fork=false" >> $GITHUB_OUTPUT
+          fi
+
+          if [[ ${GITHUB_REF_TYPE} == "tag" ]]; then
+            echo "img_prod_tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+            echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          else
+            echo "img_prod_tag=latest" >> $GITHUB_OUTPUT
+            echo "version=${GITHUB_SHA}" >> $GITHUB_OUTPUT
+          fi;
+
+          if [[ ${GITHUB_REF_NAME} == ${BRANCH_TRENTO_REPO} ]]; then
+            echo "running_on_main=true" >> $GITHUB_OUTPUT
+          else
+            echo "running_on_main=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "golang_version=${GOLANG_VERSION}" >> $GITHUB_OUTPUT
+          echo "img_modifier=${IMG_MODIFIER}" >> $GITHUB_OUTPUT
+          echo "img_dev_tag=${IMG_DEV_TAG}" >> $GITHUB_OUTPUT
+          # Set it directly in GitHub repository variables:
+          echo "gh_username=${{ vars.GH_USERNAME }}" >> $GITHUB_OUTPUT
+      - name: Show outputs
+        run: |
+          set -euo pipefail
+          echo "GOLANG_VERSION: ${{steps.set-outputs.outputs.golang_version}}"
+          echo "IMG_MODIFIER: ${{steps.set-outputs.outputs.img_modifier}}"
+          echo "IMG_PREFIX: ${{steps.set-outputs.outputs.img_prefix}}"
+          echo "IMG_DEV_TAG: ${{steps.set-outputs.outputs.img_dev_tag}}"
+          echo "IMG_PROD_TAG: ${{steps.set-outputs.outputs.img_prod_tag}}"
+          echo "RUNNING_ON_MAIN: ${{steps.set-outputs.outputs.running_on_main}}"
+          echo "TRIGGERED_FROM_FORK: ${{steps.set-outputs.outputs.triggered_from_fork}}"
+          echo "VERSION: ${{steps.set-outputs.outputs.version}}"
+          echo "GH_USERNAME: ${{steps.set-outputs.outputs.gh_username}}"
+
+  # Ensure the Helm chart is valid
+  test_chart_render:
+    timeout-minutes: 3
+    needs:
+      - setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout
+      - name: Install Helm binary
+        run: |
+          set -euo pipefail
+          echo "Installing Helm ${HELM_VERSION}"
+          pushd /tmp
+          wget "https://get.helm.sh/helm-${HELM_VERSION}-linux-${ARCH}.tar.gz"
+          tar zxf "helm-$HELM_VERSION-linux-${ARCH}.tar.gz"
+          sudo mv linux-${ARCH}/helm "/usr/local/bin/helm"
+          popd
+          echo "Done. Helm has been installed"
+      - name: Run chart template test
+        run: |
+          set -euo pipefail
+          # Remove the kubeVersion field as it would fail otherwise as there isn't any k8s cluster
+          CHART_DIR=$ROOT_DIR/helm
+          sed -i.bk -e "s/kubeVersion.*//g" "${CHART_DIR}/Chart.yaml"
+          helm dep up "${CHART_DIR}"
+          helm template "${CHART_DIR}" --debug
+
+  # Build the container images
+  build_container_images:
+    timeout-minutes: 12
+    name: "Build ${{matrix.image}} image"
+    needs:
+      - setup
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - mcp-server
+    steps:
+      - name: Setup building process
+        id: setup
+        run: |
+          set -euo pipefail
+          echo "img_name=${{matrix.image}}" >> $GITHUB_OUTPUT
+          echo "img_file=/tmp/${{matrix.image}}-image.tar" >> $GITHUB_OUTPUT
+      - uses: docker/metadata-action@v5
+        name: Set container image metadata
+        id: meta
+        with:
+          images: ${{needs.setup.outputs.img_prefix}}${{steps.setup.outputs.img_name}}${{needs.setup.outputs.img_modifier}}
+          flavor: latest=true
+          tags: ${{needs.setup.outputs.img_dev_tag}}
+      - uses: docker/setup-qemu-action@v3
+        name: Setup QEMU
+      - uses: docker/setup-buildx-action@v3
+        name: Setup buildx
+      - uses: docker/build-push-action@v6
+        name: Build container image
+        env:
+          DOCKER_BUILD_SUMMARY: false
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          file: Dockerfile
+          platforms: ${{ env.IMG_PLATFORMS }}
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            VERSION=${{ needs.setup.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          outputs: type=docker,dest=${{ steps.setup.outputs.img_file }}
+      - uses: actions/upload-artifact@v4
+        name: Upload artifacts
+        with:
+          name: ${{matrix.image}}-image
+          path: ${{ steps.setup.outputs.img_file }}
+
+  # Push the container images to the registry
+  push_images:
+    timeout-minutes: 3
+    if: needs.setup.outputs.running_on_main == 'true' || inputs.trigger_release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # required for creating ghcr.io packages
+    needs:
+      - setup
+      - build_container_images
+    env:
+      IMG_PROD_TAG: ${{ needs.setup.outputs.img_prod_tag }}
+      IMG_PREFIX: ${{ needs.setup.outputs.img_prefix }}
+    steps:
+      - uses: docker/login-action@v3
+        name: Log into the container image registry
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        name: Download artifacts
+      - name: Push container images to the registry
+        run: |
+          set -euo pipefail
+          echo "IMAGES_TO_PUSH=\"${IMAGES_TO_PUSH}\"" >> $GITHUB_ENV
+          for artifact in *; do
+            echo "::debug::Processing artifact '${artifact}'"
+
+            if [[ "${artifact}" != *"-image" ]]; then
+              echo "::notice ::Skipping artifact ${artifact}, it's not a container image"
+              continue
+            fi
+
+            image=${artifact/-image/}
+            if [[ "${IMAGES_TO_PUSH}" != *"${image}"* ]]; then
+              echo "::notice ::Skipping image ${image}, it's not an image to push"
+              continue
+            fi
+
+            echo "::notice ::Loading image ${image}"
+            docker load --input "${artifact}/${artifact}.tar"
+
+            dev_image=${IMG_PREFIX}${image}${IMG_MODIFIER}:${IMG_DEV_TAG}
+            prod_image=${IMG_PREFIX}${image}:${IMG_PROD_TAG}
+            docker tag ${dev_image} ${prod_image}
+
+            echo "::notice ::Pushing image ${prod_image}"
+            docker push $prod_image
+          done
+
+  # Push the Helm chart to the OCI registry
+  push_chart:
+    if: needs.setup.outputs.running_on_main == 'true' || inputs.trigger_release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # required for creating ghcr.io packages
+    needs:
+      - push_images
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout
+      - name: Log into the container image registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Overwrite appVersion in chart
+        run: |
+          if [[ ${GITHUB_REF_TYPE} == "tag" ]]; then
+            sed -i "s|^\( *appVersion: \).*|\1${GITHUB_REF_NAME}|" helm/trento-ai-companion/Chart.yaml
+          else
+            sed -i "s|^\( *appVersion: \).*|\1${GITHUB_SHA}|" helm/trento-ai-companion/Chart.yaml
+          fi;
+      - name: Read chart versions
+        id: versions
+        run: |
+          ver=$(yq e '.version' helm/trento-ai-companion/Chart.yaml)
+          echo "::notice title=Chart Version::Chart Version is $ver"
+          echo "VERSION=$ver" >> $GITHUB_OUTPUT
+          ##
+          appver=$(yq e '.appVersion' helm/trento-ai-companion/Chart.yaml)
+          echo "::notice title=Chart App Version::Chart App Version is $appver"
+          echo "APPVERSION=$appver" >> $GITHUB_OUTPUT
+      - name: Publish OCI chart
+        uses: appany/helm-oci-chart-releaser@v0.4.2
+        with:
+          name: ${IMAGES_TO_PUSH}
+          repository: ${{ github.repository_owner }}/charts
+          tag: ${{ steps.versions.outputs.VERSION }}
+          app_version: ${{ steps.versions.outputs.APPVERSION }}
+          path: helm
+          registry: ghcr.io
+          registry_username: ${{ github.actor }}
+          registry_password: ${{ secrets.GITHUB_TOKEN }}
+
+  # Delete image artifacts, as they are not needed anymore
+  cleanup:
+    timeout-minutes: 3
+    needs:
+      - push_images
+      - push_chart
+    runs-on: ubuntu-latest
+    steps:
+      - uses: geekyeggo/delete-artifact@v5
+        with:
+          name: |
+            *-image
