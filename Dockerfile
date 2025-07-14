@@ -1,0 +1,44 @@
+# Copyright 2025 SUSE LLC
+# SPDX-License-Identifier: Apache-2.0
+
+ARG GO_VERSION=1.24
+ARG OS_VER=15.6
+
+ARG VERSION
+
+# Base build image
+FROM registry.opensuse.org/opensuse/bci/golang:${GO_VERSION} AS builder
+
+WORKDIR /go/src/github.com/trento-project/mcp-server
+
+COPY go.mod go.sum main.go ./
+COPY cmd cmd
+COPY internal internal
+
+# We are mounting the ssh auth sock in the GHA
+# See: https://docs.docker.com/reference/cli/docker/buildx/build/#ssh
+# Keep Go build cache between builds
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=ssh \
+    go mod download
+
+# Build the main grpc server, setting version via ldflags
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=ssh \
+    go build \
+    -ldflags "-X github.com/trento-project/mcp-server/cmd.version=$VERSION" \
+    -o /go/src/github.com/trento-project/mcp-server/mcp-server-trento \
+    ./main.go
+
+FROM registry.opensuse.org/opensuse/leap:${OS_VER}
+
+COPY --from=builder /go/src/github.com/trento-project/mcp-server/mcp-server-trento /mcp-server-trento
+COPY api api
+
+USER 1001
+
+ENTRYPOINT [ "/mcp-server-trento" ]
+
+# CMD [ "--help" ]

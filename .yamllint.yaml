@@ -1,0 +1,21 @@
+# Copyright 2025 SUSE LLC
+# SPDX-License-Identifier: Apache-2.0
+---
+extends: default
+ignore:
+  - helm/
+rules:
+  line-length: disable
+  comments-indentation: disable
+  comments:
+    min-spaces-from-content: 1
+  truthy:
+    check-keys: false
+  indentation:
+    ignore: []
+  document-start:
+    ignore: []
+  brackets:
+    ignore: []
+  trailing-spaces:
+    ignore: []
