@@ -1,0 +1,22 @@
+# Copyright 2025 SUSE LLC
+# SPDX-License-Identifier: Apache-2.0
+
+---
+mcpo:
+  enabled: true
+  args:
+    - --port=8000
+    - --config
+    - /app/config/config.json
+
+mcpServerTrento:
+  ingress:
+    enabled: false
+  args:
+    - --port=8080
+    - --transport=sse
+    - --oasPath=/app/api/openapi.json
+    - --oauth-enabled=false
+    - --trento-url=https://demo.trento-project.io
+    - --trento-username=demo
+    - --trento-password=demopass
