@@ -30,10 +30,6 @@ require (
 	go.uber.org/zap v1.27.0
 )
 
-// Since the module is temporarily in another repo, we need to manually replace it.
-// The version does not get updated automatically, check if there a more recent hash by doing:
-// > git ls-remote --heads https://github.com/hakube-project/HAKube.git | grep 'refs/heads/main' | cut -f1 | cut -c1-12
-
 require (
 	github.com/cenkalti/backoff/v5 v5.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
