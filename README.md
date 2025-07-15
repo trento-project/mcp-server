@@ -22,10 +22,6 @@
   - Once the authorization request is successful, the server creates a session in the Trento API using a hardcoded username and password. This session is then used to interact with the Trento API on behalf of the authenticated user.
 - **Container-Ready:**
   - Includes a Dockerfile for easy containerization and deployment.
-- **Observability with OpenTelemetry (OTEL):**
-  - Integrated with OpenTelemetry for distributed tracing, metrics, and logging.
-  - Supports OTLP exporters (gRPC and HTTP) and can be configured via environment variables.
-  - Enables monitoring and observability for production and development environments.
 
 ## Getting Started
 
