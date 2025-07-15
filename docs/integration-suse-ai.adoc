@@ -109,7 +109,7 @@ extraEnvVars:
 helm -n suse-ai upgrade --install open-webui oci://dp.apps.rancher.io/charts/open-webui -f values.openwebui.yaml
 ----
 
-==== Deploying model with Ollama remotely
+==== Deploying a model with Ollama remotely
 
 If your infrastructure does not have enough resources to run Ollama models, you can deploy them on a remote server (e.g., Google Cloud Run).
 

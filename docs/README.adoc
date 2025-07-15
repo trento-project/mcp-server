@@ -15,4 +15,4 @@ A high-level overview of how the documentation pages are organized.
 |link:configuration-options.md[Configuration options] |Information on how to configure the project
 |===
 
-For general information on how to get familiar with the project and how to deploy it, please refer to the link:/README.md[project README] instead.
+For general information on how to get familiar with the project and how to deploy it, please refer to the link:/README.adoc[project README] instead.

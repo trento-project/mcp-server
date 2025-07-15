@@ -11,6 +11,15 @@ ____
 
 `Trento MCP Server` is a Model Context Protocol (MCP) server application written in Go. It leverages https://github.com/jedisct1/openapi-mcp/[github.com/jedisct1/openapi-mcp] to generate tools and server logic based on the API specification defined in `api/openapi.json`. This approach ensures that the server remains consistent with the OpenAPI spec and can be easily extended or updated as the API evolves.
 
+=== Quick Start
+
+. `git clone https://github.com/trento-project/mcp-server.git && cd mcp-server`
+. `make run`
+. Install https://code.visualstudio.com/download[VS Code] and the link:vscode:extension/GitHub.copilot[Copilot extension] (see link:docs/README.adoc[other alternatives here])
+. Install the Trento MCP Server by https://insiders.vscode.dev/redirect/mcp/install?name=trento&config=%7B%22type%22%3A%20%22http%22%2C%22url%22%3A%20%22http%3A%2F%2Flocalhost%3A5000%2Fmcp%22%7D[clicking here]
+
+
+
 === Features
 
 * *OpenAPI-Driven Tool Generation:*
@@ -28,7 +37,7 @@ ____
 
 === Getting Started
 
-Go to the the link:docs/README.md[documentation] for detailed information on how to set up, configure, and use the `Trento MCP Server`. We recommend starting with the link:docs/integration-vscode.md[VS Code integration guide] to learn how to use it along with Visual Studio Code. Alternatively, you can refer to the link:docs/integration-suse-ai.md[SUSE AI integration guide] to understand how to deploy and use this project with SUSE AI.
+Go to the link:docs/README.adoc[documentation] for detailed information on how to set up, configure, and use the `Trento MCP Server`. We recommend starting with the link:docs/integration-vscode.md[VS Code integration guide] to learn how to use it along with Visual Studio Code. Alternatively, you can refer to the link:docs/integration-suse-ai.md[SUSE AI integration guide] to understand how to deploy and use this project with SUSE AI.
 
 === License
 
