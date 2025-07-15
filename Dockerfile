@@ -7,7 +7,7 @@ ARG OS_VER=15.6
 ARG VERSION
 
 # Base build image
-FROM registry.opensuse.org/opensuse/bci/golang:${GO_VERSION} AS builder
+FROM registry.suse.com/bci/golang:${GO_VERSION} AS builder
 
 WORKDIR /go/src/github.com/trento-project/mcp-server
 
@@ -32,7 +32,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     -o /go/src/github.com/trento-project/mcp-server/trento-mcp-server \
     ./main.go
 
-FROM registry.opensuse.org/opensuse/leap:${OS_VER}
+FROM registry.suse.com/bci/bci-micro:${OS_VER}
 
 COPY --from=builder /go/src/github.com/trento-project/mcp-server/trento-mcp-server /trento-mcp-server
 COPY api api

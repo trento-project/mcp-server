@@ -60,11 +60,11 @@ build-container: ## Build container image (eg. IMAGE=ghcr.io/trento-project/tren
 	$(DOCKER) build -t ${IMAGE} -f Dockerfile .
 
 .PHONY: push-container
-push-container: ## Push container image (eg. IMAGE=ghcr.io/trento-project/trento-mcp-server make push-container).
+push-container: ## Push container image (eg. IMAGE=ghcr.io/trento-project/trento-mcp-server:dev make push-container).
 	$(DOCKER) push ${IMAGE}
 
 .PHONY: run-container
-run-container: ## Push container image (eg. IMAGE=ghcr.io/trento-project/trento-mcp-server make push-container).
+run-container: ## Push container image (eg. IMAGE=ghcr.io/trento-project/trento-mcp-server:dev make run-container).
 	$(DOCKER) run -p ${PORT}:${PORT} ${IMAGE}
 
 ##@ Linters
