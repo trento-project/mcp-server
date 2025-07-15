@@ -90,7 +90,11 @@ fix-ending: ## Fix the line endings, converting them back to unix.
 	find . -path "./.git" -prune -o -type f -exec dos2unix {} \+;
 
 .PHONY: lint
-lint: linter-license linter-shellcheck linter-yamllint linter-manifests ## Run all the linters.
+lint: linter-golangci linter-license linter-shellcheck linter-yamllint linter-manifests ## Run all the linters.
+
+.PHONY: linter-golangci
+linter-golangci: golangci-lint ## Run golangci-lint linter.
+	$(GOLANGCI_LINT) run
 
 .PHONY: linter-license
 linter-license: ## Run license script.
@@ -116,15 +120,23 @@ $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 
 ## Tool Binaries
-KUBE_SCORE ?= $(LOCALBIN)/kube-score-$(KUBE_SCORE_VERSION)
+GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 HELM ?= $(LOCALBIN)/helm-$(HELM_VERSION)
+KUBE_SCORE ?= $(LOCALBIN)/kube-score-$(KUBE_SCORE_VERSION)
 
 ## Tool Versions
-KUBE_SCORE_VERSION ?= v1.20.0 # See https://github.com/zegl/kube-score/releases
+GOLANGCI_LINT_VERSION ?= v2.2.1 # See https://github.com/golangci/golangci-lint/releases
 HELM_VERSION ?= v3.18.4 # See https://github.com/helm/helm/releases
+KUBE_SCORE_VERSION ?= v1.20.0 # See https://github.com/zegl/kube-score/releases
 
 .PHONY: install-tools
-install-tools: helm kube-score ## Download all the required tools.
+install-tools: golangci-lint helm kube-score ## Download all the required tools.
+
+.PHONY: golangci-lint
+golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
+$(GOLANGCI_LINT): $(LOCALBIN)
+	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,${GOLANGCI_LINT_VERSION})
+	$(call check-gh-version,golangci/golangci-lint,${GOLANGCI_LINT_VERSION})
 
 .PHONY: helm
 helm: $(HELM) ## Download helm locally if necessary.
