@@ -10,9 +10,9 @@ A high-level overview of how the documentation pages are organized.
 [width="100%",options="header",]
 |===
 |Section |Description
-|link:integration-suse-ai.md[SUSE AI integration] |Information on how to integrate this project into SUSE-AI
-|link:integration-vscode.md[VS Code integration] |Information on how to use this project along with VS Code
-|link:configuration-options.md[Configuration options] |Information on how to configure the project
+|link:integration-suse-ai.adoc[SUSE AI integration] |Information on how to integrate this project into SUSE-AI
+|link:integration-vscode.adoc[VS Code integration] |Information on how to use this project along with VS Code
+|link:configuration-options.adoc[Configuration options] |Information on how to configure the project
 |===
 
 For general information on how to get familiar with the project and how to deploy it, please refer to the link:/README.adoc[project README] instead.
