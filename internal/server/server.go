@@ -148,7 +148,7 @@ func initOtel(ctx context.Context, serveOpts *ServeOptions) (otelShutdown func(c
 
 	// Set up the tracer.
 	serveOpts.Tracer = otel.Tracer(
-		"mcp-server-trento",
+		"trento-mcp-server",
 		trace.WithInstrumentationVersion(versioninfo.Short()),
 	)
 	return otelShutdown, nil
@@ -178,7 +178,7 @@ func createMCPServer(ctx context.Context, serveOpts *ServeOptions, log *otelzap.
 	}
 
 	// Create MCP server.
-	srv := mcpserver.NewMCPServer("mcp-server-trento", oasDoc.Info.Version, opts...)
+	srv := mcpserver.NewMCPServer("trento-mcp-server", oasDoc.Info.Version, opts...)
 
 	// Extract the API operations.
 	operations := openapi2mcp.ExtractOpenAPIOperations(oasDoc)

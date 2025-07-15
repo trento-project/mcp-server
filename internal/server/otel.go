@@ -341,7 +341,7 @@ func newResource() (*resource.Resource, error) {
 		resource.Default(),
 		resource.NewWithAttributes(
 			resource.Default().SchemaURL(),
-			semconv.ServiceNameKey.String("mcp-server-trento"),
+			semconv.ServiceNameKey.String("trento-mcp-server"),
 			semconv.ServiceVersionKey.String(versioninfo.Short()),
 			semconv.TelemetrySDKLanguageGo,
 			semconv.HostNameKey.String(hostName),

@@ -29,7 +29,7 @@
 
 ## Getting Started
 
-Go to the the [documentation](docs/README.md) for detailed information on how to set up, configure, and use `mcp-server-trento`. We recommend starting with the [VS Code integration guide](docs/integration-vscode.md) to learn how to use it along with Visual Studio Code. Alternatively, you can refer to the [SUSE AI integration guide](docs/integration-suse-ai.md) to understand how to deploy and use this project with SUSE AI.
+Go to the the [documentation](docs/README.md) for detailed information on how to set up, configure, and use the `Trento MCP Server`. We recommend starting with the [VS Code integration guide](docs/integration-vscode.md) to learn how to use it along with Visual Studio Code. Alternatively, you can refer to the [SUSE AI integration guide](docs/integration-suse-ai.md) to understand how to deploy and use this project with SUSE AI.
 
 ## License
 

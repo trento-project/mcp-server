@@ -31,7 +31,7 @@ var (
 
 func newRootCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:               "mcp-server-trento",
+		Use:               "trento-mcp-server",
 		Short:             "Trento MCP Server",
 		Long:              `MCP server to interact with Trento`,
 		PersistentPreRunE: initLogger,

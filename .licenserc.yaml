@@ -6,7 +6,7 @@ header:
   comment: on-failure
   license:
     copyright-owner: SUSE LLC
-    software-name: mcp-server-trento
+    software-name: trento-mcp-server
     content: |
       Copyright 2025 SUSE LLC
       SPDX-License-Identifier: Apache-2.0

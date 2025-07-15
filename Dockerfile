@@ -29,14 +29,14 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=ssh \
     go build \
     -ldflags "-X github.com/trento-project/mcp-server/cmd.version=$VERSION" \
-    -o /go/src/github.com/trento-project/mcp-server/mcp-server-trento \
+    -o /go/src/github.com/trento-project/mcp-server/trento-mcp-server \
     ./main.go
 
 FROM registry.opensuse.org/opensuse/leap:${OS_VER}
 
-COPY --from=builder /go/src/github.com/trento-project/mcp-server/mcp-server-trento /mcp-server-trento
+COPY --from=builder /go/src/github.com/trento-project/mcp-server/trento-mcp-server /trento-mcp-server
 COPY api api
 
 USER 1001
 
-ENTRYPOINT [ "/mcp-server-trento" ]
+ENTRYPOINT [ "/trento-mcp-server" ]
