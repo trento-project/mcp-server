@@ -10,7 +10,7 @@ metadata:
     app: mcp-server-trento
   {{- include "trento-ai-companion.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.mcpServerTrento.replicas }}
+  replicas: {{ .Values.mcpServer.replicas }}
   selector:
     matchLabels:
       app: mcp-server-trento
@@ -24,16 +24,16 @@ spec:
       {{- include "trento-ai-companion.selectorLabels" . | nindent 8 }}
     spec:
       containers:
-      - args: {{- toYaml .Values.mcpServerTrento.args | nindent 8 }}
+      - args: {{- toYaml .Values.mcpServer.args | nindent 8 }}
         env:
         - name: KUBERNETES_CLUSTER_DOMAIN
           value: {{ quote .Values.kubernetesClusterDomain }}
-        image: {{ .Values.mcpServerTrento.image.repository }}:{{ .Values.mcpServerTrento.image.tag | default .Chart.AppVersion }}
+        image: {{ .Values.mcpServer.image.repository }}:{{ .Values.mcpServer.image.tag | default .Chart.AppVersion }}
         name: mcp-server-trento
         ports:
         - containerPort: 8080
           name: http
-        resources: {{- toYaml .Values.mcpServerTrento.resources | nindent 10 }}
+        resources: {{- toYaml .Values.mcpServer.resources | nindent 10 }}
         volumeMounts:
         - mountPath: /app/api
           name: mcp-server-openapi-volume

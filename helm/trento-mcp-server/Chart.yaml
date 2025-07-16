@@ -3,7 +3,7 @@
 
 apiVersion: v2
 name: trento-ai-companion
-description: A Helm chart for deploying the Trento AI Companion application
+description: A Helm chart for deploying the Trento MCP Server component
 type: application
 home: https://www.trento-project.io/
 maintainers:

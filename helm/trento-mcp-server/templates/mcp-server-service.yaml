@@ -10,9 +10,9 @@ metadata:
     app: mcp-server-trento
   {{- include "trento-ai-companion.labels" . | nindent 4 }}
 spec:
-  type: {{ .Values.mcpServerTrento.type }}
+  type: {{ .Values.mcpServer.type }}
   selector:
     app: mcp-server-trento
     {{- include "trento-ai-companion.selectorLabels" . | nindent 4 }}
   ports:
-  {{- .Values.mcpServerTrento.ports | toYaml | nindent 2 }}
+  {{- .Values.mcpServer.ports | toYaml | nindent 2 }}
