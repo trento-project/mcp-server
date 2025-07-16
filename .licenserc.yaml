@@ -6,16 +6,17 @@ header:
   comment: on-failure
   license:
     copyright-owner: SUSE LLC
-    software-name: HAKube-API
+    software-name: trento-mcp-server
     content: |
       Copyright 2025 SUSE LLC
       SPDX-License-Identifier: Apache-2.0
     pattern: |
       Copyright (?:\d{4}-\d{4}|\d{4}) SUSE LLC
   paths-ignore:
+    - .github/
     - LICENSE
     - api/openapi.json
     - go.sum
-    - helm/trento-ai-companion/.helmignore
-    - helm/trento-ai-companion/templates/NOTES.txt
-    - helm/trento-ai-companion/values.schema.json
+    - helm/trento-mcp-server/.helmignore
+    - helm/trento-mcp-server/templates/NOTES.txt
+    - helm/trento-mcp-server/values.schema.json

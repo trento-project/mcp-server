@@ -42,25 +42,25 @@ mcpo:
   ## @param mcpo.type The type of Kubernetes service for MCPO (e.g., ClusterIP, NodePort).
   type: ClusterIP
 
-## @section MCP Server for Trento component
-mcpServerTrento:
+## @section Trento MCP Server component
+mcpServer:
   ingress:
-    ## @param mcpServerTrento.ingress.enabled Enable ingress for the mcpServerTrento service.
+    ## @param mcpServer.ingress.enabled Enable ingress for the mcpServer service.
     enabled: true
-    ## @param mcpServerTrento.ingress.ingressClassName The class of the ingress controller to use.
+    ## @param mcpServer.ingress.ingressClassName The class of the ingress controller to use.
     ingressClassName: traefik
-    ## @param mcpServerTrento.ingress.tls Enable TLS for the ingress.
+    ## @param mcpServer.ingress.tls Enable TLS for the ingress.
     tls: true
-    ## @param mcpServerTrento.ingress.hosts [array] Ingress hosts configuration for the mcpServerTrento service.
+    ## @param mcpServer.ingress.hosts [array] Ingress hosts configuration for the mcpServer service.
     hosts:
       ## The host for the ingress rule.
       - host: example.com
         paths:
           ## The path for the ingress rule.
-          - path: /mcp-server-trento
+          - path: /trento-mcp-server
             ## The path type for the ingress rule (e.g., Prefix, Exact).
             pathType: Prefix
-  ## @param mcpServerTrento.args Command-line arguments for the MCP Server Trento container. Includes settings for port, transport, paths, and Trento connection details.
+  ## @param mcpServer.args Command-line arguments for the MCP Server container. Includes settings for port, transport, paths, and Trento connection details.
   args:
     - --port=8080
     - --transport=sse
@@ -70,22 +70,22 @@ mcpServerTrento:
     - --trento-username=demo
     - --trento-password=demopass
   image:
-    ## @param mcpServerTrento.image.repository The container image repository for the MCP Server Trento component.
-    repository: antgamdia/mcp-server-trento
-    ## @param mcpServerTrento.image.tag The container image tag for the MCP Server Trento component.
+    ## @param mcpServer.image.repository The container image repository for the MCP Server component.
+    repository: ghcr.io/trento-project/trento-mcp-server
+    ## @param mcpServer.image.tag The container image tag for the MCP Server component.
     tag: latest
   resources:
     limits:
-      ## @param mcpServerTrento.resources.limits.cpu The CPU limit for the MCP Server Trento pod.
+      ## @param mcpServer.resources.limits.cpu The CPU limit for the MCP Server pod.
       cpu: 500m
-      ## @param mcpServerTrento.resources.limits.memory The memory limit for the MCP Server Trento pod.
+      ## @param mcpServer.resources.limits.memory The memory limit for the MCP Server pod.
       memory: 512Mi
     requests:
-      ## @param mcpServerTrento.resources.requests.cpu The CPU request for the MCP Server Trento pod.
+      ## @param mcpServer.resources.requests.cpu The CPU request for the MCP Server pod.
       cpu: 100m
-      ## @param mcpServerTrento.resources.requests.memory The memory request for the MCP Server Trento pod.
+      ## @param mcpServer.resources.requests.memory The memory request for the MCP Server pod.
       memory: 128Mi
-  ## @param mcpServerTrento.ports [array] Port configuration for the mcpServerTrento service.
+  ## @param mcpServer.ports [array] Port configuration for the mcpServer service.
   ports:
     - ## The name of the service port.
       name: http
@@ -95,7 +95,7 @@ mcpServerTrento:
       protocol: TCP
       ## The target port on the pod.
       targetPort: 8080
-  ## @param mcpServerTrento.replicas The number of pod replicas for the MCP Server Trento deployment.
+  ## @param mcpServer.replicas The number of pod replicas for the MCP Server deployment.
   replicas: 1
-  ## @param mcpServerTrento.type The type of Kubernetes service for MCP Server Trento (e.g., ClusterIP, NodePort).
+  ## @param mcpServer.type The type of Kubernetes service for MCP Server (e.g., ClusterIP, NodePort).
   type: ClusterIP

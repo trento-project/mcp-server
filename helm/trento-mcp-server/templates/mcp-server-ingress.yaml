@@ -1,27 +1,27 @@
 # Copyright 2025 SUSE LLC
 # SPDX-License-Identifier: Apache-2.0
 
-{{- if .Values.mcpServerTrento.ingress.enabled }}
+{{- if .Values.mcpServer.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "trento-ai-companion.fullname" . }}-mcp-server
+  name: {{ include "trento-mcp-server.fullname" . }}-mcp-server
   namespace: {{ .Release.Namespace }}
   labels:
-  {{- include "trento-ai-companion.labels" . | nindent 4 }}
+  {{- include "trento-mcp-server.labels" . | nindent 4 }}
   annotations:
-  {{- with .Values.mcpServerTrento.ingress.annotations -}}
+  {{- with .Values.mcpServer.ingress.annotations -}}
     {{ toYaml . | nindent 4 }}
   {{- end -}}
-    {{- if eq .Values.mcpServerTrento.ingress.ingressClassName "traefik" }}
+    {{- if eq .Values.mcpServer.ingress.ingressClassName "traefik" }}
     kubernetes.io/ingress.class: traefik
     # This middleware strips the prefix from the request path
-    traefik.ingress.kubernetes.io/router.middlewares: {{ .Release.Namespace }}-{{ include "trento-ai-companion.fullname" . }}-strip-prefix@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: {{ .Release.Namespace }}-{{ include "trento-mcp-server.fullname" . }}-strip-prefix@kubernetescrd
     {{- end }}
 spec:
   ingressClassName: traefik
   rules:
-{{- range .Values.mcpServerTrento.ingress.hosts }}
+{{- range .Values.mcpServer.ingress.hosts }}
   - host: {{ .host }}
     http:
       paths:
@@ -30,14 +30,14 @@ spec:
         pathType: {{ .pathType }}
         backend:
           service:
-            name: {{ include "trento-ai-companion.fullname" $ }}-mcp-server
+            name: {{ include "trento-mcp-server.fullname" $ }}-mcp-server
             port:
               name: http
       {{- end }}
 {{- end }}
   tls:
   - hosts:
-  {{- range .Values.mcpServerTrento.ingress.hosts }}
+  {{- range .Values.mcpServer.ingress.hosts }}
     - {{ .host }}
 {{- end }}
 {{- end }}
