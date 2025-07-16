@@ -3,11 +3,11 @@
 
 == Configuration Options
 
-This document provides an overview of how to configure the `mcp-server-trento` server, including command-line parameters and environment variables.
+This document provides an overview of how to configure the `trento-mcp-server` server, including command-line parameters and environment variables.
 
 === Command-Line Parameters
 
-The `mcp-server-trento` binary accepts several command-line flags to configure its behavior. You can pass these flags when running the binary directly or via the Makefile.
+The `trento-mcp-server` binary accepts several command-line flags to configure its behavior. You can pass these flags when running the binary directly or via the Makefile.
 
 [width="100%",cols="19%,31%,50%",options="header",]
 |===
@@ -37,12 +37,12 @@ You can see all available flags by running:
 
 [source,console]
 ----
-./mcp-server-trento --help
+./trento-mcp-server --help
 ----
 
 === Environment Variables
 
-You can also configure `mcp-server-trento` using environment variables, especially for OTEL and OAuth settings. These are useful for containerized deployments and CI/CD pipelines.
+You can also configure `trento-mcp-server` using environment variables, especially for OTEL and OAuth settings. These are useful for containerized deployments and CI/CD pipelines.
 
 [width="100%",cols="35%,65%",options="header",]
 |===
@@ -62,7 +62,7 @@ You can also configure `mcp-server-trento` using environment variables, especial
 
 [source,console]
 ----
-./mcp-server-trento --port 8080 --enable-otel --otel-exporter-otlp-endpoint http://otel-collector:4317
+./trento-mcp-server --port 8080 --enable-otel --otel-exporter-otlp-endpoint http://otel-collector:4317
 ----
 
 Or with environment variables:
@@ -71,5 +71,5 @@ Or with environment variables:
 ----
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
 export PORT=8080
-./mcp-server-trento --enable-otel
+./trento-mcp-server --enable-otel
 ----

@@ -12,7 +12,7 @@ mcpServerTrento:
     hosts:
       - host: suse-ai.example.com
         paths:
-          - path: /mcp-server-trento-auth
+          - path: /trento-mcp-server-auth
             pathType: Prefix
           - path: /.well-known
             pathType: Prefix
@@ -24,7 +24,7 @@ mcpServerTrento:
     - --oauth-authorization-server-url=https://example.eu.auth0.com/.well-known/openid-configuration
     - --oauth-issuer=https://example.eu.auth0.com/
     - --oauth-validate-url=https://example.eu.auth0.com/userinfo
-    - --base-url=https://suse-ai.example.com/mcp-server-trento-auth
+    - --base-url=https://suse-ai.example.com/trento-mcp-server-auth
     - --trento-url=https://demo.trento-project.io
     - --trento-username=demo---
     - --trento-password=demopass

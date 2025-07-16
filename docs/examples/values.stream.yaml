@@ -12,7 +12,7 @@ mcpServerTrento:
     hosts:
       - host: suse-ai.example.com
         paths:
-          - path: /mcp-server-trento
+          - path: /trento-mcp-server
             pathType: Prefix
   args:
     - --port=8080
