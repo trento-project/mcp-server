@@ -1,26 +1,27 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
+// Package cmd holds the definition of CLI commands.
 package cmd
 
 import (
 	"log/slog"
 	"os"
 
-	"github.com/carlmjohnson/versioninfo"
-	"github.com/spf13/cobra"
-	"github.com/trento-project/mcp-server/internal/server"
-	"github.com/trento-project/mcp-server/internal/utils"
+	"github.com/carlmjohnson/versioninfo"                  //nolint:depguard
+	"github.com/spf13/cobra"                               //nolint:depguard
+	"github.com/trento-project/mcp-server/internal/server" //nolint:depguard
+	"github.com/trento-project/mcp-server/internal/utils"  //nolint:depguard
 )
 
 var (
 	// version will be set via ldflags.
-	logLevel  int
-	serveOpts server.ServeOptions
-	version   string
+	logLevel  int                 //nolint:gochecknoglobals
+	serveOpts server.ServeOptions //nolint:gochecknoglobals
+	version   string              //nolint:gochecknoglobals
 
 	// rootCmd represents the base command when called without any subcommands.
-	rootCmd *cobra.Command
+	rootCmd *cobra.Command //nolint:gochecknoglobals
 )
 
 func newRootCmd() *cobra.Command {
@@ -42,18 +43,18 @@ func setFlags(cmd *cobra.Command) {
 	cmd.Flags().IntVarP(&serveOpts.Port, "port", "p", 5000, "The port on which to run the server")
 	cmd.Flags().StringVarP(&serveOpts.OASPath, "oasPath", "P", "./api/openapi.json", "Path to the OpenAPI spec file")
 	cmd.Flags().StringVar(&serveOpts.Transport, "transport", "sse", "The protocol to use, choose 'streamable' or 'sse'")
-	cmd.Flags().StringVar(&serveOpts.McpBaseUrl, "base-url", "", "Base URL where the mcp is deployed, if none, http://localhost:port is used'")
+	cmd.Flags().StringVar(&serveOpts.McpBaseURL, "base-url", "", "Base URL where the mcp is deployed, if none, http://localhost:port is used'") //nolint:lll
 	// OAUTH
-	cmd.Flags().BoolVar(&serveOpts.OauthEnabled, "oauth-enabled", false, "Enable the oauth authentication in the MCP")
-	cmd.Flags().StringVar(&serveOpts.OauthAuthorizationServerURL, "oauth-authorization-server-url", "https://my-idp.example.com/.well-known/openid-configuration", "URL for the oauth-authorization-server endpoint") //nolint:lll,golines
-	cmd.Flags().StringVar(&serveOpts.OauthIssuer, "oauth-issuer", "https://my-idp.example.com/", "Issuer for the oauth flow")
-	cmd.Flags().StringVar(&serveOpts.OauthValidateURL, "oauth-validate-url", "https://my-idp.example.com/userinfo", "URL for token validation")
+	cmd.Flags().BoolVar(&serveOpts.OauthEnabled, "oauth-enabled", false, "Enable the oauth authentication in the MCP")                                                                                                //nolint:lll
+	cmd.Flags().StringVar(&serveOpts.OauthAuthorizationServerURL, "oauth-authorization-server-url", "https://my-idp.example.com/.well-known/openid-configuration", "URL for the oauth-authorization-server endpoint") //nolint:lll
+	cmd.Flags().StringVar(&serveOpts.OauthIssuer, "oauth-issuer", "https://my-idp.example.com/", "Issuer for the oauth flow")                                                                                         //nolint:lll
+	cmd.Flags().StringVar(&serveOpts.OauthValidateURL, "oauth-validate-url", "https://my-idp.example.com/userinfo", "URL for token validation")                                                                       //nolint:lll
 	// Trento
-	cmd.Flags().StringVar(&serveOpts.TrentoUrl, "trento-url", "https://demo.trento-project.io", "URL for the target Trento server")
+	cmd.Flags().StringVar(&serveOpts.TrentoURL, "trento-url", "https://demo.trento-project.io", "URL for the target Trento server") //nolint:lll
 	cmd.Flags().StringVar(&serveOpts.TrentoUsername, "trento-username", "demo", "Username for the target Trento server")
-	cmd.Flags().StringVar(&serveOpts.TrentoPassword, "trento-password", "demopass", "Password for the target Trento server")
+	cmd.Flags().StringVar(&serveOpts.TrentoPassword, "trento-password", "demopass", "Password for the target Trento server") //nolint:lll
 	// OTHERS
-	cmd.PersistentFlags().IntVarP(&logLevel, "verbosity", "v", 0, "log level verbosity (-1: debug, 0: info, 1: warning, 2: error)")
+	cmd.PersistentFlags().IntVarP(&logLevel, "verbosity", "v", 0, "log level verbosity (-1: debug, 0: info, 1: warning, 2: error)") //nolint:lll
 }
 
 // init creates a new command, append the runtime version and set flags.

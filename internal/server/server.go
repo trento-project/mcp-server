@@ -1,6 +1,7 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
+// Package server is the where the server logic is implemented.
 package server
 
 import (
@@ -20,7 +21,7 @@ import (
 
 // ServeOptions encapsulates the available command-line options.
 type ServeOptions struct {
-	McpBaseUrl                  string
+	McpBaseURL                  string
 	OASPath                     string
 	OauthAuthorizationServerURL string
 	OauthEnabled                bool
@@ -29,7 +30,7 @@ type ServeOptions struct {
 	Port                        int
 	Transport                   string
 	TrentoPassword              string
-	TrentoUrl                   string
+	TrentoURL                   string
 	TrentoUsername              string
 }
 
@@ -87,10 +88,10 @@ func createMCPServer(ctx context.Context, serveOpts *ServeOptions) (*mcpserver.M
 
 	// Overwrite the Trento URL in the OpenAPI
 	if len(oasDoc.Servers) > 0 {
-		oasDoc.Servers[0].URL = serveOpts.TrentoUrl
+		oasDoc.Servers[0].URL = serveOpts.TrentoURL
 	} else {
 		oasDoc.Servers = append(oasDoc.Servers, &openapi3.Server{
-			URL: serveOpts.TrentoUrl,
+			URL: serveOpts.TrentoURL,
 		})
 	}
 
@@ -121,10 +122,24 @@ func startHTTPServer(
 	// Wrapper to pass the url and other params in the future
 	authContextFuncWrapper := func(c context.Context, r *http.Request) context.Context {
 		if !serveOpts.OauthEnabled {
-			return authContextFuncNoOauth(c, r, serveOpts.OauthValidateURL, serveOpts.TrentoUrl, serveOpts.TrentoUsername, serveOpts.TrentoPassword)
+			return authContextFuncNoOauth(
+				c,
+				r,
+				serveOpts.OauthValidateURL,
+				serveOpts.TrentoURL,
+				serveOpts.TrentoUsername,
+				serveOpts.TrentoPassword,
+			)
 		}
 
-		return authContextFunc(c, r, serveOpts.OauthValidateURL, serveOpts.TrentoUrl, serveOpts.TrentoUsername, serveOpts.TrentoPassword)
+		return authContextFunc(
+			c,
+			r,
+			serveOpts.OauthValidateURL,
+			serveOpts.TrentoURL,
+			serveOpts.TrentoUsername,
+			serveOpts.TrentoPassword,
+		)
 	}
 
 	// Create the server, using custom one to handle mcp auth
@@ -153,10 +168,24 @@ func startSSEServer(
 ) error {
 	authContextFuncWrapper := func(c context.Context, r *http.Request) context.Context {
 		if !serveOpts.OauthEnabled {
-			return authContextFuncNoOauth(c, r, serveOpts.OauthValidateURL, serveOpts.TrentoUrl, serveOpts.TrentoUsername, serveOpts.TrentoPassword)
+			return authContextFuncNoOauth(
+				c,
+				r,
+				serveOpts.OauthValidateURL,
+				serveOpts.TrentoURL,
+				serveOpts.TrentoUsername,
+				serveOpts.TrentoPassword,
+			)
 		}
 
-		return authContextFunc(c, r, serveOpts.OauthValidateURL, serveOpts.TrentoUrl, serveOpts.TrentoUsername, serveOpts.TrentoPassword)
+		return authContextFunc(
+			c,
+			r,
+			serveOpts.OauthValidateURL,
+			serveOpts.TrentoURL,
+			serveOpts.TrentoUsername,
+			serveOpts.TrentoPassword,
+		)
 	}
 
 	// Create the server, using custom one to handle mcp auth

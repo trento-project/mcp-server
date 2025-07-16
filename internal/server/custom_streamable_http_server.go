@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -15,9 +16,9 @@ import (
 	mcpserver "github.com/jedisct1/openapi-mcp/pkg/mcp/server"
 )
 
-func getMCPBaseURL(mcpBaseUrl string, port int) string {
-	if mcpBaseUrl != "" {
-		return mcpBaseUrl
+func getMCPBaseURL(mcpBaseURL string, port int) string {
+	if mcpBaseURL != "" {
+		return mcpBaseURL
 	}
 
 	return fmt.Sprintf("http://localhost:%d", port)
@@ -30,7 +31,7 @@ type CustomStreamableHTTPServer struct {
 	endpointPath                string
 	httpServer                  *http.Server
 	issuer                      string
-	mcpBaseUrl                  string
+	mcpBaseURL                  string
 	oauthAuthorizationServerURL string
 	oauthEnabled                bool
 	port                        int
@@ -38,10 +39,16 @@ type CustomStreamableHTTPServer struct {
 
 type fnAuth = func(ctx context.Context, r *http.Request) context.Context
 
+// CustomStreamableHTTPOption is a option of the CustomStreamableHTTPServer type.
 type CustomStreamableHTTPOption func(*CustomStreamableHTTPServer)
 
 // NewCustomStreamableHTTPServer creates a new instance of your custom server.
-func NewCustomStreamableHTTPServer(server *mcpserver.MCPServer, endpointPath string, fn fnAuth, serveOpts *ServeOptions) *CustomStreamableHTTPServer {
+func NewCustomStreamableHTTPServer(
+	server *mcpserver.MCPServer,
+	endpointPath string,
+	fn fnAuth,
+	serveOpts *ServeOptions,
+) *CustomStreamableHTTPServer {
 	opts := []mcpserver.StreamableHTTPOption{
 		mcpserver.WithEndpointPath(endpointPath),
 		mcpserver.WithHTTPContextFunc(fn),
@@ -51,7 +58,7 @@ func NewCustomStreamableHTTPServer(server *mcpserver.MCPServer, endpointPath str
 		StreamableHTTPServer:        mcpserver.NewStreamableHTTPServer(server, opts...),
 		endpointPath:                endpointPath,
 		issuer:                      serveOpts.OauthIssuer,
-		mcpBaseUrl:                  serveOpts.McpBaseUrl,
+		mcpBaseURL:                  serveOpts.McpBaseURL,
 		oauthAuthorizationServerURL: serveOpts.OauthAuthorizationServerURL,
 		oauthEnabled:                serveOpts.OauthEnabled,
 		port:                        serveOpts.Port,
@@ -65,7 +72,10 @@ func (s *CustomStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Re
 			authHeader := r.Header.Get("Authorization")
 			if !strings.HasPrefix(authHeader, "Bearer ") {
 				w.Header().
-					Set("WWW-Authenticate", fmt.Sprintf(`Bearer realm="MCP", resource_metadata="%s/.well-known/resource-metadata"`, getMCPBaseURL(s.mcpBaseUrl, s.port)))
+					Set("WWW-Authenticate",
+						fmt.Sprintf(`Bearer realm="MCP", resource_metadata="%s/.well-known/resource-metadata"`,
+							getMCPBaseURL(s.mcpBaseURL, s.port)),
+					)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 
 				return
@@ -77,7 +87,7 @@ func (s *CustomStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Re
 	s.StreamableHTTPServer.ServeHTTP(w, r)
 }
 
-// Override ServeHTTP to add your custom logic.
+// Start begins the execution of the HTTP server.
 func (s *CustomStreamableHTTPServer) Start(addr string) error {
 	mux := http.NewServeMux()
 	mux.Handle(s.endpointPath, s) // Serve MCP endpoint
@@ -122,7 +132,11 @@ func (s *CustomStreamableHTTPServer) serveOAuthASDiscoveryProxy(w http.ResponseW
 		return
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Error("failed to close response body", "error", err)
+		}
+	}()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp.StatusCode)
@@ -140,11 +154,11 @@ func (s *CustomStreamableHTTPServer) serveOAuthProtectedResourceMetadata(w http.
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 	metadata := map[string]any{
-		"resource":                        fmt.Sprintf("%s/mcp", getMCPBaseURL(s.mcpBaseUrl, s.port)),
+		"resource":                        fmt.Sprintf("%s/mcp", getMCPBaseURL(s.mcpBaseURL, s.port)),
 		"resource_auth_methods_supported": []string{"bearer"},
 		"resource_scopes_supported":       []string{"openid", "profile", "email"},
 		"issuer":                          s.issuer,
-		"authorization_servers":           []string{getMCPBaseURL(s.mcpBaseUrl, s.port)},
+		"authorization_servers":           []string{getMCPBaseURL(s.mcpBaseURL, s.port)},
 	}
 
 	w.Header().Set("Content-Type", "application/json")

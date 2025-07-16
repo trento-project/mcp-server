@@ -1,7 +1,8 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
-package utils
+// Package utils implements extra functionality like logging.
+package utils //nolint:revive
 
 import (
 	"context"
@@ -35,7 +36,11 @@ func parseLogLevel(logLevel int) slog.Level {
 	}
 }
 
-// TODO(agamez): use it as a dependency, once available at https://pkg.go.dev/github.com/trento-project/agent@v0.0.0-20250417081934-5aa03367504a/pkg/utils
+// TODO(agamez): use it as a dependency,
+// once available at https://pkg.go.dev/github.com/trento-project/agent@v0.0.0-20250417081934-5aa03367504a/pkg/utils
+
+// NewDefaultLogger is a function temporarily extracted
+// from https://github.com/trento-project/agent/blob/main/pkg/utils/log.go.
 func NewDefaultLogger(logLevel int) *slog.Logger {
 	return slog.New(NewDefaultTextHandler(
 		os.Stdout,
@@ -43,19 +48,27 @@ func NewDefaultLogger(logLevel int) *slog.Logger {
 	))
 }
 
+// DefaultTextHandler is a type temporarily extracted
+// from https://github.com/trento-project/agent/blob/main/pkg/utils/log.go.
 type DefaultTextHandler struct {
 	w     io.Writer
 	level slog.Level
 }
 
+// NewDefaultTextHandler is a function temporarily extracted
+// from https://github.com/trento-project/agent/blob/main/pkg/utils/log.go.
 func NewDefaultTextHandler(w io.Writer, level slog.Level) *DefaultTextHandler {
 	return &DefaultTextHandler{w: w, level: level}
 }
 
+// Enabled is a function temporarily extracted
+// from https://github.com/trento-project/agent/blob/main/pkg/utils/log.go.
 func (h *DefaultTextHandler) Enabled(_ context.Context, level slog.Level) bool {
 	return level >= h.level
 }
 
+// Handle is a function temporarily extracted
+// from https://github.com/trento-project/agent/blob/main/pkg/utils/log.go.
 func (h *DefaultTextHandler) Handle(_ context.Context, r slog.Record) error {
 	// Format time as YYYY-MM-DD hh:mm:ss
 	timeStr := r.Time.Format("2006-01-02 15:04:05")
@@ -79,11 +92,15 @@ func (h *DefaultTextHandler) Handle(_ context.Context, r slog.Record) error {
 	return err
 }
 
+// WithAttrs is a function temporarily extracted
+// from https://github.com/trento-project/agent/blob/main/pkg/utils/log.go.
 func (h *DefaultTextHandler) WithAttrs(_ []slog.Attr) slog.Handler {
 	// do nothing, all attributes are processed in Handle
 	return h
 }
 
+// WithGroup is a function temporarily extracted
+// from https://github.com/trento-project/agent/blob/main/pkg/utils/log.go.
 func (h *DefaultTextHandler) WithGroup(_ string) slog.Handler {
 	// TODO: handle group
 	return h

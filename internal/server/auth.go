@@ -16,16 +16,23 @@ import (
 )
 
 var (
-	cachedAccessToken  string
-	cachedRefreshToken string
-	tokenExpiry        time.Time
-	tokenMutex         sync.Mutex
+	cachedAccessToken  string     //nolint:gochecknoglobals
+	cachedRefreshToken string     //nolint:gochecknoglobals
+	tokenExpiry        time.Time  //nolint:gochecknoglobals
+	tokenMutex         sync.Mutex //nolint:gochecknoglobals
 )
 
 // authContextFuncNoOauth is a context function for the server that
 // uses hardcoded credentials to get a token for the trento API.
-func authContextFuncNoOauth(ctx context.Context, _ *http.Request, _, trentoUrl, username, password string) context.Context {
-	err := handleTrentoAuth(ctx, trentoUrl, username, password)
+func authContextFuncNoOauth(
+	ctx context.Context,
+	_ *http.Request,
+	_,
+	trentoURL,
+	username,
+	password string,
+) context.Context {
+	err := handleTrentoAuth(ctx, trentoURL, username, password)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to handle Trento auth", "error", err)
 	}
@@ -35,7 +42,14 @@ func authContextFuncNoOauth(ctx context.Context, _ *http.Request, _, trentoUrl, 
 
 // authContextFunc is a context function for the server that
 // validates the Authorization header and injects the Bearer token into the environment.
-func authContextFunc(ctx context.Context, r *http.Request, validateURL, trentoUrl, username, password string) context.Context {
+func authContextFunc(
+	ctx context.Context,
+	r *http.Request,
+	validateURL,
+	trentoURL,
+	username,
+	password string,
+) context.Context {
 	authHeader := r.Header.Get("Authorization")
 
 	const prefix = "Bearer "
@@ -44,7 +58,7 @@ func authContextFunc(ctx context.Context, r *http.Request, validateURL, trentoUr
 		token := authHeader[len(prefix):]
 		if validateAuth0JWT(ctx, token, validateURL) {
 			// Token is valid, proceed with current logic (hardcoded creds for Trento API)
-			err := handleTrentoAuth(ctx, trentoUrl, username, password)
+			err := handleTrentoAuth(ctx, trentoURL, username, password)
 			if err != nil {
 				slog.ErrorContext(ctx, "failed to handle Trento auth", "error", err)
 
@@ -78,13 +92,17 @@ func validateAuth0JWT(ctx context.Context, tokenString, validateURL string) bool
 		return false
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.ErrorContext(ctx, "failed to close response body", "error", err)
+		}
+	}()
 
 	return resp.StatusCode == http.StatusOK
 }
 
 // handleTrentoAuth handles the Trento API authentication with token management.
-func handleTrentoAuth(ctx context.Context, trentoUrl, username, password string) error {
+func handleTrentoAuth(ctx context.Context, trentoURL, username, password string) error {
 	tokenMutex.Lock()
 	defer tokenMutex.Unlock()
 
@@ -101,7 +119,7 @@ func handleTrentoAuth(ctx context.Context, trentoUrl, username, password string)
 				return err
 			}
 
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, trentoUrl+"/api/session", bytes.NewBuffer(body))
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, trentoURL+"/api/session", bytes.NewBuffer(body))
 			if err != nil {
 				return err
 			}
@@ -112,7 +130,11 @@ func handleTrentoAuth(ctx context.Context, trentoUrl, username, password string)
 
 			resp, err := client.Do(req)
 			if err == nil && resp.StatusCode == http.StatusOK {
-				defer resp.Body.Close()
+				defer func() {
+					if err := resp.Body.Close(); err != nil {
+						slog.ErrorContext(ctx, "failed to close response body", "error", err)
+					}
+				}()
 
 				respBody, _ := io.ReadAll(resp.Body)
 
@@ -148,7 +170,7 @@ func handleTrentoAuth(ctx context.Context, trentoUrl, username, password string)
 
 		if cachedAccessToken == "" {
 			// No refresh token or refresh failed, do initial login
-			err = performInitialLogin(ctx, trentoUrl, username, password)
+			err = performInitialLogin(ctx, trentoURL, username, password)
 			if err != nil {
 				return err
 			}
@@ -165,7 +187,7 @@ func handleTrentoAuth(ctx context.Context, trentoUrl, username, password string)
 }
 
 // performInitialLogin performs the initial login to Trento API with hardcoded credentials.
-func performInitialLogin(ctx context.Context, trentoUrl, username, password string) error {
+func performInitialLogin(ctx context.Context, trentoURL, username, password string) error {
 	body, err := json.Marshal(map[string]string{
 		"username": username,
 		"password": password,
@@ -174,7 +196,7 @@ func performInitialLogin(ctx context.Context, trentoUrl, username, password stri
 		return err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, trentoUrl+"/api/session", bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, trentoURL+"/api/session", bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
@@ -185,7 +207,11 @@ func performInitialLogin(ctx context.Context, trentoUrl, username, password stri
 
 	resp, err := client.Do(req)
 	if err == nil && resp.StatusCode == http.StatusOK {
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				slog.ErrorContext(ctx, "failed to close response body", "error", err)
+			}
+		}()
 
 		respBody, _ := io.ReadAll(resp.Body)
 

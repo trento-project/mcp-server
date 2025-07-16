@@ -1,6 +1,7 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
+// main package for this project.
 package main
 
 import "github.com/trento-project/mcp-server/cmd"
