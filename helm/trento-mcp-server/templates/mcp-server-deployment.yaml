@@ -4,24 +4,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "trento-ai-companion.fullname" . }}-mcp-server
+  name: {{ include "trento-mcp-server.fullname" . }}-mcp-server
   namespace: {{ .Release.Namespace }}
   labels:
     app: mcp-server-trento
-  {{- include "trento-ai-companion.labels" . | nindent 4 }}
+  {{- include "trento-mcp-server.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.mcpServer.replicas }}
   selector:
     matchLabels:
       app: mcp-server-trento
-    {{- include "trento-ai-companion.selectorLabels" . | nindent 6 }}
+    {{- include "trento-mcp-server.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/mcp-server-configmap.yaml") . | sha256sum }}
       labels:
         app: mcp-server-trento
-      {{- include "trento-ai-companion.selectorLabels" . | nindent 8 }}
+      {{- include "trento-mcp-server.selectorLabels" . | nindent 8 }}
     spec:
       containers:
       - args: {{- toYaml .Values.mcpServer.args | nindent 8 }}
@@ -41,5 +41,5 @@ spec:
       imagePullSecrets: []
       volumes:
       - configMap:
-          name: {{ include "trento-ai-companion.fullname" . }}-mcp-server
+          name: {{ include "trento-mcp-server.fullname" . }}-mcp-server
         name: mcp-server-openapi-volume

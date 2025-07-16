@@ -3,7 +3,7 @@
   ~ SPDX-License-Identifier: Apache-2.0
 -->
 
-# Helm package for trento-ai-companion
+# Helm package for trento-mcp-server
 
 <!-- This readme has been created with this tool: https://github.com/bitnami/readme-generator-for-helm
     > node "./readme-generator-for-helm/bin/index.js" -v ./helm/values.yaml -r ./helm/README.md
@@ -12,9 +12,9 @@
 ## TL;DR
 
 ```console
-helm -n suse-ai upgrade --install trento-for-suse-ai ./helm/trento-ai-companion --values ./values.mcpo.yaml
-helm -n suse-ai upgrade --install mcp-auth ./helm/trento-ai-companion --values ./values.auth.yaml
-helm -n suse-ai upgrade --install mcp-stream ./helm/trento-ai-companion --values ./values.stream.yaml
+helm -n suse-ai upgrade --install trento-for-suse-ai ./helm/trento-mcp-server --values ./values.mcpo.yaml
+helm -n suse-ai upgrade --install mcp-auth ./helm/trento-mcp-server --values ./values.auth.yaml
+helm -n suse-ai upgrade --install mcp-stream ./helm/trento-mcp-server --values ./values.stream.yaml
 ```
 
 ## Parameters

@@ -5,10 +5,10 @@
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: {{ include "trento-ai-companion.fullname" . }}-strip-prefix
+  name: {{ include "trento-mcp-server.fullname" . }}-strip-prefix
   namespace: {{ .Release.Namespace }}
   labels:
-  {{- include "trento-ai-companion.labels" . | nindent 4 }}
+  {{- include "trento-mcp-server.labels" . | nindent 4 }}
 spec:
   stripPrefix:
     prefixes: {{- range .Values.mcpServer.ingress.hosts }}

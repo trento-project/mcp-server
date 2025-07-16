@@ -4,15 +4,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "trento-ai-companion.fullname" . }}-mcp-server
+  name: {{ include "trento-mcp-server.fullname" . }}-mcp-server
   namespace: {{ .Release.Namespace }}
   labels:
     app: mcp-server-trento
-  {{- include "trento-ai-companion.labels" . | nindent 4 }}
+  {{- include "trento-mcp-server.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.mcpServer.type }}
   selector:
     app: mcp-server-trento
-    {{- include "trento-ai-companion.selectorLabels" . | nindent 4 }}
+    {{- include "trento-mcp-server.selectorLabels" . | nindent 4 }}
   ports:
   {{- .Values.mcpServer.ports | toYaml | nindent 2 }}
