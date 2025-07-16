@@ -6,13 +6,14 @@ header:
   comment: on-failure
   license:
     copyright-owner: SUSE LLC
-    software-name: mcp-server-trento
+    software-name: trento-mcp-server
     content: |
       Copyright 2025 SUSE LLC
       SPDX-License-Identifier: Apache-2.0
     pattern: |
       Copyright (?:\d{4}-\d{4}|\d{4}) SUSE LLC
   paths-ignore:
+    - .github/
     - LICENSE
     - api/openapi.json
     - go.sum

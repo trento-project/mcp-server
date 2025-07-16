@@ -22,14 +22,10 @@
   - Once the authorization request is successful, the server creates a session in the Trento API using a hardcoded username and password. This session is then used to interact with the Trento API on behalf of the authenticated user.
 - **Container-Ready:**
   - Includes a Dockerfile for easy containerization and deployment.
-- **Observability with OpenTelemetry (OTEL):**
-  - Integrated with OpenTelemetry for distributed tracing, metrics, and logging.
-  - Supports OTLP exporters (gRPC and HTTP) and can be configured via environment variables.
-  - Enables monitoring and observability for production and development environments.
 
 ## Getting Started
 
-Go to the the [documentation](docs/README.md) for detailed information on how to set up, configure, and use `mcp-server-trento`. We recommend starting with the [VS Code integration guide](docs/integration-vscode.md) to learn how to use it along with Visual Studio Code. Alternatively, you can refer to the [SUSE AI integration guide](docs/integration-suse-ai.md) to understand how to deploy and use this project with SUSE AI.
+Go to the the [documentation](docs/README.md) for detailed information on how to set up, configure, and use the `Trento MCP Server`. We recommend starting with the [VS Code integration guide](docs/integration-vscode.md) to learn how to use it along with Visual Studio Code. Alternatively, you can refer to the [SUSE AI integration guide](docs/integration-suse-ai.md) to understand how to deploy and use this project with SUSE AI.
 
 ## License
 
