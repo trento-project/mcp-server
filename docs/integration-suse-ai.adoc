@@ -17,7 +17,7 @@ This guide assumes:
 
 * you have a Kubernetes cluster set up and running (with an ingress controller and cert-manager installed)
 * you have access to the SUSE Application Collection.
-* if you want to run Ollama models, you have either:
+* To run Ollama models, you have either:
 ** a Kubernetes cluster with sufficient resources.
 ** a cloud provider and enough permissions to deploy Ollama models remotely.
 
@@ -30,7 +30,7 @@ Deploying the entire SUSE AI stack requires plenty of resources, especially for 
 You need access to SUSE Application Collection and the proper entitlements to download the required artifacts. Always refer to the https://docs.apps.rancher.io/get-started/authentication/[SUSE Application Collection documentation] for the latest instructions on how to authenticate and access the collection. This guide assumes you have the necessary credentials and access to the collection.
 
 ____
-NOTE: If you want to run the entire stack, you can also use the https://github.com/SUSE/suse-ai-deployer[SUSE AI Deployer Helm Chart].
+NOTE:To run the entire stack, you can also use the https://github.com/SUSE/suse-ai-deployer[SUSE AI Deployer Helm Chart].
 ____
 
 [arabic]
@@ -64,45 +64,10 @@ kubectl create -n suse-ai secret docker-registry application-collection --docker
 This section describes how to install the Open Web UI, which provides a user-friendly interface for interacting with AI models.
 
 [arabic]
-. Create a link:./examples/values.openwebui.yaml[values.openwebui.yaml] file with the values for Open Web UI:
-
-[source,yaml]
-----
-global:
-  imagePullSecrets:
-    - application-collection # this is the secret created above
-
-persistence:
-  enabled: true
-  storageClass: local-path
-
-ollama:
-  enabled: false
-
-pipelines:
-  enabled: false
-
-ingress:
-  enabled: true
-  annotations: {}
-  # replace with your actual domain. Open Web UI does not support prefixed paths like "example.com/ai"
-  host: suse-ai.example.com
-  tls: true
-
-extraEnvVars:
-  - name: DEFAULT_USER_ROLE
-    value: "user"
-  - name: WEBUI_NAME
-    value: "SUSE AI"
-  - name: GLOBAL_LOG_LEVEL
-    value: INFO
-  - name: RAG_EMBEDDING_MODEL
-    value: "sentence-transformers/all-MiniLM-L6-v2"
-----
+. Create a link:https://github.com/trento-project/mcp-server/blob/main/examples/values.openwebui.yaml[values.openwebui.yaml] file with the values for Open Web UI.
 
 [arabic]
 . Install the Open Web UI using Helm and the values file (`values.openwebui.yaml`) created above. Note that you need to have `cert-manager` properly installed. Besides, an ingress controller is required. If you don't have any, you might need to tweak up the Kubernetes services.
-
 
 [source,console]
 ----
@@ -120,32 +85,7 @@ NOTE: Always refer to the https://cloud.google.com/run/docs/tutorials/gpu-gemma-
 ____
 
 [arabic]
-. Create a link:./examples/Dockerfile[Dockerfile] for the Ollama model:
-
-[source,dockerfile]
-----
-FROM ollama/ollama:latest
-
-# Listen on all interfaces, port 8080
-ENV OLLAMA_HOST 0.0.0.0:8080
-
-# Store model weight files in /models
-ENV OLLAMA_MODELS /models
-
-# Reduce logging verbosity
-ENV OLLAMA_DEBUG false
-
-# Never unload model weights from the GPU
-ENV OLLAMA_KEEP_ALIVE -1
-
-# Store the model weights in the container image
-ENV MODEL qwen3:8b
-
-RUN ollama serve & sleep 5 && ollama pull $MODEL
-
-# Start Ollama
-ENTRYPOINT ["ollama", "serve"]
-----
+. Create a link:https://github.com/trento-project/mcp-server/blob/main/Dockerfile[Dockerfile] for the Ollama model.
 
 [arabic]
 . In the same directory as the `Dockerfile`, run the following command to build the Docker image:
@@ -175,36 +115,14 @@ Once you have the Ollama model running on Google Cloud Run, you can add it to th
 To deploy the `Trento MCP Server` using SUSE AI, you can use the provided Helm chart. This section describes how to deploy the MCP Server Trento with the necessary configurations.
 
 [arabic]
-. Create a link:./examples/values.mcpo.yaml[values.mcpo.yaml] file with the values for the MCP Server Trento:
-
-[source,yaml]
-----
-mcpo:
-  enabled: true
-  args:
-    - --port=8000
-    - --config
-    - /app/config/config.json
-
-mcpServerTrento:
-  ingress:
-    enabled: false
-  args:
-    - --port=8080
-    - --transport=sse
-    - --oasPath=/app/api/openapi.json
-    - --oauth-enabled=false
-    - --trento-url=https://demo.trento-project.io
-    - --trento-username=demo
-    - --trento-password=demopass
-----
+. Create a link:https://github.com/trento-project/mcp-server/blob/main/examples/values.mcpo.yaml[values.mcpo.yaml] file with the values for the MCP Server Trento:
 
 [arabic]
 . Install the MCP Server Trento using Helm and the values file (`values.mcpo.yaml`) created above:
 
 [source,console]
 ----
-helm -n suse-ai upgrade --install trento-for-suse-ai ./helm/trento-ai-companion --values values.mcpo.yaml
+helm -n suse-ai upgrade --install trento-for-suse-ai ./helm/trento-mcp-server --values values.mcpo.yaml
 ----
 
 ==== Adding the MCP Server Trento to Open Web UI
@@ -213,7 +131,7 @@ The MCP Server Trento can be added to the Open Web UI in two ways: as a user-def
 
 [arabic]
 . Go to Open Web UI settings page (eg. `suse-ai.example.com/admin/settings`) and navigate to the "`Tools`" section.
-. Click on "`Add connection`" and add the FQDN internal URL for the Kubernetes service (eg. `http://trento-for-suse-ai-trento-ai-companion-mcpo.suse-ai.svc.cluster.local/trento`).
+. Click on "`Add connection`" and add the FQDN internal URL for the Kubernetes service (eg. `http://trento-for-suse-ai-trento-mcp-server-mcpo.suse-ai.svc.cluster.local/trento`).
 . Navigate to the "`Models`" section and click on "`Manage Models`", select the MCP Server Trento tool for the model. This will enable the MCP Server for Trento to be used with the model by any user in the Open Web UI.
 . Optionally, you can tweak the model configuration. For instance:
 [arabic]

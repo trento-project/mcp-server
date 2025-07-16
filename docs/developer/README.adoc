@@ -10,7 +10,5 @@ A high-level overview of how the documentation pages are organized.
 [width="100%",options="header",]
 |===
 |Section |Description
-|link:getting-started.adoc[Getting started] |Information on how to set up a dev environment and to contribute to the project
+|link:https://github.com/trento-project/mcp-server/blob/main/docs/developer/getting-started.adoc[Getting started] |Information on how to set up a dev environment and to contribute to the project
 |===
-
-For general information on how to get familiar with the project and how to deploy it, please refer to the link:/README.adoc[project README] instead or the link:../README.adoc[general documentation].

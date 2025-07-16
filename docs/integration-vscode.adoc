@@ -1,6 +1,10 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
+:badge-url: https://insiders.vscode.dev/redirect/mcp/install?name=trento&config=%7B%22type%22%3A%20%22http%22%2C%22url%22%3A%20%22http%3A%2F%2Flocalhost%3A5000%2Fmcp%22%7D
+:badge-img: https://img.shields.io/badge/VS_Code-Install_Server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white
+
+
 == VS Code Integration
 
 You can use `Trento MCP Server` directly on Visual Studio Code using the GitHub Copilot extension or any compatible LLM client that supports the Model Context Protocol (MCP). This allows you to interact with the Trento API and execute tools defined in the OpenAPI specification.
@@ -39,7 +43,7 @@ To connect your LLM client or extension to this MCP server, use a configuration 
 
 Alternatively, you can use this link to install the server directly in VS Code:
 
-https://insiders.vscode.dev/redirect/mcp/install?name=trento&config=%7B%22type%22%3A%20%22http%22%2C%22url%22%3A%20%22http%3A%2F%2Flocalhost%3A5000%2Fmcp%22%7D[image:https://img.shields.io/badge/VS_Code-Install_Server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white[Install in VS Code]]
+link:{badge-url}[image:{badge-img}[Install in VS Code]]
 
 ____
 Replace `http://localhost:5000/mcp/` with the actual URL and port where your `Trento MCP Server` instance is running.
