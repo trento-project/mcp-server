@@ -85,7 +85,7 @@
                     "description": "Port configuration for the MCPO service.",
                     "default": "[]",
                     "items": {
-                        "type": "string"
+                        "type": "object"
                     }
                 },
                 "replicas": {
@@ -202,7 +202,7 @@
                     "description": "Port configuration for the mcpServer service.",
                     "default": "[]",
                     "items": {
-                        "type": "string"
+                        "type": "object"
                     }
                 },
                 "replicas": {
