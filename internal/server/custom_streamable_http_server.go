@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	mcpserver "github.com/jedisct1/openapi-mcp/pkg/mcp/server"
 )
@@ -18,12 +19,14 @@ func getMCPBaseURL(mcpBaseUrl string, port int) string {
 	if mcpBaseUrl != "" {
 		return mcpBaseUrl
 	}
+
 	return fmt.Sprintf("http://localhost:%d", port)
 }
 
-// CustomStreamableHTTPServer embeds the 3rd-party StreamableHTTPServer
+// CustomStreamableHTTPServer embeds the 3rd-party StreamableHTTPServer.
 type CustomStreamableHTTPServer struct {
 	*mcpserver.StreamableHTTPServer
+
 	endpointPath                string
 	httpServer                  *http.Server
 	issuer                      string
@@ -37,7 +40,7 @@ type fnAuth = func(ctx context.Context, r *http.Request) context.Context
 
 type CustomStreamableHTTPOption func(*CustomStreamableHTTPServer)
 
-// NewCustomStreamableHTTPServer creates a new instance of your custom server
+// NewCustomStreamableHTTPServer creates a new instance of your custom server.
 func NewCustomStreamableHTTPServer(server *mcpserver.MCPServer, endpointPath string, fn fnAuth, serveOpts *ServeOptions) *CustomStreamableHTTPServer {
 	opts := []mcpserver.StreamableHTTPOption{
 		mcpserver.WithEndpointPath(endpointPath),
@@ -55,14 +58,16 @@ func NewCustomStreamableHTTPServer(server *mcpserver.MCPServer, endpointPath str
 	}
 }
 
-// Override ServeHTTP to add your custom logic
+// Override ServeHTTP to add your custom logic.
 func (s *CustomStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if s.oauthEnabled {
 		if r.Method != http.MethodOptions {
 			authHeader := r.Header.Get("Authorization")
 			if !strings.HasPrefix(authHeader, "Bearer ") {
-				w.Header().Set("WWW-Authenticate", fmt.Sprintf(`Bearer realm="MCP", resource_metadata="%s/.well-known/resource-metadata"`, getMCPBaseURL(s.mcpBaseUrl, s.port)))
+				w.Header().
+					Set("WWW-Authenticate", fmt.Sprintf(`Bearer realm="MCP", resource_metadata="%s/.well-known/resource-metadata"`, getMCPBaseURL(s.mcpBaseUrl, s.port)))
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+
 				return
 			}
 		}
@@ -70,11 +75,9 @@ func (s *CustomStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Re
 
 	// Call the original method
 	s.StreamableHTTPServer.ServeHTTP(w, r)
-
-	// Custom logic after
 }
 
-// Override ServeHTTP to add your custom logic
+// Override ServeHTTP to add your custom logic.
 func (s *CustomStreamableHTTPServer) Start(addr string) error {
 	mux := http.NewServeMux()
 	mux.Handle(s.endpointPath, s) // Serve MCP endpoint
@@ -89,42 +92,66 @@ func (s *CustomStreamableHTTPServer) Start(addr string) error {
 	}
 
 	s.httpServer = &http.Server{
-		Addr:    addr,
-		Handler: mux,
+		Addr:        addr,
+		Handler:     mux,
+		ReadTimeout: 10 * time.Second,
 	}
 
 	return s.httpServer.ListenAndServe()
 }
 
-// Proxy for Auth0's non-existent .well-known/oauth-authorization-server
-func (s *CustomStreamableHTTPServer) serveOAuthASDiscoveryProxy(w http.ResponseWriter, r *http.Request) {
+// Proxy for Auth0's non-existent .well-known/oauth-authorization-server.
+func (s *CustomStreamableHTTPServer) serveOAuthASDiscoveryProxy(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-	resp, err := http.Get(s.oauthAuthorizationServerURL)
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, s.oauthAuthorizationServerURL, nil)
 	if err != nil {
-		http.Error(w, "Failed to fetch OAuth AS configuration", http.StatusBadGateway)
+		http.Error(w, "failed to build the request to fetch OAuth AS configuration", http.StatusInternalServerError)
+
 		return
 	}
+
+	client := &http.Client{}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, "Failed to fetch OAuth AS configuration", http.StatusBadGateway)
+
+		return
+	}
+
 	defer resp.Body.Close()
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+
+	_, err = io.Copy(w, resp.Body)
+	if err != nil {
+		http.Error(w, "Failed to proxy OAuth AS configuration", http.StatusBadGateway)
+	}
 }
 
-// Actual config required for the MCP
-func (s *CustomStreamableHTTPServer) serveOAuthProtectedResourceMetadata(w http.ResponseWriter, r *http.Request) {
+// Actual config required for the MCP.
+func (s *CustomStreamableHTTPServer) serveOAuthProtectedResourceMetadata(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-	metadata := map[string]interface{}{
+
+	metadata := map[string]any{
 		"resource":                        fmt.Sprintf("%s/mcp", getMCPBaseURL(s.mcpBaseUrl, s.port)),
 		"resource_auth_methods_supported": []string{"bearer"},
 		"resource_scopes_supported":       []string{"openid", "profile", "email"},
 		"issuer":                          s.issuer,
-		"authorization_servers":           []string{fmt.Sprintf("%s", getMCPBaseURL(s.mcpBaseUrl, s.port))},
+		"authorization_servers":           []string{getMCPBaseURL(s.mcpBaseUrl, s.port)},
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(metadata)
+
+	err := json.NewEncoder(w).Encode(metadata)
+	if err != nil {
+		http.Error(w, "Failed to encode OAuth protected resource metadata", http.StatusInternalServerError)
+	}
 }

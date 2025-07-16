@@ -11,7 +11,7 @@ import (
 	"os"
 )
 
-// CreateLogger creates and configures an slog logger
+// CreateLogger creates and configures an slog logger.
 func CreateLogger(logLevel int) *slog.Logger {
 	return slog.New(NewDefaultTextHandler(
 		os.Stdout,
@@ -69,11 +69,13 @@ func (h *DefaultTextHandler) Handle(_ context.Context, r slog.Record) error {
 	// Append all key-value attributes
 	r.Attrs(func(attr slog.Attr) bool {
 		line += fmt.Sprintf(" %s=%v", attr.Key, attr.Value.Any())
+
 		return true
 	})
 
 	// Write the line
 	_, err := fmt.Fprintln(h.w, line)
+
 	return err
 }
 

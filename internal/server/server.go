@@ -36,12 +36,14 @@ type ServeOptions struct {
 // Serve is the root command that is run when no other sub-commands are present.
 func Serve(serveOpts ServeOptions) error {
 	ctx := context.Background()
+
 	var err error
 
 	slog.DebugContext(ctx, "starting Serve() command", "server.options", serveOpts)
 
 	// Call the main server logic.
 	err = runServer(ctx, &serveOpts)
+
 	return err
 }
 
@@ -63,10 +65,7 @@ func runServer(ctx context.Context, serveOpts *ServeOptions) error {
 
 	case "streamable":
 		// startHTTPServer logs and handles fatal errors internally if server fails to start
-		streamableServer, err := startHTTPServer(ctx, mcpSrv, listenAddr, serveOpts)
-		if err != nil {
-			return err
-		}
+		streamableServer := startHTTPServer(ctx, mcpSrv, listenAddr, serveOpts)
 
 		waitForShutdownStreamable(ctx, streamableServer)
 	default:
@@ -82,6 +81,7 @@ func createMCPServer(ctx context.Context, serveOpts *ServeOptions) (*mcpserver.M
 	oasDoc, err := openapi2mcp.LoadOpenAPISpec(serveOpts.OASPath)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to read the API spec", "error", err)
+
 		return nil, fmt.Errorf("failed to read the API spec: %w", err)
 	}
 
@@ -117,7 +117,7 @@ func startHTTPServer(
 	mcpSrv *mcpserver.MCPServer,
 	listenAddr string,
 	serveOpts *ServeOptions,
-) (*CustomStreamableHTTPServer, error) {
+) *CustomStreamableHTTPServer {
 	// Wrapper to pass the url and other params in the future
 	authContextFuncWrapper := func(c context.Context, r *http.Request) context.Context {
 		if !serveOpts.OauthEnabled {
@@ -133,12 +133,16 @@ func startHTTPServer(
 	// Run the http server for the mcp in a separate goroutine.
 	go func() {
 		slog.InfoContext(ctx, "mcp server via HTTP starting", "server.address", listenAddr)
-		if err := streamableServer.Start(listenAddr); err != nil && !errors.Is(err, http.ErrServerClosed) {
+
+		err := streamableServer.Start(listenAddr)
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.ErrorContext(ctx, "failed to serve MCP server via HTTP", "error", err)
 		}
 	}()
+
 	slog.InfoContext(ctx, "mcp server via HTTP listening successfully", "server.address", listenAddr)
-	return streamableServer, nil
+
+	return streamableServer
 }
 
 func startSSEServer(
@@ -147,7 +151,6 @@ func startSSEServer(
 	listenAddr string,
 	serveOpts *ServeOptions,
 ) error {
-
 	authContextFuncWrapper := func(c context.Context, r *http.Request) context.Context {
 		if !serveOpts.OauthEnabled {
 			return authContextFuncNoOauth(c, r, serveOpts.OauthValidateURL, serveOpts.TrentoUrl, serveOpts.TrentoUsername, serveOpts.TrentoPassword)
@@ -161,7 +164,9 @@ func startSSEServer(
 
 	// Run the http server for the mcp in a separate goroutine.
 	slog.InfoContext(ctx, "mcp server via SSE starting", "server.address", listenAddr)
-	if err := sseServer.Start(listenAddr); err != nil && !errors.Is(err, http.ErrServerClosed) {
+
+	err := sseServer.Start(listenAddr)
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.ErrorContext(ctx, "failed to serve MCP server via HTTP", "error", err)
 		panic(err)
 	}
@@ -181,9 +186,11 @@ func waitForShutdownStreamable(ctx context.Context, streamableServer *CustomStre
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := streamableServer.Shutdown(shutdownCtx); err != nil {
+	err := streamableServer.Shutdown(shutdownCtx)
+	if err != nil {
 		slog.ErrorContext(ctx, "failed to shut the mcp server down, forcing exit", "error", err)
 		panic(err)
 	}
+
 	slog.InfoContext(ctx, "mcp server shut down successfully")
 }

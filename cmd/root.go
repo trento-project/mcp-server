@@ -45,7 +45,7 @@ func setFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&serveOpts.McpBaseUrl, "base-url", "", "Base URL where the mcp is deployed, if none, http://localhost:port is used'")
 	// OAUTH
 	cmd.Flags().BoolVar(&serveOpts.OauthEnabled, "oauth-enabled", false, "Enable the oauth authentication in the MCP")
-	cmd.Flags().StringVar(&serveOpts.OauthAuthorizationServerURL, "oauth-authorization-server-url", "https://my-idp.example.com/.well-known/openid-configuration", "URL for the oauth-authorization-server endpoint")
+	cmd.Flags().StringVar(&serveOpts.OauthAuthorizationServerURL, "oauth-authorization-server-url", "https://my-idp.example.com/.well-known/openid-configuration", "URL for the oauth-authorization-server endpoint") //nolint:lll,golines
 	cmd.Flags().StringVar(&serveOpts.OauthIssuer, "oauth-issuer", "https://my-idp.example.com/", "Issuer for the oauth flow")
 	cmd.Flags().StringVar(&serveOpts.OauthValidateURL, "oauth-validate-url", "https://my-idp.example.com/userinfo", "URL for token validation")
 	// Trento
