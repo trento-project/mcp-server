@@ -133,7 +133,7 @@
                 },
                 "args": {
                     "type": "array",
-                    "description": "Command-line arguments for the MCP Server Trento container. Includes settings for port, transport, paths, and Trento connection details.",
+                    "description": "Command-line arguments for the MCP Server container. Includes settings for port, transport, paths, and Trento connection details.",
                     "default": [
                         "--port=8080",
                         "--transport=sse",
@@ -152,12 +152,12 @@
                     "properties": {
                         "repository": {
                             "type": "string",
-                            "description": "The container image repository for the MCP Server Trento component.",
-                            "default": "antgamdia/mcp-server-trento"
+                            "description": "The container image repository for the MCP Server component.",
+                            "default": "ghcr.io/trento-project/trento-mcp-server"
                         },
                         "tag": {
                             "type": "string",
-                            "description": "The container image tag for the MCP Server Trento component.",
+                            "description": "The container image tag for the MCP Server component.",
                             "default": "latest"
                         }
                     }
@@ -170,12 +170,12 @@
                             "properties": {
                                 "cpu": {
                                     "type": "string",
-                                    "description": "The CPU limit for the MCP Server Trento pod.",
+                                    "description": "The CPU limit for the MCP Server pod.",
                                     "default": "500m"
                                 },
                                 "memory": {
                                     "type": "string",
-                                    "description": "The memory limit for the MCP Server Trento pod.",
+                                    "description": "The memory limit for the MCP Server pod.",
                                     "default": "512Mi"
                                 }
                             }
@@ -185,12 +185,12 @@
                             "properties": {
                                 "cpu": {
                                     "type": "string",
-                                    "description": "The CPU request for the MCP Server Trento pod.",
+                                    "description": "The CPU request for the MCP Server pod.",
                                     "default": "100m"
                                 },
                                 "memory": {
                                     "type": "string",
-                                    "description": "The memory request for the MCP Server Trento pod.",
+                                    "description": "The memory request for the MCP Server pod.",
                                     "default": "128Mi"
                                 }
                             }
@@ -207,12 +207,12 @@
                 },
                 "replicas": {
                     "type": "number",
-                    "description": "The number of pod replicas for the MCP Server Trento deployment.",
+                    "description": "The number of pod replicas for the MCP Server deployment.",
                     "default": 1
                 },
                 "type": {
                     "type": "string",
-                    "description": "The type of Kubernetes service for MCP Server Trento (e.g., ClusterIP, NodePort).",
+                    "description": "The type of Kubernetes service for MCP Server (e.g., ClusterIP, NodePort).",
                     "default": "ClusterIP"
                 }
             }
