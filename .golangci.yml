@@ -1,111 +1,45 @@
 # Copyright 2025 SUSE LLC
----
-version: "2"
-run:
-  allow-parallel-runners: true
-linters:
-  default: all
-  disable:
-    - cyclop # we don't care about complexity
-    - depguard # requires extra config
-    - funlen # we don't care about complexity
-    - gochecknoinits # we need some init() in the crds
-    - gocognit # we don't care about complexity
-    - godox # we allow TODO and other comments
-    - gomoddirectives # we don't care about go.mod directives
-    - ireturn # we don't care about returning interfaces
-    - mnd # we don't care about magic numbers
-    - nestif # we don't care about complexity
-    - nilnil # we don't care about returning nil, nil
-    - nolintlint # we allow ignoring lint warnings
-    # - typecheck # not working
+# SPDX-License-Identifier: Apache-2.0
 
-    # To be enabled in the future
-    - contextcheck # we don't care about passing the context yet
-    - err113 # we haven't deal with errors properly yet
-    - exhaustruct # we don't care about exhaustive structs yet
-    - forbidigo # we don't care about having print instead of logs yet
-    - gochecknoglobals # we don't care about globals yet
-    - perfsprint # we don't care about sprintf vs concat yet
-    - varnamelen # we don't care about short var names yet
-    - wrapcheck # we haven't deal with errors properly yet
-  settings:
-    gocritic:
-      disabled-checks:
-        - ifElseChain
-        - unlambda
-    gosec:
-      excludes:
-        - G115 # integer overflow conversion int -> uint32
-        - G204 # subprocess launched with a potential tainted input or cmd arguments
-        - G601 # implicit memory aliasing of items from a range statement
-    lll:
-      line-length: 160
-    revive:
-      enable-all-rules: true
-      rules:
-        - name: add-constant
-          disabled: true
-        - name: argument-limit
-          disabled: true
-        - name: cognitive-complexity
-          disabled: true
-        - name: cyclomatic
-          disabled: true
-        - name: deep-exit
-          disabled: true
-        - name: dot-imports
-          disabled: true
-        - name: exported
-          disabled: true
-        - name: flag-parameter
-          disabled: true
-        - name: function-length
-          disabled: true
-        - name: line-length-limit
-          disabled: true
-        - name: max-public-structs
-          disabled: true
-        - name: struct-tag
-          disabled: true
-        - name: unhandled-error
-          arguments:
-            - fmt.Print
-            - fmt.Printf
-        - name: var-naming
-          disabled: true
-    staticcheck:
-      checks:
-        - all
-        - -ST1001 # Dot imports are discouraged
-        - -ST1003 # Poorly chosen identifier
-  exclusions:
-    generated: lax
-    presets:
-      - comments
-      - common-false-positives
-      - legacy
-      - std-error-handling
-    paths:
-      - internal/snr/v1alpha1
-      - third_party$
-      - builtin$
-      - examples$
+---
+# See https://golangci-lint.run/usage/linters/
+version: "2"
+linters:
+  enable:
+    - containedctx
+    - copyloopvar
+    - dogsled
+    - dupl
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - errorlint
+    - exhaustive
+    - forbidigo
+    - forcetypeassert
+    - gochecknoglobals
+    - goconst
+    - gocritic
+    - gomoddirectives
+    - gomodguard
+    - gosec
+    - govet
+    - importas
+    - ineffassign
+    - lll
+    - misspell
+    - nilerr
+    - nilnil
+    - nonamedreturns
+    - prealloc
+    - predeclared
+    - revive
+    - staticcheck
+    - testpackage
+    - unconvert
+    - unparam
+    - unused
+    - wastedassign
 formatters:
   enable:
-    - gci
     - gofmt
-    - gofumpt
-    - goimports
-    - golines
-  settings:
-    golines:
-      max-len: 160
-      shorten-comments: true
-  exclusions:
-    generated: lax
-    paths:
-      - internal/snr/v1alpha1
-      - third_party$
-      - builtin$
-      - examples$
