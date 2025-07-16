@@ -12,7 +12,7 @@ env:
   IMG_PLATFORMS: "linux/amd64" # TODO: add more? "linux/arm64"
   IMG_PREFIX: "ghcr.io/trento-project/"
   IMG_PREFIX_FOR_FORKS: "your-registry-username/"
-  IMAGES_TO_PUSH: "mcp-server"
+  IMAGES_TO_PUSH: "trento-mcp-server"
 
   # Versions
   GOLANG_VERSION: "1.24.4" # See https://go.dev/dl/, must be aligned with "toolchain goX.X.X" in go.mod
@@ -108,16 +108,16 @@ jobs:
           set -euo pipefail
           echo "Installing Helm ${HELM_VERSION}"
           pushd /tmp
-          wget "https://get.helm.sh/helm-${HELM_VERSION}-linux-${ARCH}.tar.gz"
-          tar zxf "helm-$HELM_VERSION-linux-${ARCH}.tar.gz"
-          sudo mv linux-${ARCH}/helm "/usr/local/bin/helm"
+          wget "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
+          tar zxf "helm-$HELM_VERSION-linux-amd64.tar.gz"
+          sudo mv linux-amd64/helm "/usr/local/bin/helm"
           popd
           echo "Done. Helm has been installed"
       - name: Run chart template test
         run: |
           set -euo pipefail
           # Remove the kubeVersion field as it would fail otherwise as there isn't any k8s cluster
-          CHART_DIR=$ROOT_DIR/helm
+          CHART_DIR=./helm/trento-mcp-server
           sed -i.bk -e "s/kubeVersion.*//g" "${CHART_DIR}/Chart.yaml"
           helm dep up "${CHART_DIR}"
           helm template "${CHART_DIR}" --debug
@@ -133,7 +133,7 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - mcp-server
+          - trento-mcp-server
     steps:
       - name: Setup building process
         id: setup
@@ -224,59 +224,11 @@ jobs:
             docker push $prod_image
           done
 
-  # Push the Helm chart to the OCI registry
-  push_chart:
-    if: needs.setup.outputs.running_on_main == 'true' || inputs.trigger_release
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write # required for creating ghcr.io packages
-    needs:
-      - push_images
-    steps:
-      - uses: actions/checkout@v4
-        name: Checkout
-      - name: Log into the container image registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Overwrite appVersion in chart
-        run: |
-          if [[ ${GITHUB_REF_TYPE} == "tag" ]]; then
-            sed -i "s|^\( *appVersion: \).*|\1${GITHUB_REF_NAME}|" helm/trento-ai-companion/Chart.yaml
-          else
-            sed -i "s|^\( *appVersion: \).*|\1${GITHUB_SHA}|" helm/trento-ai-companion/Chart.yaml
-          fi;
-      - name: Read chart versions
-        id: versions
-        run: |
-          ver=$(yq e '.version' helm/trento-ai-companion/Chart.yaml)
-          echo "::notice title=Chart Version::Chart Version is $ver"
-          echo "VERSION=$ver" >> $GITHUB_OUTPUT
-          ##
-          appver=$(yq e '.appVersion' helm/trento-ai-companion/Chart.yaml)
-          echo "::notice title=Chart App Version::Chart App Version is $appver"
-          echo "APPVERSION=$appver" >> $GITHUB_OUTPUT
-      - name: Publish OCI chart
-        uses: appany/helm-oci-chart-releaser@v0.4.2
-        with:
-          name: ${IMAGES_TO_PUSH}
-          repository: ${{ github.repository_owner }}/charts
-          tag: ${{ steps.versions.outputs.VERSION }}
-          app_version: ${{ steps.versions.outputs.APPVERSION }}
-          path: helm
-          registry: ghcr.io
-          registry_username: ${{ github.actor }}
-          registry_password: ${{ secrets.GITHUB_TOKEN }}
-
   # Delete image artifacts, as they are not needed anymore
   cleanup:
     timeout-minutes: 3
     needs:
       - push_images
-      - push_chart
     runs-on: ubuntu-latest
     steps:
       - uses: geekyeggo/delete-artifact@v5
