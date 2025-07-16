@@ -15,11 +15,13 @@ Refer to the official https://documentation.suse.com/suse-ai/1.0/[SUSE AI docume
 
 This guide assumes:
 
-* you have a Kubernetes cluster set up and running (with an ingress controller and cert-manager installed)
-* you have access to the SUSE Application Collection.
-* To run Ollama models, you have either:
-** a Kubernetes cluster with sufficient resources.
-** a cloud provider and enough permissions to deploy Ollama models remotely.
+* A Kubernetes cluster set up and running (with an ingress controller and cert-manager installed).
+* Access to the SUSE Application Collection.
+
+When running Ollama models, this guide assumes you have one of the following:
+
+* A Kubernetes cluster with sufficient resources (GPU, memory, etc.).
+* A cloud provider and enough permissions to deploy Ollama models remotely.
 
 ==== Limitations
 
