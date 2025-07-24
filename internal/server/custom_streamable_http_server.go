@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	mcpserver "github.com/jedisct1/openapi-mcp/pkg/mcp/server"
+	mcpserver "github.com/mark3labs/mcp-go/server"
 )
 
 func getMCPBaseURL(mcpBaseURL string, port int) string {
