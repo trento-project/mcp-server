@@ -1,0 +1,45 @@
+# Copyright 2025 SUSE LLC
+# SPDX-License-Identifier: Apache-2.0
+
+---
+# See https://golangci-lint.run/usage/linters/
+version: "2"
+linters:
+  enable:
+    - containedctx
+    - copyloopvar
+    - dogsled
+    - dupl
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - errorlint
+    - exhaustive
+    - forbidigo
+    - forcetypeassert
+    - gochecknoglobals
+    - goconst
+    - gocritic
+    - gomoddirectives
+    - gomodguard
+    - gosec
+    - govet
+    - importas
+    - ineffassign
+    - lll
+    - misspell
+    - nilerr
+    - nilnil
+    - nonamedreturns
+    - prealloc
+    - predeclared
+    - revive
+    - staticcheck
+    - testpackage
+    - unconvert
+    - unparam
+    - unused
+    - wastedassign
+formatters:
+  enable:
+    - gofmt
