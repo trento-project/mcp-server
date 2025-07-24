@@ -23,13 +23,6 @@ The `trento-mcp-server` binary accepts several command-line flags to configure i
 |`--trento-url` |https://demo.trento-project.io |URL for the target Trento server
 |`--trento-username` |demo |Username for the target Trento server
 |`--trento-password` |demopass |Password for the target Trento server
-|`--enable-otel`, `-o` |false |Enable OpenTelemetry globally
-|`--with-tracer`, `-t` |true |Enable OpenTelemetry tracing
-|`--with-logging`, `-l` |true |Enable OpenTelemetry logging
-|`--with-metrics`, `-m` |true |Enable OpenTelemetry metrics
-|`--otel-debug` |false |Enable OpenTelemetry debug mode
-|`--otel-exporter-otlp-endpoint` |http://localhost:4317 |OTLP exporter endpoint (overrides OTEL++_++EXPORTER++_++OTLP++_++ENDPOINT env var)
-|`--otel-exporter-otlp-protocol` |grpc |OTLP exporter protocol (e.g., grpc, http/protobuf; overrides OTEL++_++EXPORTER++_++OTLP++_++PROTOCOL env var)
 |`--verbosity`, `-v` |0 |Log level verbosity (-1: debug, 0: info, 5: fatal)
 |===
 
@@ -38,38 +31,4 @@ You can see all available flags by running:
 [source,console]
 ----
 ./trento-mcp-server --help
-----
-
-=== Environment Variables
-
-You can also configure `trento-mcp-server` using environment variables, especially for OTEL and OAuth settings. These are useful for containerized deployments and CI/CD pipelines.
-
-[width="100%",cols="35%,65%",options="header",]
-|===
-|Variable |Description
-|`OTEL++_++EXPORTER++_++OTLP++_++ENDPOINT` |OTLP exporter endpoint (overridden by `--otel-exporter-otlp-endpoint`)
-|`OTEL++_++EXPORTER++_++OTLP++_++PROTOCOL` |OTLP exporter protocol (overridden by `--otel-exporter-otlp-protocol`)
-|`OTEL++_++EXPORTER++_++OTLP++_++TRACES++_++PROTOCOL` |OTLP traces protocol (http/json, http/protobuf, grpc)
-|`OTEL++_++EXPORTER++_++OTLP++_++METRICS++_++PROTOCOL` |OTLP metrics protocol (http/json, http/protobuf, grpc)
-|`OTEL++_++EXPORTER++_++OTLP++_++LOGS++_++PROTOCOL` |OTLP logs protocol (http/json, http/protobuf, grpc)
-|`PORT` |The port on which to run the server (overridden by `--port`)
-|`OAS++_++PATH` |Path to the OpenAPI spec file (overridden by `--oasPath`)
-|===
-
-=== Example Usage
-
-==== Run with Custom Port and OTEL Endpoint
-
-[source,console]
-----
-./trento-mcp-server --port 8080 --enable-otel --otel-exporter-otlp-endpoint http://otel-collector:4317
-----
-
-Or with environment variables:
-
-[source,console]
-----
-export OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-export PORT=8080
-./trento-mcp-server --enable-otel
 ----
