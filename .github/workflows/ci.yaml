@@ -1,0 +1,22 @@
+# Copyright 2024-2025 SUSE LLC
+---
+name: Main Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    tags-ignore:
+      - "*"
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  CI:
+    uses: ./.github/workflows/pipeline-definition.yaml
+    secrets: inherit
