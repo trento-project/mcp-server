@@ -7,12 +7,12 @@ metadata:
   name: {{ include "trento-mcp-server.fullname" . }}-mcp-server
   namespace: {{ .Release.Namespace }}
   labels:
-    app: mcp-server-trento
+    app: trento-mcp-server
   {{- include "trento-mcp-server.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.mcpServer.type }}
   selector:
-    app: mcp-server-trento
+    app: trento-mcp-server
     {{- include "trento-mcp-server.selectorLabels" . | nindent 4 }}
   ports:
   {{- .Values.mcpServer.ports | toYaml | nindent 2 }}
