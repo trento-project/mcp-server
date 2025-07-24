@@ -110,7 +110,7 @@ linter-yamllint: ## Run yamllint script.
 
 .PHONY: linter-manifests
 linter-manifests: helm kube-score ## Analyze the manifests with kube-score.
-	$(HELM) template ./helm/trento-ai-companion | $(KUBE_SCORE) score -
+	$(HELM) template ./helm/trento-mcp-server | $(KUBE_SCORE) score -
 
 ##@ Dependencies
 

@@ -1,0 +1,22 @@
+# Copyright 2025 SUSE LLC
+# SPDX-License-Identifier: Apache-2.0
+
+{{ if .Values.mcpo.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "trento-mcp-server.fullname" . }}-mcpo
+  namespace: {{ .Release.Namespace }}
+  labels:
+  {{- include "trento-mcp-server.labels" . | nindent 4 }}
+data:
+  config.json: |
+    {
+      "mcpServers": {
+        "trento": {
+          "type": "sse",
+          "url": {{ printf "http://%s-mcp-server.%s.svc.%s/sse" (include "trento-mcp-server.fullname" .) .Release.Namespace .Values.kubernetesClusterDomain | quote }}
+        }
+      }
+    }
+{{- end }}

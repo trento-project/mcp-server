@@ -1,0 +1,45 @@
+# Copyright 2025 SUSE LLC
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "trento-mcp-server.fullname" . }}-mcp-server
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: mcp-server-trento
+  {{- include "trento-mcp-server.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.mcpServer.replicas }}
+  selector:
+    matchLabels:
+      app: mcp-server-trento
+    {{- include "trento-mcp-server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/mcp-server-configmap.yaml") . | sha256sum }}
+      labels:
+        app: mcp-server-trento
+      {{- include "trento-mcp-server.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - args: {{- toYaml .Values.mcpServer.args | nindent 8 }}
+        env:
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: {{ .Values.mcpServer.image.repository }}:{{ .Values.mcpServer.image.tag | default .Chart.AppVersion }}
+        name: mcp-server-trento
+        ports:
+        - containerPort: 8080
+          name: http
+        resources: {{- toYaml .Values.mcpServer.resources | nindent 10 }}
+        volumeMounts:
+        - mountPath: /app/api
+          name: mcp-server-openapi-volume
+          readOnly: true
+      imagePullSecrets: []
+      volumes:
+      - configMap:
+          name: {{ include "trento-mcp-server.fullname" . }}-mcp-server
+        name: mcp-server-openapi-volume

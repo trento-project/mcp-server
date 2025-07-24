@@ -1,0 +1,24 @@
+# Copyright 2025 SUSE LLC
+# SPDX-License-Identifier: Apache-2.0
+
+---
+mcpo:
+  enabled: false
+
+mcpServerTrento:
+  ingress:
+    enabled: true
+    tls: true
+    hosts:
+      - host: suse-ai.example.com
+        paths:
+          - path: /trento-mcp-server-sse
+            pathType: Prefix
+  args:
+    - --port=8080
+    - --transport=sse
+    - --oasPath=/app/api/openapi.json
+    - --oauth-enabled=false
+    - --trento-url=https://demo.trento-project.io
+    - --trento-username=demo
+    - --trento-password=demopass
