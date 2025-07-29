@@ -14,9 +14,9 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/evcc-io/openapi-mcp/pkg/openapi2mcp"
 	"github.com/getkin/kin-openapi/openapi3"
-	mcpserver "github.com/jedisct1/openapi-mcp/pkg/mcp/server"
-	"github.com/jedisct1/openapi-mcp/pkg/openapi2mcp"
+	mcpserver "github.com/mark3labs/mcp-go/server"
 )
 
 // ServeOptions encapsulates the available command-line options.
