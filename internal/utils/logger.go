@@ -16,12 +16,12 @@ import (
 func CreateLogger(logLevel int) *slog.Logger {
 	return slog.New(NewDefaultTextHandler(
 		os.Stdout,
-		parseLogLevel(logLevel),
+		ParseLogLevel(logLevel),
 	))
 }
 
-// parseLogLevel converts a int representation of a log level to slog.Level.
-func parseLogLevel(logLevel int) slog.Level {
+// ParseLogLevel converts a int representation of a log level to slog.Level.
+func ParseLogLevel(logLevel int) slog.Level {
 	switch logLevel {
 	case -1:
 		return slog.LevelDebug
@@ -38,15 +38,6 @@ func parseLogLevel(logLevel int) slog.Level {
 
 // TODO(agamez): use it as a dependency,
 // once available at https://pkg.go.dev/github.com/trento-project/agent@v0.0.0-20250417081934-5aa03367504a/pkg/utils
-
-// NewDefaultLogger is a function temporarily extracted
-// from https://github.com/trento-project/agent/blob/main/pkg/utils/log.go.
-func NewDefaultLogger(logLevel int) *slog.Logger {
-	return slog.New(NewDefaultTextHandler(
-		os.Stdout,
-		parseLogLevel(logLevel),
-	))
-}
 
 // DefaultTextHandler is a type temporarily extracted
 // from https://github.com/trento-project/agent/blob/main/pkg/utils/log.go.
