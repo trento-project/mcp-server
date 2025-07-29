@@ -134,7 +134,9 @@ func (s *CustomStreamableHTTPServer) serveOAuthASDiscoveryProxy(w http.ResponseW
 
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			slog.Error("failed to close response body", "error", err)
+			slog.Error("failed to close response body",
+				"error", err,
+			)
 		}
 	}()
 
@@ -168,4 +170,12 @@ func (s *CustomStreamableHTTPServer) serveOAuthProtectedResourceMetadata(w http.
 	if err != nil {
 		http.Error(w, "Failed to encode OAuth protected resource metadata", http.StatusInternalServerError)
 	}
+}
+
+// Shutdown gracefully stops the server.
+func (s *CustomStreamableHTTPServer) Shutdown(ctx context.Context) error {
+	if s.httpServer != nil {
+		return s.httpServer.Shutdown(ctx)
+	}
+	return nil
 }

@@ -8,10 +8,10 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/carlmjohnson/versioninfo"                  //nolint:depguard
-	"github.com/spf13/cobra"                               //nolint:depguard
-	"github.com/trento-project/mcp-server/internal/server" //nolint:depguard
-	"github.com/trento-project/mcp-server/internal/utils"  //nolint:depguard
+	"github.com/carlmjohnson/versioninfo"
+	"github.com/spf13/cobra"
+	"github.com/trento-project/mcp-server/internal/server"
+	"github.com/trento-project/mcp-server/internal/utils"
 )
 
 var (
@@ -24,14 +24,29 @@ var (
 	rootCmd *cobra.Command //nolint:gochecknoglobals
 )
 
+const (
+	name                               = "trento-mcp-server"
+	defaultPort                        = 5000
+	defaultOASPath                     = "./api/openapi.json"
+	defaultMcpBaseURL                  = ""
+	defaultOauthEnabled                = false
+	defaultOauthAuthorizationServerURL = "https://my-idp.example.com/.well-known/openid-configuration"
+	defaultOauthIssuer                 = "https://my-idp.example.com/"
+	defaultOauthValidateURL            = "https://my-idp.example.com/userinfo"
+	defaultTrentoURL                   = "https://demo.trento-project.io"
+	defaultTrentoUsername              = "demo"
+	defaultTrentoPassword              = "demopass"
+	defaultLogLevel                    = 0
+)
+
 func newRootCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:               "trento-mcp-server",
+		Use:               name,
 		Short:             "Trento MCP Server",
 		Long:              `MCP server to interact with Trento`,
 		PersistentPreRunE: initLogger,
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return server.Serve(serveOpts)
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return server.Serve(cmd.Context(), &serveOpts)
 		},
 		Version: Version(),
 	}
@@ -40,21 +55,26 @@ func newRootCmd() *cobra.Command {
 // setFlags defines which flags this CLI command will accept.
 func setFlags(cmd *cobra.Command) {
 	// MCP SERVER
-	cmd.Flags().IntVarP(&serveOpts.Port, "port", "p", 5000, "The port on which to run the server")
-	cmd.Flags().StringVarP(&serveOpts.OASPath, "oasPath", "P", "./api/openapi.json", "Path to the OpenAPI spec file")
-	cmd.Flags().StringVar(&serveOpts.Transport, "transport", "sse", "The protocol to use, choose 'streamable' or 'sse'")
-	cmd.Flags().StringVar(&serveOpts.McpBaseURL, "base-url", "", "Base URL where the mcp is deployed, if none, http://localhost:port is used'") //nolint:lll
+	cmd.Flags().IntVarP(&serveOpts.Port, "port", "p", defaultPort, "The port on which to run the server")
+	cmd.Flags().StringVarP(&serveOpts.OASPath, "oasPath", "P", defaultOASPath, "Path to the OpenAPI spec file")
+	serveOpts.Transport = utils.TransportStreamable // Set default value for transport
+	cmd.Flags().Var(&serveOpts.Transport, "transport", "The protocol to use, choose 'streamable' (default) or 'sse'")
+	cmd.Flags().StringVar(&serveOpts.McpBaseURL, "base-url", defaultMcpBaseURL, "Base URL where the mcp is deployed, if none, http://localhost:port is used'") //nolint:lll
 	// OAUTH
-	cmd.Flags().BoolVar(&serveOpts.OauthEnabled, "oauth-enabled", false, "Enable the oauth authentication in the MCP")                                                                                                //nolint:lll
-	cmd.Flags().StringVar(&serveOpts.OauthAuthorizationServerURL, "oauth-authorization-server-url", "https://my-idp.example.com/.well-known/openid-configuration", "URL for the oauth-authorization-server endpoint") //nolint:lll
-	cmd.Flags().StringVar(&serveOpts.OauthIssuer, "oauth-issuer", "https://my-idp.example.com/", "Issuer for the oauth flow")                                                                                         //nolint:lll
-	cmd.Flags().StringVar(&serveOpts.OauthValidateURL, "oauth-validate-url", "https://my-idp.example.com/userinfo", "URL for token validation")                                                                       //nolint:lll
+	cmd.Flags().BoolVar(&serveOpts.OauthEnabled, "oauth-enabled", defaultOauthEnabled, "Enable the oauth authentication in the MCP")                                                       //nolint:lll
+	cmd.Flags().StringVar(&serveOpts.OauthAuthorizationServerURL, "oauth-authorization-server-url", defaultOauthAuthorizationServerURL, "URL for the oauth-authorization-server endpoint") //nolint:lll
+	cmd.Flags().StringVar(&serveOpts.OauthIssuer, "oauth-issuer", defaultOauthIssuer, "Issuer for the oauth flow")                                                                         //nolint:lll
+	cmd.Flags().StringVar(&serveOpts.OauthValidateURL, "oauth-validate-url", defaultOauthValidateURL, "URL for token validation")                                                          //nolint:lll
 	// Trento
-	cmd.Flags().StringVar(&serveOpts.TrentoURL, "trento-url", "https://demo.trento-project.io", "URL for the target Trento server") //nolint:lll
-	cmd.Flags().StringVar(&serveOpts.TrentoUsername, "trento-username", "demo", "Username for the target Trento server")
-	cmd.Flags().StringVar(&serveOpts.TrentoPassword, "trento-password", "demopass", "Password for the target Trento server") //nolint:lll
+	cmd.Flags().StringVar(&serveOpts.TrentoURL, "trento-url", defaultTrentoURL, "URL for the target Trento server")                     //nolint:lll
+	cmd.Flags().StringVar(&serveOpts.TrentoUsername, "trento-username", defaultTrentoUsername, "Username for the target Trento server") //nolint:lll
+	cmd.Flags().StringVar(&serveOpts.TrentoPassword, "trento-password", defaultTrentoPassword, "Password for the target Trento server") //nolint:lll
 	// OTHERS
-	cmd.PersistentFlags().IntVarP(&logLevel, "verbosity", "v", 0, "log level verbosity (-1: debug, 0: info, 1: warning, 2: error)") //nolint:lll
+	cmd.PersistentFlags().IntVarP(&logLevel, "verbosity", "v", defaultLogLevel, "log level verbosity (-1: debug, 0: info, 1: warning, 2: error)") //nolint:lll
+
+	// Set version and name
+	serveOpts.Version = Version()
+	serveOpts.Name = name
 }
 
 // init creates a new command, append the runtime version and set flags.
@@ -73,7 +93,9 @@ func initLogger(_ *cobra.Command, _ []string) error {
 
 	slog.SetDefault(logger)
 
-	slog.Debug("CLI initialization completed, ready to invoke the server")
+	slog.Debug("CLI initialization completed, ready to invoke the server",
+		"logger.level", logLevel,
+	)
 
 	return nil
 }
