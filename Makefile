@@ -39,7 +39,7 @@ clean:
 
 .PHONY: run
 run: build ## Compile and run the project.
-	$(GO) run main.go --port ${PORT} --oasPath ./api/openapi.json --transport streamable --oauth-enabled=false
+	$(GO) run main.go --port ${PORT} --oasPath ./api/openapi.json --transport streamable --verbosity=-1
 
 ##@ Test
 

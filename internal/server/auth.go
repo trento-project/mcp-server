@@ -28,80 +28,25 @@ var (
 func authContextFunc(
 	ctx context.Context,
 	r *http.Request,
-	oAuthEnabled bool,
-	validateURL,
 	trentoURL,
 	username,
 	password string,
 ) context.Context {
-	if !oAuthEnabled {
-		err := handleTrentoAuth(ctx, trentoURL, username, password)
-		if err != nil {
-			slog.ErrorContext(ctx, "failed to handle Trento auth",
-				"error", err,
-			)
-		}
-	} else {
-		authHeader := r.Header.Get("Authorization")
+	// TODO(agamez): implement this
+	// apiKey := r.Header.Get("X-TRENTO_API_KEY")
 
-		const prefix = "Bearer "
-
-		if len(authHeader) > len(prefix) && authHeader[:len(prefix)] == prefix {
-			token := authHeader[len(prefix):]
-			if validateAuth0JWT(ctx, token, validateURL) {
-				// Token is valid, proceed with current logic (hardcoded creds for Trento API)
-				err := handleTrentoAuth(ctx, trentoURL, username, password)
-				if err != nil {
-					slog.ErrorContext(ctx, "failed to handle Trento auth",
-						"error", err,
-					)
-
-					return ctx
-				}
-
-				return ctx
-			}
-			// If token is invalid, do not set credentials
-			return ctx
-		}
-		// No Authorization header or not Bearer: do not set credentials
-		return ctx
+	err := handleTrentoLogin(ctx, trentoURL, username, password)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to handle Trento auth",
+			"error", err,
+		)
 	}
 
 	return ctx
 }
 
-// validateAuth0JWT validates a JWT token against the Auth0 userinfo endpoint.
-func validateAuth0JWT(ctx context.Context, tokenString, validateURL string) bool {
-	userinfoURL := validateURL
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, userinfoURL, nil)
-	if err != nil {
-		return false
-	}
-
-	client := &http.Client{}
-
-	req.Header.Set("Authorization", "Bearer "+tokenString)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return false
-	}
-
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			slog.ErrorContext(ctx, "failed to close response body",
-				"error", err,
-			)
-		}
-	}()
-
-	return resp.StatusCode == http.StatusOK
-}
-
-// handleTrentoAuth handles the Trento API authentication with token management.
-func handleTrentoAuth(ctx context.Context, trentoURL, username, password string) error {
+// handleTrentoLogin handles the Trento API authentication with token management.
+func handleTrentoLogin(ctx context.Context, trentoURL, username, password string) error {
 	tokenMutex.Lock()
 	defer tokenMutex.Unlock()
 

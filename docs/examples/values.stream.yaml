@@ -18,7 +18,6 @@ mcpServerTrento:
     - --port=8080
     - --transport=streamable
     - --oasPath=/app/api/openapi.json
-    - --oauth-enabled=false
     - --trento-url=https://demo.trento-project.io
     - --trento-username=demo
     - --trento-password=demopass
