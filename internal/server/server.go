@@ -40,7 +40,7 @@ type StoppableServer interface {
 	Shutdown(ctx context.Context) error
 }
 
-// AuthContextWrapperFn is the type of the function that handles authentication.
+// AuthContextWrapperFn is a wrapper for the authentication functions that are passed to the MCP server.
 type AuthContextWrapperFn = func(c context.Context, r *http.Request) context.Context
 
 const (

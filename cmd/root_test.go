@@ -71,8 +71,9 @@ func TestParseFlagsCorrect(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Do not run in parallel because they modify a global variable (serveOpts)
+			t.Parallel()
 
+			// Do not run in parallel because they modify a global variable (serveOpts)
 			b := bytes.NewBufferString("")
 			command := cmd.NewRootCmd()
 			// We only want to test flags, not the server execution
@@ -85,6 +86,7 @@ func TestParseFlagsCorrect(t *testing.T) {
 
 			if !tt.errExpected {
 				require.NoError(t, err)
+
 				opts := cmd.ServeOpts()
 				// Name and Version are set automatically.
 				tt.expConf.Name = opts.Name
