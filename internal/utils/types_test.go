@@ -7,17 +7,21 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/trento-project/mcp-server/internal/utils"
 )
 
 func TestTransportType_String(t *testing.T) {
 	t.Parallel()
+
 	var tt utils.TransportType = "test"
+
 	assert.Equal(t, "test", tt.String())
 }
 
 func TestTransportType_Set(t *testing.T) {
 	t.Parallel()
+
 	tests := []struct {
 		name        string
 		value       string
@@ -46,14 +50,17 @@ func TestTransportType_Set(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			var tt utils.TransportType
+
 			err := tt.Set(tc.value)
 
 			if tc.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Equal(t, utils.TransportType(""), tt) // Ensure value is unchanged on error
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tc.expectedVal, tt)
 			}
 		})
@@ -62,6 +69,8 @@ func TestTransportType_Set(t *testing.T) {
 
 func TestTransportType_Type(t *testing.T) {
 	t.Parallel()
+
 	var tt utils.TransportType
+
 	assert.Equal(t, "string", tt.Type())
 }

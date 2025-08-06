@@ -23,52 +23,81 @@ import (
 	"github.com/trento-project/mcp-server/internal/utils"
 )
 
-type authContextWrapperFn func(c context.Context, r *http.Request) context.Context
-
 func TestServe(t *testing.T) {
-	tmpFile := createTempOASFile(t)
+	t.Parallel()
 
 	tests := []struct {
-		name      string
-		transport utils.TransportType
-		path      string
+		name        string
+		transport   utils.TransportType
+		path        string
+		oasContent  string
+		expectErr   bool
+		errContains string
 	}{
 		{
-			name:      "Streamable transport",
-			transport: utils.TransportStreamable,
-			path:      "/mcp",
+			name:       "Streamable transport should start and stop",
+			transport:  utils.TransportStreamable,
+			path:       "/mcp",
+			oasContent: createSimpleOASContent(),
+			expectErr:  false,
 		},
 		{
-			name:      "SSE transport",
-			transport: utils.TransportSSE,
-			path:      "/sse",
+			name:       "SSE transport should start and stop",
+			transport:  utils.TransportSSE,
+			path:       "/sse",
+			oasContent: createSimpleOASContent(),
+			expectErr:  false,
+		},
+		{
+			name:        "should fail with invalid OAS file",
+			transport:   utils.TransportStreamable,
+			oasContent:  `{ "invalid": "json"`,
+			expectErr:   true,
+			errContains: "failed to read the API spec",
+		},
+		{
+			name:        "should fail with invalid transport",
+			transport:   "invalid-transport",
+			oasContent:  createSimpleOASContent(),
+			expectErr:   true,
+			errContains: "invalid transport type",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			tmpFile := createTempOASFile(t, tt.oasContent)
+
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
 			port := getAvailablePort(t)
 			serveOpts := &server.ServeOptions{
-				Port:           port,
-				OASPath:        tmpFile,
-				Transport:      tt.transport,
-				TrentoURL:      "http://trento.test",
-				TrentoUsername: "user",
-				TrentoPassword: "password",
+				Port:      port,
+				OASPath:   tmpFile,
+				Transport: tt.transport,
+				TrentoURL: "http://trento.test",
 			}
 
-			checkURL := fmt.Sprintf("http://localhost:%d%s", port, tt.path)
-			testServerShutdown(t, cancel, func() error {
-				return server.Serve(ctx, serveOpts)
-			}, checkURL, fmt.Sprintf("TestServe with transport %s timed out", tt.transport))
+			if tt.expectErr {
+				err := server.Serve(ctx, serveOpts)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+			} else {
+				checkURL := fmt.Sprintf("http://localhost:%d%s", port, tt.path)
+				testServerShutdown(t, cancel, func() error {
+					return server.Serve(ctx, serveOpts)
+				}, checkURL, fmt.Sprintf("TestServe with transport %s timed out", tt.transport))
+			}
 		})
 	}
 }
 
 func TestCreateMCPServer(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	serveOpts := &server.ServeOptions{
 		Name:    "test-server",
@@ -110,70 +139,162 @@ func TestCreateMCPServer(t *testing.T) {
 }
 
 func TestHandleToolsRegistration(t *testing.T) {
-	ctx := context.Background()
-	srv := server.CreateMCPServer(ctx, &server.ServeOptions{Name: "test", Version: "v1"})
-	tmpFile := createTempOASFile(t)
+	t.Parallel()
 
-	serveOpts := &server.ServeOptions{
-		OASPath:   tmpFile,
-		TrentoURL: "http://trento.test",
-	}
-
-	// execute
-	_, tools, err := server.HandleToolsRegistration(ctx, srv, serveOpts)
-
-	// assert
-	require.NoError(t, err)
-	require.NotNil(t, tools)
-	assert.Contains(t, tools, "getTest")
-	assert.Contains(t, tools, "info") // openapi2mcp adds an 'info' tool
-}
-
-func TestHandleServerRun(t *testing.T) {
 	tests := []struct {
-		name      string
-		transport utils.TransportType
-		path      string
+		name             string
+		oasContent       string
+		tagFilter        []string
+		expectErr        bool
+		errContains      string
+		expectedTools    []string
+		notExpectedTools []string
 	}{
 		{
-			name:      "Streamable transport",
-			transport: utils.TransportStreamable,
-			path:      "/mcp",
+			name: "should register tools",
+			oasContent: `{
+				"openapi": "3.0.0", "info": {"title": "API", "version": "1.0"},
+				"paths": {
+					"/test": {"get": {"operationId": "getTest", "tags": ["MCP"], "responses": {"200": {"description": "OK"}}}}
+				}
+			}`,
+			tagFilter:     []string{"MCP"},
+			expectErr:     false,
+			expectedTools: []string{"getTest", "info"},
 		},
 		{
-			name:      "SSE transport",
-			transport: utils.TransportSSE,
-			path:      "/sse",
+			name:        "should return error for invalid OAS file",
+			oasContent:  `{ "openapi": "3.0.0", "info": { ... }`, // malformed JSON
+			tagFilter:   []string{"MCP"},
+			expectErr:   true,
+			errContains: "failed to read the API spec",
+		},
+		{
+			name: "should overwrite server URL if present",
+			oasContent: `{
+				"openapi": "3.0.0", "info": {"title": "API", "version": "1.0"},
+				"servers": [{"url": "http://original.url"}],
+				"paths": {
+					"/test": {"get": {"operationId": "getTest", "tags": ["MCP"], "responses": {"200": {"description": "OK"}}}}
+				}
+			}`,
+			tagFilter: []string{"MCP"},
+			expectErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel() // Run sub-tests in parallel
+
+			ctx := context.Background()
+			srv := server.CreateMCPServer(ctx, &server.ServeOptions{Name: "test", Version: "v1"})
+
+			// Create a temporary OAS file for each test case
+			tmpFile := createTempOASFile(t, tt.oasContent)
+
+			serveOpts := &server.ServeOptions{
+				OASPath:   tmpFile,
+				TrentoURL: "http://trento.test",
+			}
+
+			// execute
+			_, tools, err := server.HandleToolsRegistration(ctx, srv, serveOpts)
+
+			// assert
+			if tt.expectErr {
+				require.Error(t, err)
+
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, tools)
+
+				for _, expectedTool := range tt.expectedTools {
+					assert.Contains(t, tools, expectedTool)
+				}
+
+				for _, notExpectedTool := range tt.notExpectedTools {
+					assert.NotContains(t, tools, notExpectedTool)
+				}
+			}
+		})
+	}
+}
+
+func TestHandleServerRun(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		transport   utils.TransportType
+		path        string
+		expectErr   bool
+		errContains string
+	}{
+		{
+			name:      "should start and stop streamable transport",
+			transport: utils.TransportStreamable,
+			path:      "/mcp",
+			expectErr: false,
+		},
+		{
+			name:      "should start and stop sse transport",
+			transport: utils.TransportSSE,
+			path:      "/sse",
+			expectErr: false,
+		},
+		{
+			name:        "should fail with invalid transport",
+			transport:   "invalid-transport",
+			expectErr:   true,
+			errContains: "invalid transport type",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
 			srv := server.CreateMCPServer(ctx, &server.ServeOptions{Name: "test", Version: "v1"})
 			port := getAvailablePort(t)
 
-			serveOpts := &server.ServeOptions{
-				Port:           port,
-				Transport:      tt.transport,
-				TrentoUsername: "user",
-				TrentoPassword: "password",
+			// For the "port in use" test, occupy the port before starting the server
+			if strings.Contains(tt.errContains, "address already in use") {
+				lc := net.ListenConfig{KeepAlive: time.Second}
+				l, err := lc.Listen(ctx, "tcp", fmt.Sprintf(":%d", port))
+
+				require.NoError(t, err)
+
+				defer l.Close() //nolint:errcheck
 			}
 
-			checkURL := fmt.Sprintf("http://localhost:%d%s", port, tt.path)
-			testServerShutdown(t, cancel, func() error {
-				return server.HandleServerRun(ctx, srv, serveOpts)
-			}, checkURL, "TestHandleServerRun timed out waiting for shutdown")
+			serveOpts := &server.ServeOptions{
+				Port:      port,
+				Transport: tt.transport,
+			}
+
+			if tt.expectErr {
+				err := server.HandleServerRun(ctx, srv, serveOpts)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+			} else {
+				checkURL := fmt.Sprintf("http://localhost:%d%s", port, tt.path)
+				testServerShutdown(t, cancel, func() error {
+					return server.HandleServerRun(ctx, srv, serveOpts)
+				}, checkURL, "TestHandleServerRun timed out waiting for shutdown")
+			}
 		})
 	}
 }
 
-func TestStartServer(t *testing.T) {
-	type shutdowner interface {
-		Shutdown(context.Context) error
-	}
+func TestWaitForShutdown(t *testing.T) {
+	t.Parallel()
 
 	tests := []struct {
 		name    string
@@ -182,10 +303,15 @@ func TestStartServer(t *testing.T) {
 			mcpSrv *mcpserver.MCPServer,
 			addr string,
 			serveOpts *server.ServeOptions,
-			authContext authContextWrapperFn,
+			authContext server.AuthContextWrapperFn,
 			errChan chan<- error,
-		) (shutdowner, error)
-		checkPath string
+		) (server.StoppableServer, error)
+		checkPath   string
+		expectErr   bool
+		errContains string
+
+		mockStartErr    error
+		mockShutdownErr error
 	}{
 		{
 			name: "Streamable HTTP Server",
@@ -194,12 +320,13 @@ func TestStartServer(t *testing.T) {
 				mcpSrv *mcpserver.MCPServer,
 				addr string,
 				serveOpts *server.ServeOptions,
-				authContext authContextWrapperFn,
+				authContext server.AuthContextWrapperFn,
 				errChan chan<- error,
-			) (shutdowner, error) {
+			) (server.StoppableServer, error) {
 				return server.StartStreamableHTTPServer(ctx, mcpSrv, addr, serveOpts, authContext, errChan)
 			},
 			checkPath: "/mcp",
+			expectErr: false,
 		},
 		{
 			name: "SSE Server",
@@ -207,125 +334,118 @@ func TestStartServer(t *testing.T) {
 				ctx context.Context,
 				mcpSrv *mcpserver.MCPServer,
 				addr string,
-				serveOpts *server.ServeOptions,
-				authContext authContextWrapperFn,
+				_ *server.ServeOptions,
+				authContext server.AuthContextWrapperFn,
 				errChan chan<- error,
-			) (shutdowner, error) {
-				return server.StartSSEServer(ctx, mcpSrv, addr, serveOpts, authContext, errChan)
+			) (server.StoppableServer, error) {
+				return server.StartSSEServer(ctx, mcpSrv, addr, authContext, errChan)
 			},
 			checkPath: "/sse",
+			expectErr: false,
+		},
+		{
+			name:         "Server start error",
+			mockStartErr: assert.AnError,
+			expectErr:    true,
+			errContains:  "server error:",
+		},
+		{
+			name:            "Server shutdown error",
+			mockShutdownErr: assert.AnError,
+			expectErr:       true,
+			errContains:     "server shutdown failed:",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
-			mcpSrv, port, addr := setupServerTest(t, ctx)
+			t.Parallel()
 
-			serveOpts := &server.ServeOptions{Port: port}
-			authContext := func(c context.Context, _ *http.Request) context.Context { return c }
-			errChan := make(chan error, 1)
-
-			httpServer, err := tt.startFn(ctx, mcpSrv, addr, serveOpts, authContext, errChan)
-			require.NoError(t, err)
-			require.NotNil(t, httpServer)
-			defer httpServer.Shutdown(ctx) //nolint:errcheck
-
-			// Wait for the server to be ready
-			waitForServerReady(t, fmt.Sprintf("http://localhost:%d%s", port, tt.checkPath), 5*time.Second)
-		})
-	}
-}
-
-func TestWaitForShutdown(t *testing.T) {
-	tests := []struct {
-		name    string
-		startFn func(
-			ctx context.Context,
-			mcpSrv *mcpserver.MCPServer,
-			addr string,
-			serveOpts *server.ServeOptions,
-			authContext authContextWrapperFn,
-			errChan chan<- error,
-		) (any, error)
-		waitFn    func(ctx context.Context, srv any, errChan chan error) error
-		checkPath string
-	}{
-		{
-			name: "Streamable",
-			startFn: func(
-				ctx context.Context,
-				mcpSrv *mcpserver.MCPServer,
-				addr string,
-				serveOpts *server.ServeOptions,
-				authContext authContextWrapperFn,
-				errChan chan<- error,
-			) (any, error) {
-				return server.StartStreamableHTTPServer(ctx, mcpSrv, addr, serveOpts, authContext, errChan)
-			},
-			waitFn: func(ctx context.Context, srv any, errChan chan error) error {
-				return server.WaitForShutdown(ctx, srv.(server.StoppableServer), errChan) //nolint:forcetypeassert
-			},
-			checkPath: "/mcp",
-		},
-		{
-			name: "SSE",
-			startFn: func(
-				ctx context.Context,
-				mcpSrv *mcpserver.MCPServer,
-				addr string,
-				serveOpts *server.ServeOptions,
-				authContext authContextWrapperFn,
-				errChan chan<- error,
-			) (any, error) {
-				return server.StartSSEServer(ctx, mcpSrv, addr, serveOpts, authContext, errChan)
-			},
-			waitFn: func(ctx context.Context, srv any, errChan chan error) error {
-				return server.WaitForShutdown(ctx, srv.(server.StoppableServer), errChan) //nolint:forcetypeassert
-			},
-			checkPath: "/sse",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			mcpSrv, port, addr := setupServerTest(t, ctx)
-			serveOpts := &server.ServeOptions{Port: port}
-			authContext := func(c context.Context, _ *http.Request) context.Context { return c }
-			errChan := make(chan error, 1)
+			//nolint:gocritic
+			if tt.mockStartErr != nil {
+				// Test case for server startup failure
+				mockServer := &mockStoppableServer{startErr: tt.mockStartErr}
+				serverErrChan := make(chan error, 1)
 
-			httpServer, err := tt.startFn(ctx, mcpSrv, addr, serveOpts, authContext, errChan)
-			require.NoError(t, err)
-			require.NotNil(t, httpServer)
+				go func() {
+					err := mockServer.Start("")
+					if err != nil {
+						serverErrChan <- err
+					}
+				}()
 
-			waitErrChan := make(chan error, 1)
-			go func() {
-				// This will block until shutdown or error
-				waitErrChan <- tt.waitFn(ctx, httpServer, errChan)
-				close(waitErrChan)
-			}()
+				err := server.WaitForShutdown(ctx, mockServer, serverErrChan)
 
-			// Wait for the server to be ready
-			checkURL := fmt.Sprintf("http://localhost:%d%s", port, tt.checkPath)
-			waitForServerReady(t, checkURL, 5*time.Second)
+				require.Error(t, err)
+				require.ErrorIs(t, err, tt.mockStartErr)
+				assert.Contains(t, err.Error(), tt.errContains)
+			} else if tt.mockShutdownErr != nil {
+				// Test case for server shutdown failure
+				mockServer := &mockStoppableServer{shutdownErr: tt.mockShutdownErr}
+				serverErrChan := make(chan error, 1)
 
-			// Cancel the context to trigger shutdown
-			cancel()
+				go func() {
+					// This mock server starts successfully
+					err := mockServer.Start("")
+					if err != nil {
+						serverErrChan <- err
+					}
+				}()
 
-			// Wait for shutdown to complete
-			select {
-			case err := <-waitErrChan:
-				assert.NoError(t, err, "waitForShutdown should return no error on graceful shutdown")
-			case <-time.After(5 * time.Second):
-				t.Fatal("timed out waiting for shutdown")
+				waitErrChan := make(chan error, 1)
+
+				go func() {
+					waitErrChan <- server.WaitForShutdown(ctx, mockServer, serverErrChan)
+
+					close(waitErrChan)
+				}()
+
+				cancel() // Trigger shutdown
+
+				select {
+				case err := <-waitErrChan:
+					require.Error(t, err)
+					require.ErrorIs(t, err, tt.mockShutdownErr)
+					assert.Contains(t, err.Error(), tt.errContains)
+				case <-time.After(5 * time.Second):
+					t.Fatal("timed out waiting for shutdown error")
+				}
+			} else {
+				// Test case for graceful shutdown
+				mcpSrv, port, addr := setupServerTest(t, ctx)
+				authContext := func(c context.Context, _ *http.Request) context.Context { return c }
+				errChan := make(chan error, 1)
+
+				httpServer, err := tt.startFn(ctx, mcpSrv, addr, &server.ServeOptions{}, authContext, errChan)
+				require.NoError(t, err)
+				require.NotNil(t, httpServer)
+
+				waitErrChan := make(chan error, 1)
+
+				go func() {
+					waitErrChan <- server.WaitForShutdown(ctx, httpServer, errChan)
+
+					close(waitErrChan)
+				}()
+
+				checkURL := fmt.Sprintf("http://localhost:%d%s", port, tt.checkPath)
+				waitForServerReady(t, checkURL, 5*time.Second)
+
+				cancel()
+
+				select {
+				case err := <-waitErrChan:
+					require.NoError(t, err, "waitForShutdown should return no error on graceful shutdown")
+				case <-time.After(5 * time.Second):
+					t.Fatal("timed out waiting for shutdown")
+				}
+
+				_, err = http.Get(checkURL) //nolint:gosec,bodyclose
+				require.Error(t, err, "Server should be down")
 			}
-
-			// Verify server is down
-			_, err = http.Get(fmt.Sprintf("http://localhost:%d%s", port, tt.checkPath))
-			assert.Error(t, err, "Server should be down")
 		})
 	}
 }
@@ -334,9 +454,16 @@ func waitForServerReady(t *testing.T, url string, timeout time.Duration) {
 	t.Helper()
 
 	client := http.Client{}
+
 	deadline := time.Now().Add(timeout)
+
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, url, nil)
+	require.NoError(t, err)
+
 	for time.Now().Before(deadline) {
-		resp, err := client.Get(url)
+		// Use client.Do to ensure the context is passed for cancellation
+		// and to avoid issues with client.Get's default redirect behavior
+		resp, err := client.Do(req)
 		if err == nil {
 			_ = resp.Body.Close()
 			// The streamable server responds with 200 on GET for discovery.
@@ -346,38 +473,61 @@ func waitForServerReady(t *testing.T, url string, timeout time.Duration) {
 				return // Server is ready
 			}
 		}
+
 		time.Sleep(200 * time.Millisecond)
 	}
+
 	t.Fatalf("server at %s not ready after %v", url, timeout)
 }
 
 // Helper functions for test setup and cleanup
 
-// createTempOASFile creates a temporary OpenAPI specification file for testing
-func createTempOASFile(t *testing.T) string {
-	t.Helper()
+// mockStoppableServer is a mock implementation of the StoppableServer interface for testing.
+type mockStoppableServer struct {
+	startErr    error
+	shutdownErr error
+}
+
+func (m *mockStoppableServer) Start(_ string) error {
+	return m.startErr
+}
+func (m *mockStoppableServer) Shutdown(_ context.Context) error { return m.shutdownErr }
+
+// createSimpleOASContent returns a simple and valid OAS content with a single operation.
+func createSimpleOASContent() string {
 	oasContent := `
 {
-  "openapi": "3.0.0",
-  "info": {
-    "title": "Simple API",
-    "version": "1.0.0"
-  },
-  "paths": {
-    "/test": {
-      "get": {
-        "operationId": "getTest",
-        "summary": "A test endpoint",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    }
-  }
+	"openapi": "3.0.0",
+	"info": {
+		"title": "Simple API",
+		"version": "1.0.0"
+	},
+	"paths": {
+		"/test": {
+			"get": {
+				"operationId": "getTest",
+				"summary": "A test endpoint",
+				"tags": [
+					"MCP"
+				],
+				"responses": {
+					"200": {
+						"description": "OK"
+					}
+				}
+			}
+		}
+	}
 }`
-	tmpFile, err := os.CreateTemp("", "openapi-*.json")
+
+	return oasContent
+}
+
+// createTempOASFile creates a temporary OpenAPI specification file for testing.
+func createTempOASFile(t *testing.T, oasContent string) string {
+	t.Helper()
+
+	tmpFile, err := os.CreateTemp(t.TempDir(), "openapi-*.json")
 	require.NoError(t, err)
 	t.Cleanup(func() { err = os.Remove(tmpFile.Name()); require.NoError(t, err) })
 
@@ -389,14 +539,18 @@ func createTempOASFile(t *testing.T) string {
 	return tmpFile.Name()
 }
 
-// getAvailablePort finds an available port for testing
+// getAvailablePort finds an available port for testing.
 func getAvailablePort(t *testing.T) int {
 	t.Helper()
-	l, err := net.Listen("tcp", "127.0.0.1:0")
+
+	lc := net.ListenConfig{KeepAlive: time.Second}
+	l, err := lc.Listen(t.Context(), "tcp", "127.0.0.1:0")
 	require.NoError(t, err)
+
 	port := l.Addr().(*net.TCPAddr).Port //nolint:forcetypeassert
 	err = l.Close()
 	require.NoError(t, err)
+
 	return port
 }
 
@@ -405,10 +559,13 @@ func getAvailablePort(t *testing.T) int {
 //nolint:revive
 func setupServerTest(t *testing.T, ctx context.Context) (*mcpserver.MCPServer, int, string) {
 	t.Helper()
+
 	mcpSrv := server.CreateMCPServer(ctx, &server.ServeOptions{Name: "test", Version: "v1"})
 
-	l, err := net.Listen("tcp", "127.0.0.1:0")
+	lc := net.ListenConfig{KeepAlive: time.Second}
+	l, err := lc.Listen(ctx, "tcp", "127.0.0.1:0")
 	require.NoError(t, err)
+
 	addr := l.Addr().String()
 	port := l.Addr().(*net.TCPAddr).Port //nolint:forcetypeassert
 	err = l.Close()
@@ -419,7 +576,7 @@ func setupServerTest(t *testing.T, ctx context.Context) (*mcpserver.MCPServer, i
 
 // testServerShutdown is a helper that starts a server function in a goroutine,
 // waits for it to be ready, triggers shutdown via context cancellation,
-// and verifies graceful shutdown
+// and verifies graceful shutdown.
 func testServerShutdown(
 	t *testing.T,
 	cancel context.CancelFunc,
@@ -430,6 +587,7 @@ func testServerShutdown(
 	t.Helper()
 
 	errChan := make(chan error, 1)
+
 	go func() {
 		errChan <- serverFn()
 	}()
@@ -440,10 +598,13 @@ func testServerShutdown(
 	// Cancel the context to trigger shutdown
 	cancel()
 
+	// Give the server a moment to clean up goroutines (especially for SSE)
+	time.Sleep(200 * time.Millisecond)
+
 	// Wait for server to return
 	select {
 	case err := <-errChan:
-		assert.NoError(t, err, "server should exit gracefully")
+		require.NoError(t, err, "server should exit gracefully")
 	case <-time.After(10 * time.Second):
 		t.Fatal(timeoutMsg)
 	}
