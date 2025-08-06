@@ -39,7 +39,7 @@ clean:
 
 .PHONY: run
 run: build ## Compile and run the project.
-	$(GO) run main.go --port ${PORT} --oasPath ./api/openapi.json --transport streamable --verbosity=-1
+	$(GO) run main.go --port ${PORT} --oasPath ./api/openapi.json --transport streamable --verbosity=-1 --header-name=X-TRENTO-API-KEY --tag-filter=MCP
 
 ##@ Test
 
@@ -125,7 +125,7 @@ HELM ?= $(LOCALBIN)/helm-$(HELM_VERSION)
 KUBE_SCORE ?= $(LOCALBIN)/kube-score-$(KUBE_SCORE_VERSION)
 
 ## Tool Versions
-GOLANGCI_LINT_VERSION ?= v2.3.0 # See https://github.com/golangci/golangci-lint/releases
+GOLANGCI_LINT_VERSION ?= v2.3.1 # See https://github.com/golangci/golangci-lint/releases
 HELM_VERSION ?= v3.18.4 # See https://github.com/helm/helm/releases
 KUBE_SCORE_VERSION ?= v1.20.0 # See https://github.com/zegl/kube-score/releases
 
