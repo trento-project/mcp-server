@@ -26,6 +26,7 @@ func (t *TransportType) Set(v string) error {
 	switch v {
 	case "sse", "streamable":
 		*t = TransportType(v)
+
 		return nil
 	default:
 		return fmt.Errorf("invalid transport type: %s, must be one of 'sse' or 'streamable'", v)
@@ -33,6 +34,6 @@ func (t *TransportType) Set(v string) error {
 }
 
 // Type returns the type of the TransportType for pflag.
-func (t *TransportType) Type() string {
+func (*TransportType) Type() string {
 	return "string"
 }

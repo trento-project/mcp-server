@@ -180,10 +180,14 @@ func handleServerRun(ctx context.Context, srv *mcpserver.MCPServer, serveOpts *S
 	}
 
 	serverErrChan := make(chan error, 1)
-	var stoppableServer StoppableServer
-	var err error
+
+	var (
+		stoppableServer StoppableServer
+		err             error
+	)
 
 	// Depending on the chosen transport, we handle the server startup.
+
 	switch serveOpts.Transport {
 	case utils.TransportSSE:
 		stoppableServer, err = startSSEServer(ctx, srv, listenAddr, authContext, serverErrChan)
@@ -194,6 +198,7 @@ func handleServerRun(ctx context.Context, srv *mcpserver.MCPServer, serveOpts *S
 	default:
 		return fmt.Errorf("invalid transport type: %s", serveOpts.Transport)
 	}
+
 	if err != nil {
 		return err
 	}
@@ -215,10 +220,13 @@ func startServer(
 			"server.address", listenAddr,
 			"server.transport", transportType,
 		)
-		if err := server.Start(listenAddr); err != nil && !errors.Is(err, http.ErrServerClosed) {
+
+		err := server.Start(listenAddr)
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.ErrorContext(ctx, fmt.Sprintf("failed to serve MCP server via %s", transportType),
 				"error", err,
 			)
+
 			errChan <- err
 		}
 	}()
@@ -238,6 +246,7 @@ func startStreamableHTTPServer(
 		mcpserver.WithHTTPContextFunc(authContext),
 	)
 	startServer(ctx, listenAddr, streamableServer, utils.TransportStreamable, errChan)
+
 	return streamableServer, nil
 }
 
@@ -254,6 +263,7 @@ func startSSEServer(
 		mcpserver.WithSSEContextFunc(authContext),
 	)
 	startServer(ctx, listenAddr, sseServer, utils.TransportSSE, errChan)
+
 	return sseServer, nil
 }
 
@@ -280,10 +290,12 @@ func waitForShutdown(ctx context.Context, server StoppableServer, serverErrChan 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := server.Shutdown(shutdownCtx); err != nil {
+	err := server.Shutdown(shutdownCtx)
+	if err != nil {
 		slog.ErrorContext(ctx, "failed to shut down the MCP server, forcing exit",
 			"error", err,
 		)
+
 		return fmt.Errorf("server shutdown failed: %w", err)
 	}
 
@@ -305,14 +317,18 @@ func apiKeyAuthContextFunc(
 	if apiKey == "" {
 		slog.InfoContext(ctx, "API key not found in request header", "header", headerName)
 		// Unset the bearer token if no API key is provided.
-		if err := os.Unsetenv(bearerTokenEnv); err != nil {
+		err := os.Unsetenv(bearerTokenEnv)
+		if err != nil {
 			slog.ErrorContext(ctx, "failed to unset bearer token", "env", bearerTokenEnv, "error", err)
 		}
+
 		return ctx
 	}
 
 	slog.DebugContext(ctx, "API key found, setting bearer token", "env", bearerTokenEnv, "header", headerName)
-	if err := os.Setenv(bearerTokenEnv, apiKey); err != nil {
+
+	err := os.Setenv(bearerTokenEnv, apiKey)
+	if err != nil {
 		slog.ErrorContext(ctx, "failed to set bearer token", "env", bearerTokenEnv, "error", err)
 	}
 

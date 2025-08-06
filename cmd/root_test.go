@@ -15,9 +15,8 @@ import (
 	"github.com/trento-project/mcp-server/internal/utils"
 )
 
+//nolint:paralleltest
 func TestParseFlagsCorrect(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		name        string
 		args        []string
@@ -68,8 +67,6 @@ func TestParseFlagsCorrect(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			// Do not run in parallel because they modify a global variable (serveOpts)
 			b := bytes.NewBufferString("")
 			command := cmd.NewRootCmd()

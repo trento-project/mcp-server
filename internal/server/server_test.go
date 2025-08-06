@@ -375,15 +375,25 @@ func TestWaitForShutdown(t *testing.T) {
 	}{
 		{
 			name: "Streamable graceful shutdown",
-			startFn: func(ctx context.Context, mcpSrv *mcpserver.MCPServer, addr string, authContext server.AuthContextWrapperFn, errChan chan<- error) (server.StoppableServer, error) {
-				return server.StartStreamableHTTPServer(ctx, mcpSrv, addr, authContext, errChan)
+			startFn: func(
+				ctx context.Context,
+				mcpSrv *mcpserver.MCPServer,
+				addr string, authContext server.AuthContextWrapperFn,
+				errChan chan<- error,
+			) (server.StoppableServer, error) {
+				return server.StartStreamableHTTPServer(ctx,
+					mcpSrv, addr, authContext, errChan)
 			},
 			checkPath: "/mcp",
 			expectErr: false,
 		},
 		{
 			name: "SSE graceful shutdown",
-			startFn: func(ctx context.Context, mcpSrv *mcpserver.MCPServer, addr string, authContext server.AuthContextWrapperFn, errChan chan<- error) (server.StoppableServer, error) {
+			startFn: func(
+				ctx context.Context, mcpSrv *mcpserver.MCPServer,
+				addr string, authContext server.AuthContextWrapperFn,
+				errChan chan<- error,
+			) (server.StoppableServer, error) {
 				return server.StartSSEServer(ctx, mcpSrv, addr, authContext, errChan)
 			},
 			checkPath: "/sse",
@@ -489,8 +499,16 @@ func TestWaitForShutdown(t *testing.T) {
 					t.Fatal("timed out waiting for shutdown")
 				}
 
-				_, err = http.Get(checkURL) //nolint:gosec,bodyclose
+				req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, checkURL, nil)
+				require.NoError(t, err)
+
+				client := &http.Client{}
+				resp, err := client.Do(req)
 				require.Error(t, err, "Server should be down")
+
+				if resp != nil && resp.Body != nil {
+					_ = resp.Body.Close()
+				}
 			}
 		})
 	}
@@ -662,18 +680,6 @@ func TestApiKeyAuthContextFunc(t *testing.T) {
 		bearerTokenEnv = "BEARER_TOKEN"
 	)
 
-	// Save original env var to restore it later
-	originalToken, originalTokenSet := os.LookupEnv(bearerTokenEnv)
-	t.Cleanup(func() {
-		if originalTokenSet {
-			err := os.Setenv(bearerTokenEnv, originalToken)
-			require.NoError(t, err)
-		} else {
-			err := os.Unsetenv(bearerTokenEnv)
-			require.NoError(t, err)
-		}
-	})
-
 	tests := []struct {
 		name           string
 		apiKey         string
@@ -719,16 +725,16 @@ func TestApiKeyAuthContextFunc(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup initial environment for this test case
 			if tt.initialEnv != "" {
-				err := os.Setenv(bearerTokenEnv, tt.initialEnv)
-				require.NoError(t, err)
+				t.Setenv(bearerTokenEnv, tt.initialEnv)
 			} else {
 				err := os.Unsetenv(bearerTokenEnv)
 				require.NoError(t, err)
 			}
 
 			// Create request
-			req, err := http.NewRequestWithContext(context.Background(), "GET", "/test", nil)
+			req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/test", nil)
 			require.NoError(t, err)
+
 			if tt.headerPresent {
 				req.Header.Set(headerName, tt.apiKey)
 			}
@@ -739,6 +745,7 @@ func TestApiKeyAuthContextFunc(t *testing.T) {
 			// Assertions
 			actualAPIKey, isSet := os.LookupEnv(bearerTokenEnv)
 			assert.Equal(t, tt.expectEnvSet, isSet)
+
 			if tt.expectEnvSet {
 				assert.Equal(t, tt.expectedAPIKey, actualAPIKey)
 			}

@@ -100,7 +100,7 @@ func TestMainExec(t *testing.T) {
 // TestMain acts as a dispatcher. When the test binary is re-executed with a
 // command-line argument, it runs the corresponding helper command and exits,
 // instead of running tests. This allows us to test the `main` function itself.
-func TestMain(_ *testing.M) {
+func TestMain(*testing.M) {
 	flag.Parse()
 	args := flag.Args()
 
