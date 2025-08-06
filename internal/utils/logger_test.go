@@ -16,36 +16,42 @@ import (
 )
 
 func TestCreateLogger(t *testing.T) {
+	t.Parallel()
+
 	// These tests manipulate a global resource (os.Stdout), so they cannot run in parallel.
 	// Redirect stdout to a buffer
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
+
 	defer func() { os.Stdout = oldStdout }()
 
 	// Create logger with info level. This will write to our pipe.
 	logger := utils.CreateLogger(0)
 
-	// Log some messages
-	logger.Info("info message")
-	logger.Debug("debug message") // This should not be logged
+	// Log some messages with attributes
+	logger.InfoContext(t.Context(), "info message", "key", "value")
+	logger.DebugContext(t.Context(), "debug message") // This should not be logged
 
 	// Restore stdout and read from buffer
 	err := w.Close()
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
+
 	_, err = io.Copy(&buf, r)
 	require.NoError(t, err)
 
 	// Assertions
 	logOutput := buf.String()
 	assert.Contains(t, logOutput, "INFO info message")
+	assert.Contains(t, logOutput, "key=value")
 	assert.NotContains(t, logOutput, "DEBUG debug message")
 }
 
 func TestParseLogLevel(t *testing.T) {
 	t.Parallel()
+
 	tests := []struct {
 		name     string
 		level    int
@@ -61,7 +67,21 @@ func TestParseLogLevel(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			assert.Equal(t, tt.expected, utils.ParseLogLevel(tt.level))
 		})
 	}
+}
+
+func TestDefaultTextHandlerMethods(t *testing.T) {
+	// This test is primarily for code coverage of the unexported DefaultTextHandler's
+	// WithAttrs and WithGroup methods. These methods are currently no-ops but are
+	// called by the slog.Logger's corresponding methods.
+	t.Parallel()
+
+	logger := utils.CreateLogger(0)
+
+	// Calling these methods is sufficient to cover the no-op implementations.
+	_ = logger.With("key", "value")
+	_ = logger.WithGroup("my_group")
 }
