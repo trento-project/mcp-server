@@ -25,18 +25,14 @@ var (
 )
 
 const (
-	name                               = "trento-mcp-server"
-	defaultPort                        = 5000
-	defaultOASPath                     = "./api/openapi.json"
-	defaultMcpBaseURL                  = ""
-	defaultOauthEnabled                = false
-	defaultOauthAuthorizationServerURL = "https://my-idp.example.com/.well-known/openid-configuration"
-	defaultOauthIssuer                 = "https://my-idp.example.com/"
-	defaultOauthValidateURL            = "https://my-idp.example.com/userinfo"
-	defaultTrentoURL                   = "https://demo.trento-project.io"
-	defaultTrentoUsername              = "demo"
-	defaultTrentoPassword              = "demopass"
-	defaultLogLevel                    = 0
+	name                  = "trento-mcp-server"
+	defaultPort           = 5000
+	defaultOASPath        = "./api/openapi.json"
+	defaultMcpBaseURL     = ""
+	defaultTrentoURL      = "https://demo.trento-project.io"
+	defaultTrentoUsername = "demo"
+	defaultTrentoPassword = "demopass"
+	defaultLogLevel       = 0
 )
 
 func newRootCmd() *cobra.Command {
@@ -60,11 +56,6 @@ func setFlags(cmd *cobra.Command) {
 	serveOpts.Transport = utils.TransportStreamable // Set default value for transport
 	cmd.Flags().Var(&serveOpts.Transport, "transport", "The protocol to use, choose 'streamable' (default) or 'sse'")
 	cmd.Flags().StringVar(&serveOpts.McpBaseURL, "base-url", defaultMcpBaseURL, "Base URL where the mcp is deployed, if none, http://localhost:port is used'") //nolint:lll
-	// OAUTH
-	cmd.Flags().BoolVar(&serveOpts.OauthEnabled, "oauth-enabled", defaultOauthEnabled, "Enable the oauth authentication in the MCP")                                                       //nolint:lll
-	cmd.Flags().StringVar(&serveOpts.OauthAuthorizationServerURL, "oauth-authorization-server-url", defaultOauthAuthorizationServerURL, "URL for the oauth-authorization-server endpoint") //nolint:lll
-	cmd.Flags().StringVar(&serveOpts.OauthIssuer, "oauth-issuer", defaultOauthIssuer, "Issuer for the oauth flow")                                                                         //nolint:lll
-	cmd.Flags().StringVar(&serveOpts.OauthValidateURL, "oauth-validate-url", defaultOauthValidateURL, "URL for token validation")                                                          //nolint:lll
 	// Trento
 	cmd.Flags().StringVar(&serveOpts.TrentoURL, "trento-url", defaultTrentoURL, "URL for the target Trento server")                     //nolint:lll
 	cmd.Flags().StringVar(&serveOpts.TrentoUsername, "trento-username", defaultTrentoUsername, "Username for the target Trento server") //nolint:lll
