@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/evcc-io/openapi-mcp/pkg/openapi2mcp"
@@ -22,15 +24,14 @@ import (
 
 // ServeOptions encapsulates the available command-line options.
 type ServeOptions struct {
-	McpBaseURL     string
-	Name           string
-	OASPath        string
-	Port           int
-	Transport      utils.TransportType
-	TrentoPassword string
-	TrentoURL      string
-	TrentoUsername string
-	Version        string
+	Name             string
+	OASPath          string
+	Port             int
+	Transport        utils.TransportType
+	TrentoHeaderName string
+	TagFilter        []string
+	TrentoURL        string
+	Version          string
 }
 
 // StoppableServer defines an interface for servers that can be started and shut down.
@@ -39,7 +40,19 @@ type StoppableServer interface {
 	Shutdown(ctx context.Context) error
 }
 
-type authContextWrapperFn = func(c context.Context, r *http.Request) context.Context
+// AuthContextWrapperFn is the type of the function that handles authentication.
+type AuthContextWrapperFn = func(c context.Context, r *http.Request) context.Context
+
+const (
+	// bearerTokenEnv is the env var name that the MCP client is expecting to read.
+	// This comes from the tool conversion performed at:
+	// https://github.com/evcc-io/openapi-mcp/blob/5af774c51f554649795872fe26c415f804456951/pkg/openapi2mcp/register.go#L77
+	bearerTokenEnv = "BEARER_TOKEN"
+
+	// streamableEndpoint is the path where the mcp server will listen to, when configured to http streamable
+	// if sse is selected, the endpoint becomes "/sse".
+	streamableEndpoint = "/mcp"
+)
 
 // Serve is the root command that is run when no other sub-commands are present.
 func Serve(ctx context.Context, serveOpts *ServeOptions) error {
@@ -115,7 +128,7 @@ func handleToolsRegistration(
 		return nil, []string{}, fmt.Errorf("failed to read the API spec: %w", err)
 	}
 
-	// Overwrite or the Trento URL in the OpenAPI
+	// Overwrite the Trento URL in the OpenAPI
 	if len(oasDoc.Servers) > 0 {
 		oasDoc.Servers[0].URL = serveOpts.TrentoURL
 	} else {
@@ -128,8 +141,22 @@ func handleToolsRegistration(
 	// Extract the API operations.
 	operations := openapi2mcp.ExtractOpenAPIOperations(oasDoc)
 
-	// TODO(agamez): make it configurable
-	opts := &openapi2mcp.ToolGenOptions{}
+	opts := &openapi2mcp.ToolGenOptions{
+		TagFilter:               serveOpts.TagFilter,
+		ConfirmDangerousActions: true,
+		NameFormat: func(oldOperationID string) string {
+			// Convert dots to underscores first
+			operationID := strings.ReplaceAll(oldOperationID, ".", "_")
+			// Remove any "WandaWeb_VX_" or "TrentoWeb_VX_" prefix (VX can be V1, V2, etc.)
+			re := regexp.MustCompile(`^(WandaWeb|TrentoWeb)_V\d+_`)
+			operationID = re.ReplaceAllString(operationID, "")
+			// Remove all 'Controller' substrings
+			operationID = strings.ReplaceAll(operationID, "Controller", "")
+
+			return operationID
+		},
+	}
+
 	// Register them as MCP tools.
 	tools := openapi2mcp.RegisterOpenAPITools(srv, operations, oasDoc, opts)
 
@@ -147,15 +174,9 @@ func handleServerRun(ctx context.Context, srv *mcpserver.MCPServer, serveOpts *S
 		"server.transport", serveOpts.Transport,
 	)
 
-	// Wrapper to pass the url and other params in the future
-	authContext := func(c context.Context, r *http.Request) context.Context {
-		return authContextFunc(
-			c,
-			r,
-			serveOpts.TrentoURL,
-			serveOpts.TrentoUsername,
-			serveOpts.TrentoPassword,
-		)
+	// Wrapper to pass the header name to the auth context function.
+	authContext := func(ctx context.Context, req *http.Request) context.Context {
+		return apiKeyAuthContextFunc(ctx, req, serveOpts.TrentoHeaderName)
 	}
 
 	serverErrChan := make(chan error, 1)
@@ -165,10 +186,10 @@ func handleServerRun(ctx context.Context, srv *mcpserver.MCPServer, serveOpts *S
 	// Depending on the chosen transport, we handle the server startup.
 	switch serveOpts.Transport {
 	case utils.TransportSSE:
-		stoppableServer, err = startSSEServer(ctx, srv, listenAddr, serveOpts, authContext, serverErrChan)
+		stoppableServer, err = startSSEServer(ctx, srv, listenAddr, authContext, serverErrChan)
 
 	case utils.TransportStreamable:
-		stoppableServer, err = startStreamableHTTPServer(ctx, srv, listenAddr, serveOpts, authContext, serverErrChan)
+		stoppableServer, err = startStreamableHTTPServer(ctx, srv, listenAddr, authContext, serverErrChan)
 
 	default:
 		return fmt.Errorf("invalid transport type: %s", serveOpts.Transport)
@@ -208,11 +229,14 @@ func startStreamableHTTPServer(
 	ctx context.Context,
 	mcpSrv *mcpserver.MCPServer,
 	listenAddr string,
-	serveOpts *ServeOptions,
-	authContext authContextWrapperFn,
+	authContext AuthContextWrapperFn,
 	errChan chan<- error,
 ) (*mcpserver.StreamableHTTPServer, error) {
-	streamableServer := mcpserver.NewStreamableHTTPServer(mcpSrv, mcpserver.WithEndpointPath("/mcp"), mcpserver.WithHTTPContextFunc(authContext))
+	streamableServer := mcpserver.NewStreamableHTTPServer(
+		mcpSrv,
+		mcpserver.WithEndpointPath(streamableEndpoint),
+		mcpserver.WithHTTPContextFunc(authContext),
+	)
 	startServer(ctx, listenAddr, streamableServer, utils.TransportStreamable, errChan)
 	return streamableServer, nil
 }
@@ -222,11 +246,13 @@ func startSSEServer(
 	ctx context.Context,
 	mcpSrv *mcpserver.MCPServer,
 	listenAddr string,
-	_ *ServeOptions,
-	authContext authContextWrapperFn,
+	authContext AuthContextWrapperFn,
 	errChan chan<- error,
 ) (*mcpserver.SSEServer, error) {
-	sseServer := mcpserver.NewSSEServer(mcpSrv, mcpserver.WithSSEContextFunc(authContext))
+	sseServer := mcpserver.NewSSEServer(
+		mcpSrv,
+		mcpserver.WithSSEContextFunc(authContext),
+	)
 	startServer(ctx, listenAddr, sseServer, utils.TransportSSE, errChan)
 	return sseServer, nil
 }
@@ -264,4 +290,31 @@ func waitForShutdown(ctx context.Context, server StoppableServer, serverErrChan 
 	slog.InfoContext(ctx, "the MCP server was shut down successfully")
 
 	return nil
+}
+
+// apiKeyAuthContextFunc is a context function for the server that
+// extracts the API key from the incoming request header and sets it
+// as the bearer token for outgoing requests.
+func apiKeyAuthContextFunc(
+	ctx context.Context,
+	r *http.Request,
+	headerName string,
+) context.Context {
+	apiKey := r.Header.Get(headerName)
+
+	if apiKey == "" {
+		slog.InfoContext(ctx, "API key not found in request header", "header", headerName)
+		// Unset the bearer token if no API key is provided.
+		if err := os.Unsetenv(bearerTokenEnv); err != nil {
+			slog.ErrorContext(ctx, "failed to unset bearer token", "env", bearerTokenEnv, "error", err)
+		}
+		return ctx
+	}
+
+	slog.DebugContext(ctx, "API key found, setting bearer token", "env", bearerTokenEnv, "header", headerName)
+	if err := os.Setenv(bearerTokenEnv, apiKey); err != nil {
+		slog.ErrorContext(ctx, "failed to set bearer token", "env", bearerTokenEnv, "error", err)
+	}
+
+	return ctx
 }

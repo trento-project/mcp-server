@@ -25,14 +25,12 @@ var (
 )
 
 const (
-	name                  = "trento-mcp-server"
-	defaultPort           = 5000
-	defaultOASPath        = "./api/openapi.json"
-	defaultMcpBaseURL     = ""
-	defaultTrentoURL      = "https://demo.trento-project.io"
-	defaultTrentoUsername = "demo"
-	defaultTrentoPassword = "demopass"
-	defaultLogLevel       = 0
+	name                    = "trento-mcp-server"
+	defaultLogLevel         = 0
+	defaultOASPath          = "./api/openapi.json"
+	defaultPort             = 5000
+	defaultTrentoHeaderName = "X-TRENTO-API-KEY"
+	defaultTrentoURL        = "https://demo.trento-project.io"
 )
 
 func newRootCmd() *cobra.Command {
@@ -55,11 +53,10 @@ func setFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&serveOpts.OASPath, "oasPath", "P", defaultOASPath, "Path to the OpenAPI spec file")
 	serveOpts.Transport = utils.TransportStreamable // Set default value for transport
 	cmd.Flags().Var(&serveOpts.Transport, "transport", "The protocol to use, choose 'streamable' (default) or 'sse'")
-	cmd.Flags().StringVar(&serveOpts.McpBaseURL, "base-url", defaultMcpBaseURL, "Base URL where the mcp is deployed, if none, http://localhost:port is used'") //nolint:lll
 	// Trento
-	cmd.Flags().StringVar(&serveOpts.TrentoURL, "trento-url", defaultTrentoURL, "URL for the target Trento server")                     //nolint:lll
-	cmd.Flags().StringVar(&serveOpts.TrentoUsername, "trento-username", defaultTrentoUsername, "Username for the target Trento server") //nolint:lll
-	cmd.Flags().StringVar(&serveOpts.TrentoPassword, "trento-password", defaultTrentoPassword, "Password for the target Trento server") //nolint:lll
+	cmd.Flags().StringVar(&serveOpts.TrentoURL, "trento-url", defaultTrentoURL, "URL for the target Trento server")                                 //nolint:lll
+	cmd.Flags().StringVar(&serveOpts.TrentoHeaderName, "header-name", defaultTrentoHeaderName, "The header name to be used for the Trento API key") //nolint:lll
+	cmd.Flags().StringSliceVar(&serveOpts.TagFilter, "tag-filter", []string{"MCP"}, "Only include operations with at least one of these tags")      //nolint:lll
 	// OTHERS
 	cmd.PersistentFlags().IntVarP(&logLevel, "verbosity", "v", defaultLogLevel, "log level verbosity (-1: debug, 0: info, 1: warning, 2: error)") //nolint:lll
 
