@@ -41,7 +41,7 @@ type StoppableServer interface {
 }
 
 // AuthContextWrapperFn is a wrapper for the authentication functions that are passed to the MCP server.
-type AuthContextWrapperFn = func(c context.Context, r *http.Request) context.Context
+type AuthContextWrapperFn = func(ctx context.Context, req *http.Request) context.Context
 
 const (
 	// bearerTokenEnv is the env var name that the MCP client is expecting to read.
