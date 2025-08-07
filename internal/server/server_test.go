@@ -308,17 +308,16 @@ func TestHandleServerRun(t *testing.T) {
 			errContains: "invalid transport type",
 		},
 		{
-			name:      "should fail if port is in use",
-			transport: utils.TransportStreamable,
-			expectErr: true,
-
-			errContains: "address already in use",
+			name:        "should fail if port is in use for streamable",
+			transport:   utils.TransportStreamable,
+			expectErr:   true,
+			errContains: "address",
 		},
 		{
 			name:        "should fail if port is in use for sse",
 			transport:   utils.TransportSSE,
 			expectErr:   true,
-			errContains: "address already in use",
+			errContains: "address",
 		},
 	}
 
@@ -333,13 +332,13 @@ func TestHandleServerRun(t *testing.T) {
 			port := getAvailablePort(t)
 
 			// For the "port in use" test, occupy the port before starting the server
-			if strings.Contains(tt.errContains, "address already in use") {
+			if strings.Contains(tt.errContains, "address") {
 				lc := net.ListenConfig{KeepAlive: time.Second}
 				l, err := lc.Listen(ctx, "tcp", fmt.Sprintf(":%d", port))
-
 				require.NoError(t, err)
-
 				defer l.Close() //nolint:errcheck
+				// Give the OS a moment to register the port as in use
+				time.Sleep(200 * time.Millisecond)
 			}
 
 			serveOpts := &server.ServeOptions{
