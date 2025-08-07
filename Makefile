@@ -47,12 +47,6 @@ run: build ## Compile and run the project.
 test: ## Test the project.
 	$(GO) test ./... -cover
 
-##@ Code generation
-
-.PHONY: generate
-generate: install-tools ## Run code autogeneration.
-	$(MCPGEN) --doc=tools.md api/openapi.json
-
 ##@ Container
 
 .PHONY: build-container
