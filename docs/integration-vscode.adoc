@@ -1,9 +1,8 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
-:badge-url: https://insiders.vscode.dev/redirect/mcp/install?name=trento&config=%7B%22type%22%3A%20%22http%22%2C%22url%22%3A%20%22http%3A%2F%2Flocalhost%3A5000%2Fmcp%22%7D
+:badge-url: https://vscode.dev/redirect/mcp/install?name=trento&config=%7B%22servers%22%3A%7B%22mcp-server-trento%22%3A%7B%22type%22%3A%22http%22%2C%22url%22%3A%22http%3A//localhost%3A5000/mcp%22%2C%22headers%22%3A%7B%22X-TRENTO-API-KEY%22%3A%22your-actual-trento-api-key-here%22%7D%7D%7D%7D
 :badge-img: https://img.shields.io/badge/VS_Code-Install_Server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white
-
 
 == VS Code Integration
 
@@ -27,7 +26,22 @@ For more details, refer to your LLM tool or extension documentation.
 
 === Example MCP Client Configuration
 
-To connect your LLM client or extension to this MCP server, use a configuration snippet like the following:
+==== Authentication Setup
+
+The Trento MCP Server requires authentication using a Trento API key. You must first generate an API key from your Trento instance:
+
+. Log in to your Trento web interface
+. Navigate to your user profile or settings
+. Generate a new API key token
+. Copy and securely store the generated token
+
+==== Configuration with Authentication
+
+To connect your LLM client or extension to this MCP server with proper authentication, use one of the following configuration options:
+
+*Option 1: Secure Configuration with Prompted Input*
+
+This configuration will prompt you for your API key when VS Code starts, keeping it secure:
 
 [source,json]
 ----
@@ -35,7 +49,35 @@ To connect your LLM client or extension to this MCP server, use a configuration 
   "servers": {
     "trento": {
       "type": "http",
-      "url": "http://localhost:5000/mcp/"
+      "url": "http://localhost:5000/mcp",
+      "headers": {
+        "X-TRENTO-API-KEY": "${input:trento-api-key}"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "trento-api-key",
+      "description": "Trento API Key",
+      "password": true
+    }
+  ]
+}
+----
+
+*Option 2: Direct Header Configuration*
+
+[source,json]
+----
+{
+  "servers": {
+    "trento": {
+      "type": "http",
+      "url": "http://localhost:5000/mcp",
+      "headers": {
+        "X-TRENTO-API-KEY": "your-actual-trento-api-key-here"
+      }
     }
   }
 }
@@ -45,6 +87,18 @@ Alternatively, you can use this link to install the server directly in VS Code:
 
 link:{badge-url}[image:{badge-img}[Install in VS Code]]
 
-____
-Replace `http://localhost:5000/mcp/` with the actual URL and port where your `Trento MCP Server` instance is running.
-____
+==== Configuration Notes
+
+* Replace `http://localhost:5000/mcp` with the actual URL and port where your `Trento MCP Server` instance is running. If using SSE, the path becomes "/sse".
+* If you're using a custom header name (configured with `--header-name`), update the header name in your configuration accordingly
+* The `password: true` setting in Option 1 ensures your API key input is masked when you type it
+* VS Code will remember your API key for the session, so you won't need to re-enter it until you restart VS Code
+
+==== Troubleshooting Authentication
+
+If you encounter authentication issues:
+
+. Verify your API key is valid by testing it directly with your Trento instance
+. Check that the header name matches your server configuration (default: `X-TRENTO-API-KEY`)
+. Ensure your Trento MCP Server is running and accessible
+. Check the VS Code developer console for any error messages
