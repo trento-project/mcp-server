@@ -16,9 +16,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/evcc-io/openapi-mcp/pkg/openapi2mcp"
+	openapi2mcp "github.com/evcc-io/openapi-mcp"
 	"github.com/getkin/kin-openapi/openapi3"
-	mcpserver "github.com/mark3labs/mcp-go/server"
+	mcpserver "github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/trento-project/mcp-server/internal/utils"
 )
 
@@ -36,7 +36,6 @@ type ServeOptions struct {
 
 // StoppableServer defines an interface for servers that can be started and shut down.
 type StoppableServer interface {
-	Start(addr string) error
 	Shutdown(ctx context.Context) error
 }
 
@@ -93,21 +92,29 @@ func Serve(ctx context.Context, serveOpts *ServeOptions) error {
 }
 
 // createMCPServer creates the MCP server, but does not start serving it yet.
-func createMCPServer(ctx context.Context, serveOpts *ServeOptions) *mcpserver.MCPServer {
+func createMCPServer(ctx context.Context, serveOpts *ServeOptions) *mcpserver.Server {
 	// Create MCP server options.
-	// For additional ones, refer to https://github.com/mark3labs/mcp-go/blob/main/server/server.go
-	opts := []mcpserver.ServerOption{
-		mcpserver.WithLogging(),              // enables logging capabilities for the server
-		mcpserver.WithRecovery(),             // recovers from panics in tool handlers
-		mcpserver.WithToolCapabilities(true), // configures tool-related server capabilities
+	opts := &mcpserver.ServerOptions{
+		Instructions:                "",
+		InitializedHandler:          nil,
+		PageSize:                    mcpserver.DefaultPageSize,
+		RootsListChangedHandler:     nil,
+		ProgressNotificationHandler: nil,
+		CompletionHandler:           nil,
+		KeepAlive:                   time.Hour,
 	}
 
 	slog.DebugContext(ctx, "the MCP server options have been created",
 		"server.options", fmt.Sprintf("%+v", opts),
 	)
 
-	// Create the MCP server with above options.
-	srv := mcpserver.NewMCPServer(serveOpts.Name, serveOpts.Version, opts...)
+	impl := &mcpserver.Implementation{
+		Name:    serveOpts.Name,
+		Title:   serveOpts.Name,
+		Version: serveOpts.Version,
+	}
+
+	srv := mcpserver.NewServer(impl, opts)
 
 	return srv
 }
@@ -115,9 +122,9 @@ func createMCPServer(ctx context.Context, serveOpts *ServeOptions) *mcpserver.MC
 // handleToolsRegistration loads the OAS file, transforms it into MCP tools and registers them into the MCP server.
 func handleToolsRegistration(
 	ctx context.Context,
-	srv *mcpserver.MCPServer,
+	srv *mcpserver.Server,
 	serveOpts *ServeOptions,
-) (*mcpserver.MCPServer, []string, error) {
+) (*mcpserver.Server, []string, error) {
 	// Load OpenAPI spec.
 	oasDoc, err := openapi2mcp.LoadOpenAPISpec(serveOpts.OASPath)
 	if err != nil {
@@ -165,7 +172,7 @@ func handleToolsRegistration(
 
 // handleServerRun configures and starts the appropriate server based on the selected transport.
 // It sets up an authentication context wrapper and blocks until a shutdown signal is received.
-func handleServerRun(ctx context.Context, srv *mcpserver.MCPServer, serveOpts *ServeOptions) error {
+func handleServerRun(ctx context.Context, srv *mcpserver.Server, serveOpts *ServeOptions) error {
 	// Build the address to listen to
 	listenAddr := fmt.Sprintf(":%d", serveOpts.Port)
 
@@ -211,17 +218,22 @@ func handleServerRun(ctx context.Context, srv *mcpserver.MCPServer, serveOpts *S
 func startServer(
 	ctx context.Context,
 	listenAddr string,
-	server StoppableServer,
+	handler http.Handler,
 	transportType utils.TransportType,
 	errChan chan<- error,
-) {
+) *http.Server {
+	httpSrv := &http.Server{
+		Addr:    listenAddr,
+		Handler: handler,
+	}
+
 	go func() {
 		slog.InfoContext(ctx, "the MCP server is listening",
 			"server.address", listenAddr,
 			"server.transport", transportType,
 		)
 
-		err := server.Start(listenAddr)
+		err := httpSrv.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.ErrorContext(ctx, fmt.Sprintf("failed to serve MCP server via %s", transportType),
 				"error", err,
@@ -230,41 +242,42 @@ func startServer(
 			errChan <- err
 		}
 	}()
+
+	return httpSrv
 }
 
 // startStreamableHTTPServer initializes and starts a custom streamable HTTP server.
 func startStreamableHTTPServer(
 	ctx context.Context,
-	mcpSrv *mcpserver.MCPServer,
+	mcpSrv *mcpserver.Server,
 	listenAddr string,
 	authContext AuthContextWrapperFn,
 	errChan chan<- error,
-) (*mcpserver.StreamableHTTPServer, error) {
-	streamableServer := mcpserver.NewStreamableHTTPServer(
-		mcpSrv,
-		mcpserver.WithEndpointPath(streamableEndpoint),
-		mcpserver.WithHTTPContextFunc(authContext),
+) (StoppableServer, error) {
+	streamableHandler := mcpserver.NewStreamableHTTPHandler(
+		func(*http.Request) *mcpserver.Server { return mcpSrv },
+		&mcpserver.StreamableHTTPOptions{},
 	)
-	startServer(ctx, listenAddr, streamableServer, utils.TransportStreamable, errChan)
 
-	return streamableServer, nil
+	httpServer := startServer(ctx, listenAddr, streamableHandler, utils.TransportStreamable, errChan)
+
+	return httpServer, nil
 }
 
 // startSSEServer initializes and starts a Server-Sent Events (SSE) server.
 func startSSEServer(
 	ctx context.Context,
-	mcpSrv *mcpserver.MCPServer,
+	mcpSrv *mcpserver.Server,
 	listenAddr string,
 	authContext AuthContextWrapperFn,
 	errChan chan<- error,
-) (*mcpserver.SSEServer, error) {
-	sseServer := mcpserver.NewSSEServer(
-		mcpSrv,
-		mcpserver.WithSSEContextFunc(authContext),
+) (StoppableServer, error) {
+	sseHandler := mcpserver.NewSSEHandler(
+		func(*http.Request) *mcpserver.Server { return mcpSrv },
 	)
-	startServer(ctx, listenAddr, sseServer, utils.TransportSSE, errChan)
+	httpServer := startServer(ctx, listenAddr, sseHandler, utils.TransportSSE, errChan)
 
-	return sseServer, nil
+	return httpServer, nil
 }
 
 // waitForShutdown, once and interrupt signal is received, it gracefully shuts down the server.
