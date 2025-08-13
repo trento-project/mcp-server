@@ -19,7 +19,7 @@ import (
 
 	openapi2mcp "github.com/evcc-io/openapi-mcp"
 	"github.com/getkin/kin-openapi/openapi3"
-	mcpserver "github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/trento-project/mcp-server/internal/utils"
 )
 
@@ -48,10 +48,6 @@ const (
 	// This comes from the tool conversion performed at:
 	// https://github.com/evcc-io/openapi-mcp/blob/5af774c51f554649795872fe26c415f804456951/pkg/openapi2mcp/register.go#L77
 	bearerTokenEnv = "BEARER_TOKEN"
-
-	// streamableEndpoint is the path where the mcp server will listen to, when configured to http streamable
-	// if sse is selected, the endpoint becomes "/sse".
-	streamableEndpoint = "/mcp"
 )
 
 // Serve is the root command that is run when no other sub-commands are present.
@@ -66,8 +62,8 @@ func Serve(ctx context.Context, serveOpts *ServeOptions) error {
 	srv := createMCPServer(ctx, serveOpts)
 
 	slog.DebugContext(ctx, "the MCP server has been created",
-		"mcpserver.name", serveOpts.Name,
-		"mcpserver.version", serveOpts.Version,
+		"mcp.name", serveOpts.Name,
+		"mcp.version", serveOpts.Version,
 	)
 
 	// Create the MCP server and register the tools.
@@ -77,8 +73,8 @@ func Serve(ctx context.Context, serveOpts *ServeOptions) error {
 	}
 
 	slog.DebugContext(ctx, "the tools have been registered",
-		"mcpserver.tools.count", len(tools),
-		"mcpserver.tools", fmt.Sprintf("%+v", tools),
+		"mcp.tools.count", len(tools),
+		"mcp.tools", fmt.Sprintf("%+v", tools),
 	)
 
 	slog.InfoContext(ctx, fmt.Sprintf("the MCP server %s has %d registered tools", serveOpts.Name, len(tools)))
@@ -93,12 +89,12 @@ func Serve(ctx context.Context, serveOpts *ServeOptions) error {
 }
 
 // createMCPServer creates the MCP server, but does not start serving it yet.
-func createMCPServer(ctx context.Context, serveOpts *ServeOptions) *mcpserver.Server {
+func createMCPServer(ctx context.Context, serveOpts *ServeOptions) *mcp.Server {
 	// Create MCP server options.
-	opts := &mcpserver.ServerOptions{
+	opts := &mcp.ServerOptions{
 		Instructions:                "",
 		InitializedHandler:          nil,
-		PageSize:                    mcpserver.DefaultPageSize,
+		PageSize:                    mcp.DefaultPageSize,
 		RootsListChangedHandler:     nil,
 		ProgressNotificationHandler: nil,
 		CompletionHandler:           nil,
@@ -109,13 +105,16 @@ func createMCPServer(ctx context.Context, serveOpts *ServeOptions) *mcpserver.Se
 		"server.options", fmt.Sprintf("%+v", opts),
 	)
 
-	impl := &mcpserver.Implementation{
+	impl := &mcp.Implementation{
 		Name:    serveOpts.Name,
 		Title:   serveOpts.Name,
 		Version: serveOpts.Version,
 	}
 
-	srv := mcpserver.NewServer(impl, opts)
+	srv := mcp.NewServer(impl, opts)
+
+	// Add a logging middleware
+	srv.AddReceivingMiddleware(withLogger(slog.Default()))
 
 	return srv
 }
@@ -123,9 +122,9 @@ func createMCPServer(ctx context.Context, serveOpts *ServeOptions) *mcpserver.Se
 // handleToolsRegistration loads the OAS file, transforms it into MCP tools and registers them into the MCP server.
 func handleToolsRegistration(
 	ctx context.Context,
-	srv *mcpserver.Server,
+	srv *mcp.Server,
 	serveOpts *ServeOptions,
-) (*mcpserver.Server, []string, error) {
+) (*mcp.Server, []string, error) {
 	// Load OpenAPI spec.
 	oasDoc, err := openapi2mcp.LoadOpenAPISpec(serveOpts.OASPath)
 	if err != nil {
@@ -150,6 +149,7 @@ func handleToolsRegistration(
 	operations := openapi2mcp.ExtractOpenAPIOperations(oasDoc)
 
 	// TODO(agamez): Pre-filter operations by tag intersection to avoid relying on external library filtering.
+	//nolint:lll
 	// see https://github.com/jedisct1/openapi-mcp/blob/7fc6e6013a413754e52fbac2197f8027c68040f9/pkg/openapi2mcp/register.go#L901
 	if len(serveOpts.TagFilter) > 0 {
 		filteredOperations := []openapi2mcp.OpenAPIOperation{}
@@ -192,7 +192,7 @@ func handleToolsRegistration(
 
 // handleServerRun configures and starts the appropriate server based on the selected transport.
 // It sets up an authentication context wrapper and blocks until a shutdown signal is received.
-func handleServerRun(ctx context.Context, srv *mcpserver.Server, serveOpts *ServeOptions) error {
+func handleServerRun(ctx context.Context, srv *mcp.Server, serveOpts *ServeOptions) error {
 	// Build the address to listen to
 	listenAddr := fmt.Sprintf(":%d", serveOpts.Port)
 
@@ -200,11 +200,6 @@ func handleServerRun(ctx context.Context, srv *mcpserver.Server, serveOpts *Serv
 		"server.address", listenAddr,
 		"server.transport", serveOpts.Transport,
 	)
-
-	// Wrapper to pass the header name to the auth context function.
-	authContext := func(ctx context.Context, req *http.Request) context.Context {
-		return apiKeyAuthContextFunc(ctx, req, serveOpts.TrentoHeaderName)
-	}
 
 	serverErrChan := make(chan error, 1)
 
@@ -217,10 +212,10 @@ func handleServerRun(ctx context.Context, srv *mcpserver.Server, serveOpts *Serv
 
 	switch serveOpts.Transport {
 	case utils.TransportSSE:
-		stoppableServer, err = startSSEServer(ctx, srv, listenAddr, authContext, serverErrChan)
+		stoppableServer, err = startSSEServer(ctx, srv, listenAddr, serveOpts.TrentoHeaderName, serverErrChan)
 
 	case utils.TransportStreamable:
-		stoppableServer, err = startStreamableHTTPServer(ctx, srv, listenAddr, authContext, serverErrChan)
+		stoppableServer, err = startStreamableHTTPServer(ctx, srv, listenAddr, serveOpts.TrentoHeaderName, serverErrChan)
 
 	default:
 		return fmt.Errorf("invalid transport type: %s", serveOpts.Transport)
@@ -243,8 +238,12 @@ func startServer(
 	errChan chan<- error,
 ) *http.Server {
 	httpSrv := &http.Server{
-		Addr:    listenAddr,
-		Handler: handler,
+		Addr:              listenAddr,
+		Handler:           handler,
+		ReadTimeout:       1 * time.Second,
+		WriteTimeout:      1 * time.Second,
+		IdleTimeout:       30 * time.Second,
+		ReadHeaderTimeout: 2 * time.Second,
 	}
 
 	go func() {
@@ -269,14 +268,17 @@ func startServer(
 // startStreamableHTTPServer initializes and starts a custom streamable HTTP server.
 func startStreamableHTTPServer(
 	ctx context.Context,
-	mcpSrv *mcpserver.Server,
+	mcpSrv *mcp.Server,
 	listenAddr string,
-	authContext AuthContextWrapperFn,
+	headerName string,
 	errChan chan<- error,
 ) (StoppableServer, error) {
-	streamableHandler := mcpserver.NewStreamableHTTPHandler(
-		func(*http.Request) *mcpserver.Server { return mcpSrv },
-		&mcpserver.StreamableHTTPOptions{},
+	streamableHandler := mcp.NewStreamableHTTPHandler(
+		func(r *http.Request) *mcp.Server {
+			handleAPIKeyAuth(r, headerName)
+			return mcpSrv
+		},
+		&mcp.StreamableHTTPOptions{},
 	)
 
 	httpServer := startServer(ctx, listenAddr, streamableHandler, utils.TransportStreamable, errChan)
@@ -287,14 +289,18 @@ func startStreamableHTTPServer(
 // startSSEServer initializes and starts a Server-Sent Events (SSE) server.
 func startSSEServer(
 	ctx context.Context,
-	mcpSrv *mcpserver.Server,
+	mcpSrv *mcp.Server,
 	listenAddr string,
-	authContext AuthContextWrapperFn,
+	headerName string,
 	errChan chan<- error,
 ) (StoppableServer, error) {
-	sseHandler := mcpserver.NewSSEHandler(
-		func(*http.Request) *mcpserver.Server { return mcpSrv },
+	sseHandler := mcp.NewSSEHandler(
+		func(r *http.Request) *mcp.Server {
+			handleAPIKeyAuth(r, headerName)
+			return mcpSrv
+		},
 	)
+
 	httpServer := startServer(ctx, listenAddr, sseHandler, utils.TransportSSE, errChan)
 
 	return httpServer, nil
@@ -337,33 +343,60 @@ func waitForShutdown(ctx context.Context, server StoppableServer, serverErrChan 
 	return nil
 }
 
-// apiKeyAuthContextFunc is a context function for the server that
-// extracts the API key from the incoming request header and sets it
-// as the bearer token for outgoing requests.
-func apiKeyAuthContextFunc(
-	ctx context.Context,
-	r *http.Request,
-	headerName string,
-) context.Context {
+// handleAPIKeyAuth extracts the API key from the request header and sets it as the bearer token environment variable.
+// TODO(agamez): double-check in the future, we might have something built-in
+// see https://github.com/modelcontextprotocol/go-sdk/blob/87f222477b31e542d33283f71358f829eb6a996b/auth/auth.go#L38
+func handleAPIKeyAuth(r *http.Request, headerName string) {
 	apiKey := r.Header.Get(headerName)
 
 	if apiKey == "" {
-		slog.InfoContext(ctx, "API key not found in request header", "header", headerName)
+		slog.InfoContext(r.Context(), "API key not found in request header", "header", headerName)
 		// Unset the bearer token if no API key is provided.
 		err := os.Unsetenv(bearerTokenEnv)
 		if err != nil {
-			slog.ErrorContext(ctx, "failed to unset bearer token", "env", bearerTokenEnv, "error", err)
+			slog.ErrorContext(r.Context(), "failed to unset bearer token", "env", bearerTokenEnv, "error", err)
 		}
+	} else {
+		slog.DebugContext(r.Context(), "API key found, setting bearer token", "env", bearerTokenEnv, "header", headerName)
 
-		return ctx
+		err := os.Setenv(bearerTokenEnv, apiKey)
+		if err != nil {
+			slog.ErrorContext(r.Context(), "failed to set bearer token", "env", bearerTokenEnv, "error", err)
+		}
 	}
+}
 
-	slog.DebugContext(ctx, "API key found, setting bearer token", "env", bearerTokenEnv, "header", headerName)
+// withLogger returns a middleware to log each invocation of the mcp server
+func withLogger(logger *slog.Logger) func(next mcp.MethodHandler[*mcp.ServerSession]) mcp.MethodHandler[*mcp.ServerSession] { //nolint:lll
+	return func(next mcp.MethodHandler[*mcp.ServerSession]) mcp.MethodHandler[*mcp.ServerSession] {
+		return func(
+			ctx context.Context,
+			session *mcp.ServerSession,
+			method string,
+			params mcp.Params,
+		) (mcp.Result, error) {
+			logger.DebugContext(ctx, "MCP method started",
+				"method", method,
+				"session_id", session.ID(),
+				"has_params", params != nil,
+			)
 
-	err := os.Setenv(bearerTokenEnv, apiKey)
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to set bearer token", "env", bearerTokenEnv, "error", err)
+			start := time.Now()
+
+			result, err := next(ctx, session, method, params)
+
+			duration := time.Since(start)
+
+			if err != nil {
+				logger.ErrorContext(ctx, "MCP method failed",
+					"method", method,
+					"session_id", session.ID(),
+					"duration_ms", duration.Milliseconds(),
+					"err", err,
+				)
+			}
+
+			return result, err
+		}
 	}
-
-	return ctx
 }

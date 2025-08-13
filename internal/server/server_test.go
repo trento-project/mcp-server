@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Package server is the where the server logic is implemented.
+//
+//nolint:lll
 package server_test
 
 import (
@@ -14,8 +16,7 @@ import (
 	"testing"
 	"time"
 
-	mcpclient "github.com/modelcontextprotocol/go-sdk/mcp"
-	mcpserver "github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/trento-project/mcp-server/internal/server"
@@ -108,15 +109,15 @@ func TestCreateMCPServer(t *testing.T) {
 	require.NotNil(t, srv, "Expected a non-nil MCP server, got nil")
 
 	// Connect server and client over an in-memory transport using the official go-sdk client
-	clientTransport, serverTransport := mcpserver.NewInMemoryTransports()
+	clientTransport, serverTransport := mcp.NewInMemoryTransports()
 
 	// Connect the server side first so it is ready to accept the client initialize
 	_, err := srv.Connect(ctx, serverTransport)
 	require.NoError(t, err, "failed to connect server")
 
 	// Create the client implementation and connect
-	clientImpl := &mcpclient.Implementation{Name: "test-client", Version: "0.1.0"}
-	client := mcpclient.NewClient(clientImpl, nil)
+	clientImpl := &mcp.Implementation{Name: "test-client", Version: "0.1.0"}
+	client := mcp.NewClient(clientImpl, nil)
 	cs, err := client.Connect(ctx, clientTransport)
 	require.NoError(t, err, "failed to connect client")
 	defer func() { _ = cs.Close() }()
@@ -371,7 +372,7 @@ func TestWaitForShutdown(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		startFn         func(context.Context, *mcpserver.Server, string, server.AuthContextWrapperFn, chan<- error) (server.StoppableServer, error)
+		startFn         func(context.Context, *mcp.Server, string, string, chan<- error) (server.StoppableServer, error)
 		checkPath       string
 		mockStartErr    error
 		mockShutdownErr error
@@ -382,12 +383,12 @@ func TestWaitForShutdown(t *testing.T) {
 			name: "Streamable graceful shutdown",
 			startFn: func(
 				ctx context.Context,
-				mcpSrv *mcpserver.Server,
-				addr string, authContext server.AuthContextWrapperFn,
+				mcpSrv *mcp.Server,
+				addr string, headerName string,
 				errChan chan<- error,
 			) (server.StoppableServer, error) {
 				return server.StartStreamableHTTPServer(ctx,
-					mcpSrv, addr, authContext, errChan)
+					mcpSrv, addr, headerName, errChan)
 			},
 			checkPath: "/mcp",
 			expectErr: false,
@@ -395,11 +396,11 @@ func TestWaitForShutdown(t *testing.T) {
 		{
 			name: "SSE graceful shutdown",
 			startFn: func(
-				ctx context.Context, mcpSrv *mcpserver.Server,
-				addr string, authContext server.AuthContextWrapperFn,
+				ctx context.Context, mcpSrv *mcp.Server,
+				addr string, headerName string,
 				errChan chan<- error,
 			) (server.StoppableServer, error) {
-				return server.StartSSEServer(ctx, mcpSrv, addr, authContext, errChan)
+				return server.StartSSEServer(ctx, mcpSrv, addr, headerName, errChan)
 			},
 			checkPath: "/sse",
 			expectErr: false,
@@ -477,10 +478,10 @@ func TestWaitForShutdown(t *testing.T) {
 			} else {
 				// Test case for graceful shutdown
 				mcpSrv, port, addr := setupServerTest(t, ctx)
-				authContext := func(c context.Context, _ *http.Request) context.Context { return c }
+				headerName := "X-Test-API-Key"
 				errChan := make(chan error, 1)
 
-				httpServer, err := tt.startFn(ctx, mcpSrv, addr, authContext, errChan)
+				httpServer, err := tt.startFn(ctx, mcpSrv, addr, headerName, errChan)
 				require.NoError(t, err)
 				require.NotNil(t, httpServer)
 
@@ -625,7 +626,7 @@ func getAvailablePort(t *testing.T) int {
 // setupServerTest is a helper that creates a test MCP server and gets an available port
 //
 //nolint:revive
-func setupServerTest(t *testing.T, ctx context.Context) (*mcpserver.Server, int, string) {
+func setupServerTest(t *testing.T, ctx context.Context) (*mcp.Server, int, string) {
 	t.Helper()
 
 	mcpSrv := server.CreateMCPServer(ctx, &server.ServeOptions{Name: "test", Version: "v1"})
@@ -678,7 +679,7 @@ func testServerShutdown(
 	}
 }
 
-func TestApiKeyAuthContextFunc(t *testing.T) {
+func TestHandleAPIKeyAuth(t *testing.T) {
 	const (
 		headerName     = "X-Test-Api-Key"
 		bearerTokenEnv = "BEARER_TOKEN"
@@ -744,7 +745,7 @@ func TestApiKeyAuthContextFunc(t *testing.T) {
 			}
 
 			// Call the function under test
-			server.APIKeyAuthContextFunc(context.Background(), req, headerName)
+			server.HandleAPIKeyAuth(req, headerName)
 
 			// Assertions
 			actualAPIKey, isSet := os.LookupEnv(bearerTokenEnv)
