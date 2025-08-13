@@ -227,6 +227,20 @@ func TestHandleToolsRegistration(t *testing.T) {
 			tagFilter: []string{"MCP"},
 			expectErr: false,
 		},
+		{
+			name: "should include ops when any tag intersects (multiple tags & filters)",
+			oasContent: `{
+				"openapi": "3.0.0", "info": {"title": "API", "version": "1.0"},
+				"paths": {
+					"/alpha": {"get": {"operationId": "alphaBetaOp", "tags": ["Alpha", "Beta"], "responses": {"200": {"description": "OK"}}}},
+					"/gamma": {"get": {"operationId": "gammaOp", "tags": ["Gamma"], "responses": {"200": {"description": "OK"}}}}
+				}
+			}`,
+			tagFilter:        []string{"Beta", "Delta"},
+			expectErr:        false,
+			expectedTools:    []string{"alphaBetaOp", "info"},
+			notExpectedTools: []string{"gammaOp"},
+		},
 	}
 
 	for _, tt := range tests {

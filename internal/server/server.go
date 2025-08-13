@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -148,8 +149,27 @@ func handleToolsRegistration(
 	// Extract the API operations.
 	operations := openapi2mcp.ExtractOpenAPIOperations(oasDoc)
 
+	// TODO(agamez): Pre-filter operations by tag intersection to avoid relying on external library filtering.
+	// see https://github.com/jedisct1/openapi-mcp/blob/7fc6e6013a413754e52fbac2197f8027c68040f9/pkg/openapi2mcp/register.go#L901
+	if len(serveOpts.TagFilter) > 0 {
+		filteredOperations := []openapi2mcp.OpenAPIOperation{}
+		for _, op := range operations {
+			matched := false
+			for _, x := range serveOpts.TagFilter {
+				if slices.Contains(op.Tags, x) {
+					matched = true
+					break
+				}
+			}
+			if matched {
+				filteredOperations = append(filteredOperations, op)
+			}
+		}
+		operations = filteredOperations
+	}
+
 	opts := &openapi2mcp.ToolGenOptions{
-		TagFilter:               serveOpts.TagFilter,
+		TagFilter:               nil, // TODO(agamez): revert back to "serveOpts.TagFilter," once we can.
 		ConfirmDangerousActions: true,
 		NameFormat: func(oldOperationID string) string {
 			// Convert dots to underscores first
