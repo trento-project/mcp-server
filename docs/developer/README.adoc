@@ -1,9 +1,9 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
-== Trento MCP Server developer documentation
+= Trento MCP Server developer documentation
 
-=== Documentation overview
+== Documentation overview
 
 A high-level overview of how the documentation pages are organized.
 
