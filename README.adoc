@@ -6,6 +6,7 @@ ifndef::site-gen-antora[:relfileprefix: docs/]
 :badge-img: https://img.shields.io/badge/VS_Code-Install_Server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white
 
 = Trento MCP Server
+
 link:{badge-url}[image:{badge-img}[Install in VS Code]]
 
 ____
