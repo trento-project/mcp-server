@@ -30,12 +30,12 @@ Instead of interacting with the Trento server solely through the web UI, you can
 
 . `git clone link:https://github.com/trento-project/mcp-server.git && cd mcp-server`
 . `make run`
-. Install link:https://code.visualstudio.com/download[VS Code] and the link:vscode:extension/GitHub.copilot[Copilot extension] (see link:https://github.com/trento-project/mcp-server/blob/main/docs/README.adoc[other alternatives here])
+. Install link:https://code.visualstudio.com/download[VS Code] and the link:vscode:extension/GitHub.copilot[Copilot extension] (see xref:Trento MCP Serve documentation/README.adoc[other alternatives here])
 . Install the Trento MCP Server by {badge-url}[clicking here]
 
 == Getting Started
 
-Go to the link:https://github.com/trento-project/mcp-server/blob/main/docs/README.adoc[documentation] for detailed information on how to set up, configure, and use the `Trento MCP Server`. We recommend starting with the xref:integration-vscode.adoc[VS Code integration guide] to learn how to use it along with Visual Studio Code. Alternatively, you can refer to the xref:integration-suse-ai.adoc[SUSE AI integration guide] to understand how to deploy and use this project with SUSE AI.
+Go to the xref:Trento MCP Server documentation/README.adoc[documentation] for detailed information on how to set up, configure, and use the `Trento MCP Server`. We recommend starting with the xref:integration-vscode.adoc[VS Code integration guide] to learn how to use it along with Visual Studio Code. Alternatively, you can refer to the xref:integration-suse-ai.adoc[SUSE AI integration guide] to understand how to deploy and use this project with SUSE AI.
 
 == License
 
