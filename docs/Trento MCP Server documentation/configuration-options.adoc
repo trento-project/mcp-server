@@ -1,11 +1,11 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
-== Configuration Options
+= Configuration Options
 
 This document provides an overview of how to configure the `trento-mcp-server` server, including command-line parameters and environment variables.
 
-=== Command-Line Parameters
+== Command-Line Parameters
 
 The `trento-mcp-server` binary accepts several command-line flags to configure its behavior. You can pass these flags when running the binary directly or via the Makefile.
 

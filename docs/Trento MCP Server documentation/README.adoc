@@ -1,0 +1,16 @@
+// Copyright 2025 SUSE LLC
+// SPDX-License-Identifier: Apache-2.0
+
+= Trento MCP Server documentation
+
+== Documentation overview
+
+A high-level overview of how the documentation pages are organized.
+
+[width="100%",options="header",]
+|===
+|Section |Description
+|xref:./integration-suse-ai.adoc[SUSE AI integration] |Information on how to integrate this project into SUSE-AI
+|xref:./integration-vscode.adoc[VS Code integration] |Information on how to use this project along with VS Code
+|xref:./configuration-options.adoc[Configuration options] |Information on how to configure the project
+|===
