@@ -16,7 +16,7 @@ env:
 
   # Versions
   GOLANG_VERSION: "1.24.4" # See https://go.dev/dl/, must be aligned with "toolchain goX.X.X" in go.mod
-  HELM_VERSION: "v3.18.4" # See https://github.com/helm/helm/releases
+  HELM_VERSION: "v3.18.6" # See https://github.com/helm/helm/releases
 
 jobs:
   # Setup the environment and set outputs
