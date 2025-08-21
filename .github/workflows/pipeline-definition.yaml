@@ -101,7 +101,7 @@ jobs:
       - setup
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         name: Checkout
       - name: Install Helm binary
         run: |
@@ -193,7 +193,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         name: Download artifacts
       - name: Push container images to the registry
         run: |
