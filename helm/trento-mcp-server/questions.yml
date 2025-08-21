@@ -139,8 +139,9 @@
                         "--transport=sse",
                         "--oasPath=/app/api/openapi.json",
                         "--trento-url=https://demo.trento-project.io",
-                        "--trento-username=demo",
-                        "--trento-password=demopass"
+                        "--header-name=X-TRENTO-API-KEY",
+                        "--tag-filter=MCP",
+                        "--verbosity=0"
                     ],
                     "items": {
                         "type": "string"
