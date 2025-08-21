@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -22,55 +23,51 @@ var (
 	tokenMutex         sync.Mutex //nolint:gochecknoglobals
 )
 
-// authContextFuncNoOauth is a context function for the server that
-// uses hardcoded credentials to get a token for the trento API.
-func authContextFuncNoOauth(
-	ctx context.Context,
-	_ *http.Request,
-	_,
-	trentoURL,
-	username,
-	password string,
-) context.Context {
-	err := handleTrentoAuth(ctx, trentoURL, username, password)
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to handle Trento auth", "error", err)
-	}
-
-	return ctx
-}
-
 // authContextFunc is a context function for the server that
 // validates the Authorization header and injects the Bearer token into the environment.
 func authContextFunc(
 	ctx context.Context,
 	r *http.Request,
+	oAuthEnabled bool,
 	validateURL,
 	trentoURL,
 	username,
 	password string,
 ) context.Context {
-	authHeader := r.Header.Get("Authorization")
+	if !oAuthEnabled {
+		err := handleTrentoAuth(ctx, trentoURL, username, password)
+		if err != nil {
+			slog.ErrorContext(ctx, "failed to handle Trento auth",
+				"error", err,
+			)
+		}
+	} else {
+		authHeader := r.Header.Get("Authorization")
 
-	const prefix = "Bearer "
+		const prefix = "Bearer "
 
-	if len(authHeader) > len(prefix) && authHeader[:len(prefix)] == prefix {
-		token := authHeader[len(prefix):]
-		if validateAuth0JWT(ctx, token, validateURL) {
-			// Token is valid, proceed with current logic (hardcoded creds for Trento API)
-			err := handleTrentoAuth(ctx, trentoURL, username, password)
-			if err != nil {
-				slog.ErrorContext(ctx, "failed to handle Trento auth", "error", err)
+		if len(authHeader) > len(prefix) && authHeader[:len(prefix)] == prefix {
+			token := authHeader[len(prefix):]
+			if validateAuth0JWT(ctx, token, validateURL) {
+				// Token is valid, proceed with current logic (hardcoded creds for Trento API)
+				err := handleTrentoAuth(ctx, trentoURL, username, password)
+				if err != nil {
+					slog.ErrorContext(ctx, "failed to handle Trento auth",
+						"error", err,
+					)
+
+					return ctx
+				}
 
 				return ctx
 			}
-
+			// If token is invalid, do not set credentials
 			return ctx
 		}
-		// If token is invalid, do not set credentials
+		// No Authorization header or not Bearer: do not set credentials
 		return ctx
 	}
-	// No Authorization header or not Bearer: do not set credentials
+
 	return ctx
 }
 
@@ -94,7 +91,9 @@ func validateAuth0JWT(ctx context.Context, tokenString, validateURL string) bool
 
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			slog.ErrorContext(ctx, "failed to close response body", "error", err)
+			slog.ErrorContext(ctx, "failed to close response body",
+				"error", err,
+			)
 		}
 	}()
 
@@ -129,49 +128,49 @@ func handleTrentoAuth(ctx context.Context, trentoURL, username, password string)
 			client := &http.Client{}
 
 			resp, err := client.Do(req)
-			if err == nil && resp.StatusCode == http.StatusOK {
-				defer func() {
-					if err := resp.Body.Close(); err != nil {
-						slog.ErrorContext(ctx, "failed to close response body", "error", err)
-					}
-				}()
-
-				respBody, _ := io.ReadAll(resp.Body)
-
-				var result map[string]any
-
-				err := json.Unmarshal(respBody, &result)
-				if err == nil {
-					if token, ok := result["access_token"].(string); ok && token != "" {
-						cachedAccessToken = token
-
-						err = os.Setenv("BEARER_TOKEN", token)
-						//nolint:revive
-						if err != nil {
-							return err
-						}
-					}
-
-					if refresh, ok := result["refresh_token"].(string); ok && refresh != "" {
-						cachedRefreshToken = refresh
-					}
-
-					if expiresIn, ok := result["expires_in"].(float64); ok {
-						tokenExpiry = now.Add(time.Duration(expiresIn) * time.Second)
-					}
-				}
-			} else {
-				// If refresh fails, clear tokens and fall back to login
+			if err != nil {
+				// If refresh fails due to network error, clear tokens and fall back to login
 				cachedAccessToken = ""
 				cachedRefreshToken = ""
 				tokenExpiry = time.Time{}
+			} else {
+				defer func() {
+					if err := resp.Body.Close(); err != nil {
+						slog.ErrorContext(ctx, "failed to close response body",
+							"error", err,
+						)
+					}
+				}()
+
+				if resp.StatusCode == http.StatusOK {
+					respBody, _ := io.ReadAll(resp.Body)
+					var result map[string]any
+					if err := json.Unmarshal(respBody, &result); err == nil {
+						if token, ok := result["access_token"].(string); ok && token != "" {
+							cachedAccessToken = token
+							if err = os.Setenv("BEARER_TOKEN", token); err != nil {
+								return err
+							}
+						}
+						if refresh, ok := result["refresh_token"].(string); ok && refresh != "" {
+							cachedRefreshToken = refresh
+						}
+						if expiresIn, ok := result["expires_in"].(float64); ok {
+							tokenExpiry = now.Add(time.Duration(expiresIn) * time.Second)
+						}
+					}
+				} else {
+					// If refresh fails with non-OK status, clear tokens and fall back to login
+					cachedAccessToken = ""
+					cachedRefreshToken = ""
+					tokenExpiry = time.Time{}
+				}
 			}
 		}
 
 		if cachedAccessToken == "" {
 			// No refresh token or refresh failed, do initial login
-			err = performInitialLogin(ctx, trentoURL, username, password)
-			if err != nil {
+			if err = performInitialLogin(ctx, trentoURL, username, password); err != nil {
 				return err
 			}
 		}
@@ -206,37 +205,43 @@ func performInitialLogin(ctx context.Context, trentoURL, username, password stri
 	client := &http.Client{}
 
 	resp, err := client.Do(req)
-	if err == nil && resp.StatusCode == http.StatusOK {
-		defer func() {
-			if err := resp.Body.Close(); err != nil {
-				slog.ErrorContext(ctx, "failed to close response body", "error", err)
-			}
-		}()
+	if err != nil {
+		return fmt.Errorf("initial login request failed: %w", err)
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.ErrorContext(ctx, "failed to close response body",
+				"error", err,
+			)
+		}
+	}()
 
-		respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode == http.StatusOK {
+		respBody, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return fmt.Errorf("failed to read login response body: %w", readErr)
+		}
 
 		var result map[string]any
 
-		err := json.Unmarshal(respBody, &result)
-		if err == nil {
+		if err := json.Unmarshal(respBody, &result); err == nil {
 			if token, ok := result["access_token"].(string); ok && token != "" {
 				cachedAccessToken = token
 
-				err = os.Setenv("BEARER_TOKEN", token)
-				if err != nil {
+				if err = os.Setenv("BEARER_TOKEN", token); err != nil {
 					return err
 				}
 			}
-
 			if refresh, ok := result["refresh_token"].(string); ok && refresh != "" {
 				cachedRefreshToken = refresh
 			}
-
 			if expiresIn, ok := result["expires_in"].(float64); ok {
 				tokenExpiry = time.Now().Add(time.Duration(expiresIn) * time.Second)
 			}
 		}
+	} else {
+		return fmt.Errorf("initial login failed with status: %s", resp.Status)
 	}
 
-	return err
+	return nil
 }
