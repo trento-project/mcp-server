@@ -9,7 +9,7 @@ require (
 	github.com/carlmjohnson/versioninfo v0.22.5
 	github.com/evcc-io/openapi-mcp v0.3.0
 	github.com/getkin/kin-openapi v0.132.0
-	github.com/mark3labs/mcp-go v0.37.0
+	github.com/mark3labs/mcp-go v0.38.0
 	github.com/spf13/cobra v1.9.1
 )
 
