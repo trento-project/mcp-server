@@ -94,6 +94,22 @@ jobs:
           echo "VERSION: ${{steps.set-outputs.outputs.version}}"
           echo "GH_USERNAME: ${{steps.set-outputs.outputs.gh_username}}"
 
+  # Check go unit tests
+  test_go:
+    timeout-minutes: 6
+    needs:
+      - setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        name: Checkout
+      - uses: actions/setup-go@v5
+        name: Set up Go
+        with:
+          go-version: ${{ env.GOLANG_VERSION }}
+      - name: Run go unit tests
+        run: make test
+
   # Ensure the Helm chart is valid
   test_chart_render:
     timeout-minutes: 3
