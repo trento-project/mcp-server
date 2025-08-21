@@ -133,7 +133,8 @@ func (s *CustomStreamableHTTPServer) serveOAuthASDiscoveryProxy(w http.ResponseW
 	}
 
 	defer func() {
-		if err := resp.Body.Close(); err != nil {
+		err := resp.Body.Close()
+		if err != nil {
 			slog.Error("failed to close response body",
 				"error", err,
 			)
@@ -177,5 +178,6 @@ func (s *CustomStreamableHTTPServer) Shutdown(ctx context.Context) error {
 	if s.httpServer != nil {
 		return s.httpServer.Shutdown(ctx)
 	}
+
 	return nil
 }

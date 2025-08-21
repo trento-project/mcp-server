@@ -43,7 +43,8 @@ type StoppableServer interface {
 	Shutdown(ctx context.Context) error
 }
 
-type authContextWrapperFn = func(c context.Context, r *http.Request) context.Context
+// AuthContextWrapperFn is a wrapper for the authentication functions that are passed to the MCP server.
+type AuthContextWrapperFn = func(c context.Context, r *http.Request) context.Context
 
 // Serve is the root command that is run when no other sub-commands are present.
 func Serve(ctx context.Context, serveOpts *ServeOptions) error {
@@ -169,7 +170,7 @@ func handleServerRun(ctx context.Context, srv *mcpserver.MCPServer, serveOpts *S
 	// Depending on the chosen transport, we handle the server startup.
 	switch serveOpts.Transport {
 	case utils.TransportSSE:
-		stoppableServer, err = startSSEServer(ctx, srv, listenAddr, serveOpts, authContext, serverErrChan)
+		stoppableServer, err = startSSEServer(ctx, srv, listenAddr, authContext, serverErrChan)
 
 	case utils.TransportStreamable:
 		stoppableServer, err = startStreamableHTTPServer(ctx, srv, listenAddr, serveOpts, authContext, serverErrChan)
@@ -213,7 +214,7 @@ func startStreamableHTTPServer(
 	mcpSrv *mcpserver.MCPServer,
 	listenAddr string,
 	serveOpts *ServeOptions,
-	authContext authContextWrapperFn,
+	authContext AuthContextWrapperFn,
 	errChan chan<- error,
 ) (*CustomStreamableHTTPServer, error) {
 	streamableServer := NewCustomStreamableHTTPServer(mcpSrv, "/mcp", authContext, serveOpts)
@@ -226,8 +227,7 @@ func startSSEServer(
 	ctx context.Context,
 	mcpSrv *mcpserver.MCPServer,
 	listenAddr string,
-	_ *ServeOptions,
-	authContext authContextWrapperFn,
+	authContext AuthContextWrapperFn,
 	errChan chan<- error,
 ) (*mcpserver.SSEServer, error) {
 	sseServer := mcpserver.NewSSEServer(mcpSrv, mcpserver.WithSSEContextFunc(authContext))
