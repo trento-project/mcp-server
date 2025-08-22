@@ -22,19 +22,15 @@ import (
 
 // ServeOptions encapsulates the available command-line options.
 type ServeOptions struct {
-	McpBaseURL                  string
-	Name                        string
-	OASPath                     string
-	OauthAuthorizationServerURL string
-	OauthEnabled                bool
-	OauthIssuer                 string
-	OauthValidateURL            string
-	Port                        int
-	Transport                   utils.TransportType
-	TrentoPassword              string
-	TrentoURL                   string
-	TrentoUsername              string
-	Version                     string
+	McpBaseURL     string
+	Name           string
+	OASPath        string
+	Port           int
+	Transport      utils.TransportType
+	TrentoPassword string
+	TrentoURL      string
+	TrentoUsername string
+	Version        string
 }
 
 // StoppableServer defines an interface for servers that can be started and shut down.
@@ -133,8 +129,10 @@ func handleToolsRegistration(
 	// Extract the API operations.
 	operations := openapi2mcp.ExtractOpenAPIOperations(oasDoc)
 
+	// TODO(agamez): make it configurable
+	opts := &openapi2mcp.ToolGenOptions{}
 	// Register them as MCP tools.
-	tools := openapi2mcp.RegisterOpenAPITools(srv, operations, oasDoc, nil)
+	tools := openapi2mcp.RegisterOpenAPITools(srv, operations, oasDoc, opts)
 
 	return srv, tools, nil
 }
@@ -155,8 +153,6 @@ func handleServerRun(ctx context.Context, srv *mcpserver.MCPServer, serveOpts *S
 		return authContextFunc(
 			c,
 			r,
-			serveOpts.OauthEnabled,
-			serveOpts.OauthValidateURL,
 			serveOpts.TrentoURL,
 			serveOpts.TrentoUsername,
 			serveOpts.TrentoPassword,
@@ -216,8 +212,8 @@ func startStreamableHTTPServer(
 	serveOpts *ServeOptions,
 	authContext AuthContextWrapperFn,
 	errChan chan<- error,
-) (*CustomStreamableHTTPServer, error) {
-	streamableServer := NewCustomStreamableHTTPServer(mcpSrv, "/mcp", authContext, serveOpts)
+) (*mcpserver.StreamableHTTPServer, error) {
+	streamableServer := mcpserver.NewStreamableHTTPServer(mcpSrv, mcpserver.WithEndpointPath("/mcp"), mcpserver.WithHTTPContextFunc(authContext))
 	startServer(ctx, listenAddr, streamableServer, utils.TransportStreamable, errChan)
 	return streamableServer, nil
 }

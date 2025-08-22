@@ -16,10 +16,6 @@ The `trento-mcp-server` binary accepts several command-line flags to configure i
 |`--oasPath`, `-P` |./api/openapi.json |Path to the OpenAPI spec file
 |`--transport` |sse |The protocol to use, choose `streamable` or `sse`
 |`--base-url` |""" |Base URL where the mcp is deployed, if none, `http://localhost:port` is used
-|`--oauth-enabled` |false |Enable the OAuth authentication in the MCP
-|`--oauth-authorization-server-url` |https://my-idp.example.com/.well-known/openid-configuration |URL for the OAuth authorization server endpoint
-|`--oauth-issuer` |https://my-idp.example.com/ |Issuer for the OAuth flow
-|`--oauth-validate-url` |https://my-idp.example.com/userinfo |URL for token validation
 |`--trento-url` |https://demo.trento-project.io |URL for the target Trento server
 |`--trento-username` |demo |Username for the target Trento server
 |`--trento-password` |demopass |Password for the target Trento server
