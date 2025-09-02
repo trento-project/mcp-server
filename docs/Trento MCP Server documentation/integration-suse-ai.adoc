@@ -1,17 +1,17 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
-== SUSE AI Integration
+= SUSE AI Integration
 
 This document provides a guide on how to use the `Trento MCP Server` with SUSE AI, including configuration and deployment instructions.
 
-=== Getting Started with SUSE AI
+== Getting Started with SUSE AI
 
 SUSE AI is a platform that allows you to deploy and manage AI models and applications in a Kubernetes environment. It provides tools for model management, deployment, and integration with various AI frameworks.
 
 Refer to the official https://documentation.suse.com/suse-ai/1.0/[SUSE AI documentation] for detailed information. In this guide, we will focus on deploying the `Trento MCP Server` using SUSE AI, specifically with Ollama and Open Web UI. Always refer to the latest instructions in the https://documentation.suse.com/suse-ai/1.0/html/AI-deployment-intro/index.html[SUSE AI deployment guide] for the most accurate and up-to-date information.
 
-=== Prerequisites
+== Prerequisites
 
 This guide assumes:
 
@@ -23,11 +23,11 @@ When running Ollama models, this guide assumes you have one of the following:
 * A Kubernetes cluster with sufficient resources (GPU, memory, etc.).
 * A cloud provider and enough permissions to deploy Ollama models remotely.
 
-==== Limitations
+=== Limitations
 
 Deploying the entire SUSE AI stack requires plenty of resources, especially for running Ollama models. Alternatively, you can deploy only the Open Web UI and connect it to an Ollama instance running elsewhere. This is the approach we will take here: on-premises Open Web UI with Ollama running on a remote server (e.g., Google Cloud).
 
-==== Getting the artifacts from SUSE Application Collection
+=== Getting the artifacts from SUSE Application Collection
 
 You need access to SUSE Application Collection and the proper entitlements to download the required artifacts. Always refer to the https://docs.apps.rancher.io/get-started/authentication/[SUSE Application Collection documentation] for the latest instructions on how to authenticate and access the collection. This guide assumes you have the necessary credentials and access to the collection.
 
@@ -61,7 +61,7 @@ kubectl create namespace suse-ai
 kubectl create -n suse-ai secret docker-registry application-collection --docker-server=dp.apps.rancher.io --docker-username=<REPLACE_WITH_YOUR_USERNAME@apps.rancher.io> --docker-password=REPLACE_WITH_YOUR_PASSWORD
 ----
 
-==== Install Open Web UI
+=== Install Open Web UI
 
 This section describes how to install the Open Web UI, which provides a user-friendly interface for interacting with AI models.
 
@@ -76,7 +76,7 @@ This section describes how to install the Open Web UI, which provides a user-fri
 helm -n suse-ai upgrade --install open-webui oci://dp.apps.rancher.io/charts/open-webui -f values.openwebui.yaml
 ----
 
-==== Deploying a model with Ollama remotely
+=== Deploying a model with Ollama remotely
 
 If your infrastructure does not have enough resources to run Ollama models, you can deploy them on a remote server (e.g., Google Cloud Run).
 
@@ -103,7 +103,7 @@ ____
 
 As a result, you will have a Google Cloud Run service running the `Qwen3:8b` model, which can be accessed via the URL provided by Google Cloud Run. It might look like `https://qwen3-8b-++<++project-id++>++.++<++region++>++-.run.app`.
 
-==== Adding the remote model to Open Web UI
+=== Adding the remote model to Open Web UI
 
 Once you have the Ollama model running on Google Cloud Run, you can add it to the Open Web UI for easy access.
 
@@ -112,7 +112,7 @@ Once you have the Ollama model running on Google Cloud Run, you can add it to th
 . Add a new Ollama connection with the URL of your deployed model (eg. `https://qwen3-8b-++<++project-id++>++.++<++region++>++-.run.app`).
 . Navigate to the "`Models`" section and click on "`Manage Models`", select the Ollama connection you just created, and pull the `Qwen3:8b` model.
 
-==== Deploying the MCP Server Trento
+=== Deploying the MCP Server Trento
 
 To deploy the `Trento MCP Server` using SUSE AI, you can use the provided Helm chart. This section describes how to deploy the MCP Server Trento with the necessary configurations.
 
@@ -127,7 +127,7 @@ To deploy the `Trento MCP Server` using SUSE AI, you can use the provided Helm c
 helm -n suse-ai upgrade --install trento-for-suse-ai ./helm/trento-mcp-server --values values.mcpo.yaml
 ----
 
-==== Adding the MCP Server Trento to Open Web UI
+=== Adding the MCP Server Trento to Open Web UI
 
 The MCP Server Trento can be added to the Open Web UI in two ways: as a user-defined connection or as a pre-configured connection for the model. The former needs a publicly accessible URL (the HTTP call happens in the user's browser), while the latter can be used with a Kubernetes service (the HTTP call happens in the Open Web UI backend). In this guide, we will use the pre-configured connection.
 
