@@ -139,7 +139,7 @@
                         "--transport=sse",
                         "--oasPath=/app/api/openapi.json",
                         "--trento-url=https://demo.trento-project.io",
-                        "--header-name=X-TRENTO-API-KEY",
+                        "--header-name=X-TRENTO-MCP-APIKEY",
                         "--tag-filter=MCP",
                         "--verbosity=info"
                     ],

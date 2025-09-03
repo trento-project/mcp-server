@@ -29,7 +29,7 @@ const (
 	defaultLogLevel         = utils.LogLevelInfo
 	defaultOASPath          = "./api/openapi.json"
 	defaultPort             = 5000
-	defaultTrentoHeaderName = "X-TRENTO-API-KEY"
+	defaultTrentoHeaderName = "X-TRENTO-MCP-APIKEY"
 	defaultTrentoURL        = "https://demo.trento-project.io"
 )
 

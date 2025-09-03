@@ -52,7 +52,7 @@ func TestParseFlagsCorrect(t *testing.T) {
 				OASPath:          "./api/openapi.json",
 				Transport:        utils.TransportStreamable,
 				TrentoURL:        "https://demo.trento-project.io",
-				TrentoHeaderName: "X-TRENTO-API-KEY",
+				TrentoHeaderName: "X-TRENTO-MCP-APIKEY",
 				TagFilter:        []string{"MCP"},
 			},
 			errExpected: false,
