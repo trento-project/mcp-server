@@ -17,5 +17,5 @@ mcpServerTrento:
     - --transport=sse
     - --oasPath=/app/api/openapi.json
     - --trento-url=https://demo.trento-project.io
-    - --trento-username=demo
-    - --trento-password=demopass
+    - --header-name=X-TRENTO-MCP-APIKEY
+    - --tag-filter=MCP

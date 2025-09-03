@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Package server is the where the server logic is implemented.
+//
+//nolint:lll
 package server_test
 
 import (
@@ -14,9 +16,7 @@ import (
 	"testing"
 	"time"
 
-	mcpclient "github.com/mark3labs/mcp-go/client"
-	"github.com/mark3labs/mcp-go/mcp"
-	mcpserver "github.com/mark3labs/mcp-go/server"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/trento-project/mcp-server/internal/server"
@@ -108,34 +108,27 @@ func TestCreateMCPServer(t *testing.T) {
 	srv := server.CreateMCPServer(ctx, serveOpts)
 	require.NotNil(t, srv, "Expected a non-nil MCP server, got nil")
 
-	// Create an in-process mcpClient to interact with the server.
-	mcpClient, err := mcpclient.NewInProcessClient(srv)
-	require.NoError(t, err, "failed to create in-process client")
+	// Connect server and client over an in-memory transport using the official go-sdk client
+	clientTransport, serverTransport := mcp.NewInMemoryTransports()
 
-	// Start the mcp client
+	// Connect the server side first so it is ready to accept the client initialize
+	_, err := srv.Connect(ctx, serverTransport, nil)
+	require.NoError(t, err, "failed to connect server")
+
+	// Create the client implementation and connect
+	clientImpl := &mcp.Implementation{Name: "test-client", Version: "0.1.0"}
+	client := mcp.NewClient(clientImpl, nil)
+	cs, err := client.Connect(ctx, clientTransport, nil)
+	require.NoError(t, err, "failed to connect client")
+	defer func() { _ = cs.Close() }()
+
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	err = mcpClient.Start(ctxWithTimeout)
-	require.NoError(t, err, "failed to start client")
-
-	// Initialize the client and check the server's response
-	initRequest := mcp.InitializeRequest{
-		Params: mcp.InitializeParams{
-			ProtocolVersion: mcp.LATEST_PROTOCOL_VERSION,
-			ClientInfo: mcp.Implementation{
-				Name:    "test-client",
-				Version: "0.1.0",
-			},
-		},
-	}
-
-	initResult, err := mcpClient.Initialize(ctx, initRequest)
-	require.NoError(t, err, "failed to initialize MCP client")
-
-	// Assert that the server info from the initialize result matches our options
-	assert.Equal(t, serveOpts.Name, initResult.ServerInfo.Name)
-	assert.Equal(t, serveOpts.Version, initResult.ServerInfo.Version)
+	require.NoError(t, cs.Ping(ctxWithTimeout, nil))
+	tools, err := cs.ListTools(ctxWithTimeout, nil)
+	require.NoError(t, err)
+	assert.Empty(t, tools.Tools)
 }
 
 func TestHandleToolsRegistration(t *testing.T) {
@@ -151,7 +144,7 @@ func TestHandleToolsRegistration(t *testing.T) {
 		notExpectedTools []string
 	}{
 		{
-			name: "should register tools",
+			name: "should register tools with MCP tag",
 			oasContent: `{
 				"openapi": "3.0.0", "info": {"title": "API", "version": "1.0"},
 				"paths": {
@@ -163,11 +156,65 @@ func TestHandleToolsRegistration(t *testing.T) {
 			expectedTools: []string{"getTest", "info"},
 		},
 		{
+			name: "should not register tools without MCP tag if filtered",
+			oasContent: `{
+				"openapi": "3.0.0", "info": {"title": "API", "version": "1.0"},
+				"paths": {
+					"/test": {"get": {"operationId": "getTest", "tags": ["Other"], "responses": {"200": {"description": "OK"}}}}
+				}
+			}`,
+			tagFilter:        []string{"MCP"},
+			expectErr:        false,
+			expectedTools:    []string{"info"},
+			notExpectedTools: []string{"getTest"},
+		},
+		{
+			name: "should register tools with custom tag",
+			oasContent: `{
+				"openapi": "3.0.0", "info": {"title": "API", "version": "1.0"},
+				"paths": {
+					"/test": {"get": {"operationId": "getTest", "tags": ["Custom"], "responses": {"200": {"description": "OK"}}}}
+				}
+			}`,
+			tagFilter:     []string{"Custom"},
+			expectErr:     false,
+			expectedTools: []string{"getTest", "info"},
+		},
+		{
+			name: "should handle multiple tags",
+			oasContent: `{
+				"openapi": "3.0.0", "info": {"title": "API", "version": "1.0"},
+				"paths": {
+					"/test1": {"get": {"operationId": "getTest1", "tags": ["A"], "responses": {"200": {"description": "OK"}}}},
+					"/test2": {"get": {"operationId": "getTest2", "tags": ["B"], "responses": {"200": {"description": "OK"}}}},
+					"/test3": {"get": {"operationId": "getTest3", "tags": ["C"], "responses": {"200": {"description": "OK"}}}}
+				}
+			}`,
+			tagFilter:        []string{"A", "C"},
+			expectErr:        false,
+			expectedTools:    []string{"getTest1", "getTest3", "info"},
+			notExpectedTools: []string{"getTest2"},
+		},
+		{
 			name:        "should return error for invalid OAS file",
 			oasContent:  `{ "openapi": "3.0.0", "info": { ... }`, // malformed JSON
 			tagFilter:   []string{"MCP"},
 			expectErr:   true,
 			errContains: "failed to read the API spec",
+		},
+		{
+			name: "should format operation names correctly",
+			oasContent: `{
+				"openapi": "3.0.0", "info": {"title": "API", "version": "1.0"},
+				"paths": {
+					"/test1": {"get": {"operationId": "TrentoWeb.V1.SomeController.action", "tags": ["MCP"], "responses": {"200": {"description": "OK"}}}},
+					"/test2": {"get": {"operationId": "WandaWeb_V2_Another_action", "tags": ["MCP"], "responses": {"200": {"description": "OK"}}}},
+					"/test3": {"get": {"operationId": "NoPrefixControllerAction", "tags": ["MCP"], "responses": {"200": {"description": "OK"}}}}
+				}
+			}`,
+			tagFilter:     []string{"MCP"},
+			expectErr:     false,
+			expectedTools: []string{"Some_action", "Another_action", "NoPrefixAction", "info"},
 		},
 		{
 			name: "should overwrite server URL if present",
@@ -180,6 +227,20 @@ func TestHandleToolsRegistration(t *testing.T) {
 			}`,
 			tagFilter: []string{"MCP"},
 			expectErr: false,
+		},
+		{
+			name: "should include ops when any tag intersects (multiple tags & filters)",
+			oasContent: `{
+				"openapi": "3.0.0", "info": {"title": "API", "version": "1.0"},
+				"paths": {
+					"/alpha": {"get": {"operationId": "alphaBetaOp", "tags": ["Alpha", "Beta"], "responses": {"200": {"description": "OK"}}}},
+					"/gamma": {"get": {"operationId": "gammaOp", "tags": ["Gamma"], "responses": {"200": {"description": "OK"}}}}
+				}
+			}`,
+			tagFilter:        []string{"Beta", "Delta"},
+			expectErr:        false,
+			expectedTools:    []string{"alphaBetaOp", "info"},
+			notExpectedTools: []string{"gammaOp"},
 		},
 	}
 
@@ -196,6 +257,7 @@ func TestHandleToolsRegistration(t *testing.T) {
 			serveOpts := &server.ServeOptions{
 				OASPath:   tmpFile,
 				TrentoURL: "http://trento.test",
+				TagFilter: tt.tagFilter,
 			}
 
 			// execute
@@ -252,6 +314,18 @@ func TestHandleServerRun(t *testing.T) {
 			expectErr:   true,
 			errContains: "invalid transport type",
 		},
+		{
+			name:        "should fail if port is in use for streamable",
+			transport:   utils.TransportStreamable,
+			expectErr:   true,
+			errContains: "address",
+		},
+		{
+			name:        "should fail if port is in use for sse",
+			transport:   utils.TransportSSE,
+			expectErr:   true,
+			errContains: "address",
+		},
 	}
 
 	for _, tt := range tests {
@@ -265,13 +339,13 @@ func TestHandleServerRun(t *testing.T) {
 			port := getAvailablePort(t)
 
 			// For the "port in use" test, occupy the port before starting the server
-			if strings.Contains(tt.errContains, "address already in use") {
+			if strings.Contains(tt.errContains, "address") {
 				lc := net.ListenConfig{KeepAlive: time.Second}
 				l, err := lc.Listen(ctx, "tcp", fmt.Sprintf(":%d", port))
-
 				require.NoError(t, err)
-
 				defer l.Close() //nolint:errcheck
+				// Give the OS a moment to register the port as in use
+				time.Sleep(200 * time.Millisecond)
 			}
 
 			serveOpts := &server.ServeOptions{
@@ -297,48 +371,36 @@ func TestWaitForShutdown(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
-		startFn func(
-			ctx context.Context,
-			mcpSrv *mcpserver.MCPServer,
-			addr string,
-			serveOpts *server.ServeOptions,
-			authContext server.AuthContextWrapperFn,
-			errChan chan<- error,
-		) (server.StoppableServer, error)
-		checkPath   string
-		expectErr   bool
-		errContains string
-
+		name            string
+		startFn         func(context.Context, *mcp.Server, string, string, chan<- error) (server.StoppableServer, error)
+		checkPath       string
 		mockStartErr    error
 		mockShutdownErr error
+		expectErr       bool
+		errContains     string
 	}{
 		{
-			name: "Streamable HTTP Server",
+			name: "Streamable graceful shutdown",
 			startFn: func(
 				ctx context.Context,
-				mcpSrv *mcpserver.MCPServer,
-				addr string,
-				serveOpts *server.ServeOptions,
-				authContext server.AuthContextWrapperFn,
+				mcpSrv *mcp.Server,
+				addr string, headerName string,
 				errChan chan<- error,
 			) (server.StoppableServer, error) {
-				return server.StartStreamableHTTPServer(ctx, mcpSrv, addr, serveOpts, authContext, errChan)
+				return server.StartStreamableHTTPServer(ctx,
+					mcpSrv, addr, headerName, errChan)
 			},
 			checkPath: "/mcp",
 			expectErr: false,
 		},
 		{
-			name: "SSE Server",
+			name: "SSE graceful shutdown",
 			startFn: func(
-				ctx context.Context,
-				mcpSrv *mcpserver.MCPServer,
-				addr string,
-				_ *server.ServeOptions,
-				authContext server.AuthContextWrapperFn,
+				ctx context.Context, mcpSrv *mcp.Server,
+				addr string, headerName string,
 				errChan chan<- error,
 			) (server.StoppableServer, error) {
-				return server.StartSSEServer(ctx, mcpSrv, addr, authContext, errChan)
+				return server.StartSSEServer(ctx, mcpSrv, addr, headerName, errChan)
 			},
 			checkPath: "/sse",
 			expectErr: false,
@@ -416,10 +478,10 @@ func TestWaitForShutdown(t *testing.T) {
 			} else {
 				// Test case for graceful shutdown
 				mcpSrv, port, addr := setupServerTest(t, ctx)
-				authContext := func(c context.Context, _ *http.Request) context.Context { return c }
+				headerName := "X-Test-API-Key"
 				errChan := make(chan error, 1)
 
-				httpServer, err := tt.startFn(ctx, mcpSrv, addr, &server.ServeOptions{}, authContext, errChan)
+				httpServer, err := tt.startFn(ctx, mcpSrv, addr, headerName, errChan)
 				require.NoError(t, err)
 				require.NotNil(t, httpServer)
 
@@ -443,8 +505,16 @@ func TestWaitForShutdown(t *testing.T) {
 					t.Fatal("timed out waiting for shutdown")
 				}
 
-				_, err = http.Get(checkURL) //nolint:gosec,bodyclose
+				req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, checkURL, nil)
+				require.NoError(t, err)
+
+				client := &http.Client{}
+				resp, err := client.Do(req)
 				require.Error(t, err, "Server should be down")
+
+				if resp != nil && resp.Body != nil {
+					_ = resp.Body.Close()
+				}
 			}
 		})
 	}
@@ -466,11 +536,10 @@ func waitForServerReady(t *testing.T, url string, timeout time.Duration) {
 		resp, err := client.Do(req)
 		if err == nil {
 			_ = resp.Body.Close()
-			// The streamable server responds with 200 on GET for discovery.
-			// The SSE server only accepts POST, so a 405 on GET indicates it's up and running.
-			if resp.StatusCode == http.StatusOK ||
-				(strings.HasSuffix(url, "/sse") && resp.StatusCode == http.StatusMethodNotAllowed) {
-				return // Server is ready
+			// Consider the server ready if it returns any non-5xx response.
+			// Streamable/SSE handlers may return 200, 405, or 404 on GET depending on implementation.
+			if resp.StatusCode < 500 {
+				return
 			}
 		}
 
@@ -557,7 +626,7 @@ func getAvailablePort(t *testing.T) int {
 // setupServerTest is a helper that creates a test MCP server and gets an available port
 //
 //nolint:revive
-func setupServerTest(t *testing.T, ctx context.Context) (*mcpserver.MCPServer, int, string) {
+func setupServerTest(t *testing.T, ctx context.Context) (*mcp.Server, int, string) {
 	t.Helper()
 
 	mcpSrv := server.CreateMCPServer(ctx, &server.ServeOptions{Name: "test", Version: "v1"})
@@ -607,5 +676,84 @@ func testServerShutdown(
 		require.NoError(t, err, "server should exit gracefully")
 	case <-time.After(10 * time.Second):
 		t.Fatal(timeoutMsg)
+	}
+}
+
+func TestHandleAPIKeyAuth(t *testing.T) {
+	const (
+		headerName     = "X-Test-Api-Key"
+		bearerTokenEnv = "BEARER_TOKEN"
+	)
+
+	tests := []struct {
+		name           string
+		apiKey         string
+		headerPresent  bool
+		initialEnv     string // if empty, env is unset
+		expectEnvSet   bool
+		expectedAPIKey string
+	}{
+		{
+			name:           "should set BEARER_TOKEN when api key is present",
+			apiKey:         "my-secret-key",
+			headerPresent:  true,
+			initialEnv:     "",
+			expectEnvSet:   true,
+			expectedAPIKey: "my-secret-key",
+		},
+		{
+			name:           "should unset BEARER_TOKEN when api key is not present",
+			headerPresent:  false,
+			initialEnv:     "some-stale-key",
+			expectEnvSet:   false,
+			expectedAPIKey: "",
+		},
+		{
+			name:           "should unset BEARER_TOKEN when api key is an empty string",
+			apiKey:         "",
+			headerPresent:  true,
+			initialEnv:     "some-stale-key",
+			expectEnvSet:   false,
+			expectedAPIKey: "",
+		},
+		{
+			name:           "should overwrite an existing BEARER_TOKEN",
+			apiKey:         "new-key",
+			headerPresent:  true,
+			initialEnv:     "old-key",
+			expectEnvSet:   true,
+			expectedAPIKey: "new-key",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup initial environment for this test case
+			if tt.initialEnv != "" {
+				t.Setenv(bearerTokenEnv, tt.initialEnv)
+			} else {
+				err := os.Unsetenv(bearerTokenEnv)
+				require.NoError(t, err)
+			}
+
+			// Create request
+			req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/test", nil)
+			require.NoError(t, err)
+
+			if tt.headerPresent {
+				req.Header.Set(headerName, tt.apiKey)
+			}
+
+			// Call the function under test
+			server.HandleAPIKeyAuth(req, headerName)
+
+			// Assertions
+			actualAPIKey, isSet := os.LookupEnv(bearerTokenEnv)
+			assert.Equal(t, tt.expectEnvSet, isSet)
+
+			if tt.expectEnvSet {
+				assert.Equal(t, tt.expectedAPIKey, actualAPIKey)
+			}
+		})
 	}
 }

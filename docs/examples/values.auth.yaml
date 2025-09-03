@@ -20,7 +20,6 @@ mcpServerTrento:
     - --port=8080
     - --transport=streamable
     - --oasPath=/app/api/openapi.json
-    - --base-url=https://suse-ai.example.com/trento-mcp-server-auth
     - --trento-url=https://demo.trento-project.io
-    - --trento-username=demo---
-    - --trento-password=demopass
+    - --header-name=X-TRENTO-MCP-APIKEY
+    - --tag-filter=MCP

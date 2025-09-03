@@ -70,9 +70,9 @@ func TestMainExec(t *testing.T) {
 		},
 		{
 			name:           "should return error for invalid verbosity value",
-			args:           []string{"--verbosity", "not-a-number"},
+			args:           []string{"--verbosity", "invalid-level"},
 			expectErr:      true,
-			outputContains: "invalid argument",
+			outputContains: "invalid log level",
 		},
 	}
 
@@ -100,7 +100,7 @@ func TestMainExec(t *testing.T) {
 // TestMain acts as a dispatcher. When the test binary is re-executed with a
 // command-line argument, it runs the corresponding helper command and exits,
 // instead of running tests. This allows us to test the `main` function itself.
-func TestMain(_ *testing.M) {
+func TestMain(*testing.M) {
 	flag.Parse()
 	args := flag.Args()
 

@@ -15,6 +15,7 @@ import (
 	"github.com/trento-project/mcp-server/internal/utils"
 )
 
+//nolint:paralleltest
 func TestParseFlagsCorrect(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -28,20 +29,18 @@ func TestParseFlagsCorrect(t *testing.T) {
 				"--port", "9090",
 				"--oasPath", "/tmp/api.json",
 				"--transport", "sse",
-				"--base-url", "http://example.com/mcp",
 				"--trento-url", "http://trento.example.com",
-				"--trento-username", "trento",
-				"--trento-password", "trento-pass",
-				"--verbosity", "-1",
+				"--header-name", "X-My-Header",
+				"--tag-filter", "A,B",
+				"--verbosity", "debug",
 			},
 			expConf: server.ServeOptions{
-				Port:           9090,
-				OASPath:        "/tmp/api.json",
-				Transport:      utils.TransportSSE,
-				McpBaseURL:     "http://example.com/mcp",
-				TrentoURL:      "http://trento.example.com",
-				TrentoUsername: "trento",
-				TrentoPassword: "trento-pass",
+				Port:             9090,
+				OASPath:          "/tmp/api.json",
+				Transport:        utils.TransportSSE,
+				TrentoURL:        "http://trento.example.com",
+				TrentoHeaderName: "X-My-Header",
+				TagFilter:        []string{"A", "B"},
 			},
 			errExpected: false,
 		},
@@ -49,13 +48,12 @@ func TestParseFlagsCorrect(t *testing.T) {
 			name: "default values",
 			args: []string{},
 			expConf: server.ServeOptions{
-				Port:           5000,
-				OASPath:        "./api/openapi.json",
-				Transport:      utils.TransportStreamable,
-				McpBaseURL:     "",
-				TrentoURL:      "https://demo.trento-project.io",
-				TrentoUsername: "demo",
-				TrentoPassword: "demopass",
+				Port:             5000,
+				OASPath:          "./api/openapi.json",
+				Transport:        utils.TransportStreamable,
+				TrentoURL:        "https://demo.trento-project.io",
+				TrentoHeaderName: "X-TRENTO-MCP-APIKEY",
+				TagFilter:        []string{"MCP"},
 			},
 			errExpected: false,
 		},
