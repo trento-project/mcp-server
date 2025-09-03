@@ -119,9 +119,11 @@ HELM ?= $(LOCALBIN)/helm-$(HELM_VERSION)
 KUBE_SCORE ?= $(LOCALBIN)/kube-score-$(KUBE_SCORE_VERSION)
 
 ## Tool Versions
-GOLANGCI_LINT_VERSION ?= v2.4.0 # See https://github.com/golangci/golangci-lint/releases
-HELM_VERSION ?= v3.18.6 # See https://github.com/helm/helm/releases
-KUBE_SCORE_VERSION ?= v1.20.0 # See https://github.com/zegl/kube-score/releases
+TOOL_VERSIONS_FILE := ${CURDIR}/.tool-versions
+
+GOLANGCI_LINT_VERSION ?= v$(shell grep '^golangci-lint' $(TOOL_VERSIONS_FILE) | cut -d' ' -f2) # See https://github.com/golangci/golangci-lint/releases
+HELM_VERSION ?= v$(shell grep '^helm' $(TOOL_VERSIONS_FILE) | cut -d' ' -f2) # See https://github.com/helm/helm/releases
+KUBE_SCORE_VERSION ?= v$(shell grep '^kube-score' $(TOOL_VERSIONS_FILE) | cut -d' ' -f2) # See https://github.com/zegl/kube-score/releases
 
 .PHONY: install-tools
 install-tools: golangci-lint helm kube-score ## Download all the required tools.
