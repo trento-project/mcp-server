@@ -3,22 +3,95 @@
 
 = Getting started with Trento MCP Server
 
-This document provides a guide to get started with `Trento MCP Server` development. It covers the setup of the test environment, building, running and testing the project.
+This document provides a comprehensive guide to get started with `Trento MCP Server` development. It covers the development environment setup, project architecture, building, running, testing, and debugging the project.
 
 == Building the Project
 
-To build the project binary, run:
+Before starting development, ensure you have the following tools installed:
+
+* Go 1.24.4 or later (see link:https://golang.org/doc/install[Go installation guide])
+* Docker (for containerization)
+* Make (for build automation)
+* Git (for version control)
+
+=== Project Overview
+
+The Trento MCP Server is a Model Context Protocol (MCP) server implementation that enables AI tools and agents to interact with Trento infrastructure. The project automatically generates MCP tools from OpenAPI specifications, ensuring strong alignment between the API contract and implementation.
+
+=== Project Structure
+
+The project follows Go standard layout conventions:
+
+[source,text]
+----
+mcp-server/
+├── api/                    # OpenAPI specification
+│   └── openapi.json       # API contract used for tool generation
+├── bin/                    # Compiled binaries
+├── cmd/                    # CLI commands and entry points
+│   └── root.go            # Main command definitions and flags
+├── docs/                   # Documentation
+├── hack/                   # Build scripts and linters
+├── helm/                   # Kubernetes/Helm deployment manifests
+├── internal/               # Private application code
+│   ├── server/            # Server implementation
+│   │   ├── auth.go        # Authentication logic
+│   │   └── server.go      # Core server functionality
+│   └── utils/             # Shared utilities
+│       ├── logger.go      # Logging configuration
+│       └── types.go       # Common types and transport definitions
+├── main.go                 # Application entry point
+├── Dockerfile             # Container image definition
+└── Makefile              # Build automation
+----
+
+=== Development Workflow
+
+==== 1. Clone and Setup
+
+[source,console]
+----
+git clone https://github.com/trento-project/mcp-server.git
+cd mcp-server
+----
+
+==== 2. Install Dependencies
+
+The project uses Go modules for dependency management:
+
+[source,console]
+----
+go mod download
+----
+
+To install development tools (linters, etc.):
+
+[source,console]
+----
+make install-tools
+----
+
+==== 3. Building the Project
+
+To build the project binary:
 
 [source,console]
 ----
 make build
 ----
 
-The compiled binary will be located in the `bin/` directory.
+The compiled binary will be located in the `bin/` directory as `trento-mcp-server`.
 
 == Running the Project Locally
 
-To run the server locally (after building):
+[source,console]
+----
+make clean
+----
+
+==== 4. Running the Project Locally
+
+To run the server locally with default settings:
 
 [source,console]
 ----
@@ -27,22 +100,133 @@ make run
 
 == Building the Container Image
 
+[source,console]
+----
+./bin/trento-mcp-server --port 8080 --transport sse --verbosity info
+----
+
+For a complete list of available flags:
+
+[source,console]
+----
+./bin/trento-mcp-server --help
+----
+
+=== Testing
+
+==== Running Tests
+
+To run the full test suite:
+
+[source,console]
+----
+make test
+----
+
+This runs all tests with coverage reporting.
+
+To run tests for a specific package:
+
+[source,console]
+----
+go test ./internal/server -v
+go test ./internal/utils -v
+----
+
+To run tests with verbose output and coverage:
+
+[source,console]
+----
+go test ./... -v -cover
+----
+
+==== Test Structure
+
+* Unit tests are located alongside source files with `_test.go` suffix
+* Test exports are defined in `export_test.go` files for testing internal functionality
+
+=== Linting
+
+The project includes some linters to ensure code quality:
+
+[source,console]
+----
+# Run all linters
+make lint
+
+# Individual linters
+make linter-golangci      # Go code linting
+make linter-license       # License header verification
+make linter-shellcheck    # Shell script linting
+make linter-yamllint      # YAML file linting
+make linter-manifests     # Kubernetes manifests validation
+----
+
+=== Debugging
+
+==== Debug Logging
+
+Run the server with debug logging enabled:
+
+[source,console]
+----
+./bin/trento-mcp-server --verbosity debug
+----
+
+Log levels:
+* `debug`: Debug (most verbose)
+* `info`: Info (default)
+* `warning`: Warning
+* `error`: Error (least verbose)
+
+==== Common Debugging Scenarios
+
+1. **OpenAPI Specification Issues**: Verify `api/openapi.json` is valid and contains operations tagged with `MCP`
+2. **Authentication Problems**: Check that the provided Trento API key is correct
+3. **Transport Issues**: Try switching between `streamable` and `sse` transports
+4. **Port Conflicts**: Use `--port` flag to specify a different port
+
+=== Container Development
+
+==== Building the Container Image
+
 To build the container image:
 
 [source,console]
 ----
-make container-build
+make build-container
 ----
 
-This will create a container image named `ghcr.io/trento-project/mcp-server`.
+This creates a container image named `ghcr.io/trento-project/trento-mcp-server:latest`.
 
 == Running the Container
+
+[source,console]
+----
+IMAGE=my-registry/trento-mcp-server:dev make build-container
+----
+
+==== Running the Container
 
 To run the server in a container:
 
 [source,console]
 ----
-make container-run
+make run-container
 ----
 
-This will start the container using the built image.
+To run with custom environment variables:
+
+[source,console]
+----
+docker run -p 5000:5000 ghcr.io/trento-project/trento-mcp-server:latest --trento-url https://your-trento-instance.com
+----
+
+==== Pushing Container Images
+
+To push the container image to a registry:
+
+[source,console]
+----
+make push-container
+----

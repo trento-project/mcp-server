@@ -39,19 +39,13 @@ clean:
 
 .PHONY: run
 run: build ## Compile and run the project.
-	$(GO) run main.go --port ${PORT} --oasPath ./api/openapi.json --transport streamable --verbosity=-1
+	$(GO) run main.go --port ${PORT} --oasPath ./api/openapi.json --transport streamable --verbosity=debug --header-name=X-TRENTO-MCP-APIKEY --tag-filter=MCP
 
 ##@ Test
 
 .PHONY: test
 test: ## Test the project.
 	$(GO) test ./... -cover
-
-##@ Code generation
-
-.PHONY: generate
-generate: install-tools ## Run code autogeneration.
-	$(MCPGEN) --doc=tools.md api/openapi.json
 
 ##@ Container
 

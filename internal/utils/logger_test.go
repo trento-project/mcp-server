@@ -27,7 +27,7 @@ func TestCreateLogger(t *testing.T) {
 	defer func() { os.Stdout = oldStdout }()
 
 	// Create logger with info level. This will write to our pipe.
-	logger := utils.CreateLogger(0)
+	logger := utils.CreateLogger(utils.LogLevelInfo)
 
 	// Log some messages with attributes
 	logger.InfoContext(t.Context(), "info message", "key", "value")
@@ -54,15 +54,14 @@ func TestParseLogLevel(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		level    int
+		level    utils.LogLevel
 		expected slog.Level
 	}{
-		{"debug", -1, slog.LevelDebug},
-		{"info", 0, slog.LevelInfo},
-		{"warn", 1, slog.LevelWarn},
-		{"error", 2, slog.LevelError},
-		{"default for high number", 99, slog.LevelInfo},
-		{"default for low number", -99, slog.LevelInfo},
+		{"debug", utils.LogLevelDebug, slog.LevelDebug},
+		{"info", utils.LogLevelInfo, slog.LevelInfo},
+		{"warning", utils.LogLevelWarning, slog.LevelWarn},
+		{"error", utils.LogLevelError, slog.LevelError},
+		{"default for invalid", "invalid", slog.LevelInfo},
 	}
 
 	for _, tt := range tests {
@@ -79,9 +78,45 @@ func TestDefaultTextHandlerMethods(t *testing.T) {
 	// called by the slog.Logger's corresponding methods.
 	t.Parallel()
 
-	logger := utils.CreateLogger(0)
+	logger := utils.CreateLogger(utils.LogLevelInfo)
 
 	// Calling these methods is sufficient to cover the no-op implementations.
 	_ = logger.With("key", "value")
 	_ = logger.WithGroup("my_group")
+}
+
+func TestLogLevel(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		input     string
+		expectErr bool
+		expected  utils.LogLevel
+	}{
+		{"valid debug", "debug", false, utils.LogLevelDebug},
+		{"valid info", "info", false, utils.LogLevelInfo},
+		{"valid warning", "warning", false, utils.LogLevelWarning},
+		{"valid error", "error", false, utils.LogLevelError},
+		{"invalid level", "invalid", true, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var level utils.LogLevel
+			err := level.Set(tt.input)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "invalid log level")
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expected, level)
+				assert.Equal(t, tt.input, level.String())
+				assert.Equal(t, "string", level.Type())
+			}
+		})
+	}
 }
