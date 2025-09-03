@@ -182,7 +182,7 @@ Log levels:
 ==== Common Debugging Scenarios
 
 1. **OpenAPI Specification Issues**: Verify `api/openapi.json` is valid and contains operations tagged with `MCP`
-2. **Authentication Problems**: Check that Trento server credentials are correct
+2. **Authentication Problems**: Check that the provided Trento API key is correct
 3. **Transport Issues**: Try switching between `streamable` and `sse` transports
 4. **Port Conflicts**: Use `--port` flag to specify a different port
 
