@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Package server is the where the server logic is implemented.
+//
+//nolint:lll
 package server_test
 
 import (
@@ -150,6 +152,7 @@ func TestHandleToolsRegistration(t *testing.T) {
 		expectedTools    []string
 		notExpectedTools []string
 	}{
+
 		{
 			name: "should register tools with MCP tag",
 			oasContent: `{

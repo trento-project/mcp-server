@@ -58,7 +58,7 @@ func setFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&serveOpts.TrentoHeaderName, "header-name", defaultTrentoHeaderName, "The header name to be used for the Trento API key") //nolint:lll
 	cmd.Flags().StringSliceVar(&serveOpts.TagFilter, "tag-filter", []string{"MCP"}, "Only include operations with at least one of these tags")      //nolint:lll
 	// OTHERS
-	logLevel = defaultLogLevel                                                                                   // Set default value for log level
+	logLevel = defaultLogLevel
 	cmd.PersistentFlags().VarP(&logLevel, "verbosity", "v", "log level verbosity (debug, info, warning, error)") //nolint:lll
 
 	// Set version and name
