@@ -89,7 +89,7 @@ The compiled binary will be located in the `bin/` directory as `trento-mcp-serve
 make clean
 ----
 
-==== 4. Running the Project Locally
+=== 4. Running the Project Locally
 
 To run the server locally with default settings:
 
@@ -155,11 +155,12 @@ The project includes some linters to ensure code quality:
 make lint
 
 # Individual linters
+make linter-asciidoc      # Documentation in AsciiDoc validation
 make linter-golangci      # Go code linting
 make linter-license       # License header verification
+make linter-manifests     # Kubernetes manifests validation
 make linter-shellcheck    # Shell script linting
 make linter-yamllint      # YAML file linting
-make linter-manifests     # Kubernetes manifests validation
 ----
 
 === Debugging
@@ -206,7 +207,7 @@ This creates a container image named `ghcr.io/trento-project/trento-mcp-server:l
 IMAGE=my-registry/trento-mcp-server:dev make build-container
 ----
 
-==== Running the Container
+=== Running the Container
 
 To run the server in a container:
 
