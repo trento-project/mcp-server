@@ -113,7 +113,7 @@ The compiled binary will be located in the `bin/` directory as `trento-mcp-serve
 make clean
 ----
 
-==== 4. Running the Project Locally
+=== 4. Running the Project Locally
 
 To run the server locally with default settings:
 
@@ -230,7 +230,7 @@ This creates a container image named `ghcr.io/trento-project/trento-mcp-server:l
 IMAGE=my-registry/trento-mcp-server:dev make build-container
 ----
 
-==== Running the Container
+=== Running the Container
 
 To run the server in a container:
 
