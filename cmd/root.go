@@ -16,7 +16,7 @@ import (
 
 var (
 	// version will be set via ldflags.
-	logLevel  int                 //nolint:gochecknoglobals
+	logLevel  utils.LogLevel      //nolint:gochecknoglobals
 	serveOpts server.ServeOptions //nolint:gochecknoglobals
 	version   string              //nolint:gochecknoglobals
 
@@ -26,7 +26,7 @@ var (
 
 const (
 	name                    = "trento-mcp-server"
-	defaultLogLevel         = 0
+	defaultLogLevel         = utils.LogLevelInfo
 	defaultOASPath          = "./api/openapi.json"
 	defaultPort             = 5000
 	defaultTrentoHeaderName = "X-TRENTO-API-KEY"
@@ -58,7 +58,8 @@ func setFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&serveOpts.TrentoHeaderName, "header-name", defaultTrentoHeaderName, "The header name to be used for the Trento API key") //nolint:lll
 	cmd.Flags().StringSliceVar(&serveOpts.TagFilter, "tag-filter", []string{"MCP"}, "Only include operations with at least one of these tags")      //nolint:lll
 	// OTHERS
-	cmd.PersistentFlags().IntVarP(&logLevel, "verbosity", "v", defaultLogLevel, "log level verbosity (-1: debug, 0: info, 1: warning, 2: error)") //nolint:lll
+	logLevel = defaultLogLevel                                                                                   // Set default value for log level
+	cmd.PersistentFlags().VarP(&logLevel, "verbosity", "v", "log level verbosity (debug, info, warning, error)") //nolint:lll
 
 	// Set version and name
 	serveOpts.Version = Version()

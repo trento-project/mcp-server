@@ -102,7 +102,7 @@ make run
 
 [source,console]
 ----
-./bin/trento-mcp-server --port 8080 --transport sse --verbosity 0
+./bin/trento-mcp-server --port 8080 --transport sse --verbosity info
 ----
 
 For a complete list of available flags:
@@ -170,14 +170,14 @@ Run the server with debug logging enabled:
 
 [source,console]
 ----
-./bin/trento-mcp-server --verbosity -1
+./bin/trento-mcp-server --verbosity debug
 ----
 
 Log levels:
-* `-1`: Debug (most verbose)
-* `0`: Info (default)
-* `1`: Warning
-* `2`: Error (least verbose)
+* `debug`: Debug (most verbose)
+* `info`: Info (default)
+* `warning`: Warning
+* `error`: Error (least verbose)
 
 ==== Common Debugging Scenarios
 

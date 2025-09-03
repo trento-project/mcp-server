@@ -39,7 +39,7 @@ clean:
 
 .PHONY: run
 run: build ## Compile and run the project.
-	$(GO) run main.go --port ${PORT} --oasPath ./api/openapi.json --transport streamable --verbosity=-1 --header-name=X-TRENTO-API-KEY --tag-filter=MCP
+	$(GO) run main.go --port ${PORT} --oasPath ./api/openapi.json --transport streamable --verbosity=debug --header-name=X-TRENTO-API-KEY --tag-filter=MCP
 
 ##@ Test
 

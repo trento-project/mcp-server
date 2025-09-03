@@ -70,9 +70,9 @@ func TestMainExec(t *testing.T) {
 		},
 		{
 			name:           "should return error for invalid verbosity value",
-			args:           []string{"--verbosity", "not-a-number"},
+			args:           []string{"--verbosity", "invalid-level"},
 			expectErr:      true,
-			outputContains: "invalid argument",
+			outputContains: "invalid log level",
 		},
 	}
 

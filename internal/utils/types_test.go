@@ -74,3 +74,79 @@ func TestTransportType_Type(t *testing.T) {
 
 	assert.Equal(t, "string", tt.Type())
 }
+
+func TestLogLevel_String(t *testing.T) {
+	t.Parallel()
+
+	var ll utils.LogLevel = "test"
+
+	assert.Equal(t, "test", ll.String())
+}
+
+func TestLogLevel_Set(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		value       string
+		expectErr   bool
+		expectedVal utils.LogLevel
+	}{
+		{
+			name:        "set debug",
+			value:       "debug",
+			expectErr:   false,
+			expectedVal: utils.LogLevelDebug,
+		},
+		{
+			name:        "set info",
+			value:       "info",
+			expectErr:   false,
+			expectedVal: utils.LogLevelInfo,
+		},
+		{
+			name:        "set warning",
+			value:       "warning",
+			expectErr:   false,
+			expectedVal: utils.LogLevelWarning,
+		},
+		{
+			name:        "set error",
+			value:       "error",
+			expectErr:   false,
+			expectedVal: utils.LogLevelError,
+		},
+		{
+			name:        "set invalid",
+			value:       "invalid",
+			expectErr:   true,
+			expectedVal: "", // The value should not change
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var ll utils.LogLevel
+
+			err := ll.Set(tc.value)
+
+			if tc.expectErr {
+				require.Error(t, err)
+				assert.Equal(t, utils.LogLevel(""), ll) // Ensure value is unchanged on error
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.expectedVal, ll)
+			}
+		})
+	}
+}
+
+func TestLogLevel_Type(t *testing.T) {
+	t.Parallel()
+
+	var ll utils.LogLevel
+
+	assert.Equal(t, "string", ll.Type())
+}

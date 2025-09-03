@@ -68,7 +68,7 @@ mcpServer:
     - --trento-url=https://demo.trento-project.io
     - --header-name=X-TRENTO-API-KEY
     - --tag-filter=MCP
-    - --verbosity=0
+    - --verbosity=info
 
   image:
     ## @param mcpServer.image.repository The container image repository for the MCP Server component.

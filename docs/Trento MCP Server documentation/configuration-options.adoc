@@ -18,7 +18,7 @@ The `trento-mcp-server` binary accepts several command-line flags to configure i
 |`--trento-url` |`https://demo.trento-project.io` |URL for the target Trento server.
 |`--header-name` |`X-TRENTO-API-KEY` |The HTTP header name that clients should use to send the Trento API key.
 |`--tag-filter` |`MCP` |A comma-separated list of OpenAPI tags. Only operations with at least one of these tags will be exposed as tools.
-|`--verbosity`, `-v` |`0` |Log level verbosity. -1=debug, 0=info, 1=warning, 2=error.
+|`--verbosity`, `-v` |`info` |Log level verbosity. Can be `debug`, `info`, `warning`, or `error`.
 |===
 
 You can see all available flags by running:

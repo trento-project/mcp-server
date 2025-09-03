@@ -13,23 +13,23 @@ import (
 )
 
 // CreateLogger creates and configures an slog logger.
-func CreateLogger(logLevel int) *slog.Logger {
+func CreateLogger(logLevel LogLevel) *slog.Logger {
 	return slog.New(NewDefaultTextHandler(
 		os.Stdout,
 		ParseLogLevel(logLevel),
 	))
 }
 
-// ParseLogLevel converts a int representation of a log level to slog.Level.
-func ParseLogLevel(logLevel int) slog.Level {
+// ParseLogLevel converts a LogLevel representation to slog.Level.
+func ParseLogLevel(logLevel LogLevel) slog.Level {
 	switch logLevel {
-	case -1:
+	case LogLevelDebug:
 		return slog.LevelDebug
-	case 0:
+	case LogLevelInfo:
 		return slog.LevelInfo
-	case 1:
+	case LogLevelWarning:
 		return slog.LevelWarn
-	case 2:
+	case LogLevelError:
 		return slog.LevelError
 	default:
 		return slog.LevelInfo

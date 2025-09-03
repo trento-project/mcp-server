@@ -32,7 +32,7 @@ func TestParseFlagsCorrect(t *testing.T) {
 				"--trento-url", "http://trento.example.com",
 				"--header-name", "X-My-Header",
 				"--tag-filter", "A,B",
-				"--verbosity", "-1",
+				"--verbosity", "debug",
 			},
 			expConf: server.ServeOptions{
 				Port:             9090,
