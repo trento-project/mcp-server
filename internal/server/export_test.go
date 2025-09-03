@@ -11,5 +11,5 @@ var (
 	StartSSEServer            = startSSEServer
 	StartStreamableHTTPServer = startStreamableHTTPServer
 	WaitForShutdown           = waitForShutdown
-	APIKeyAuthContextFunc     = apiKeyAuthContextFunc
+	HandleAPIKeyAuth          = handleAPIKeyAuth
 )
