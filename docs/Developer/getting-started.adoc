@@ -1,11 +1,11 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
-== Getting started with Trento MCP Server
+= Getting started with Trento MCP Server
 
 This document provides a comprehensive guide to get started with `Trento MCP Server` development. It covers the development environment setup, project architecture, building, running, testing, and debugging the project.
 
-=== Prerequisites
+== Building the Project
 
 Before starting development, ensure you have the following tools installed:
 
@@ -82,7 +82,7 @@ make build
 
 The compiled binary will be located in the `bin/` directory as `trento-mcp-server`.
 
-To clean build artifacts:
+== Running the Project Locally
 
 [source,console]
 ----
@@ -98,7 +98,7 @@ To run the server locally with default settings:
 make run
 ----
 
-This runs the server with the default configuration. To run with custom parameters:
+== Building the Container Image
 
 [source,console]
 ----
@@ -199,7 +199,7 @@ make build-container
 
 This creates a container image named `ghcr.io/trento-project/trento-mcp-server:latest`.
 
-To build with a custom tag:
+== Running the Container
 
 [source,console]
 ----
