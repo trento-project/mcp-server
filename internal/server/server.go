@@ -52,8 +52,6 @@ const (
 
 // Serve is the root command that is run when no other sub-commands are present.
 func Serve(ctx context.Context, serveOpts *ServeOptions) error {
-	var err error
-
 	slog.DebugContext(ctx, "starting Serve() command",
 		"server.options", fmt.Sprintf("%+v", *serveOpts),
 	)
@@ -67,7 +65,28 @@ func Serve(ctx context.Context, serveOpts *ServeOptions) error {
 	)
 
 	// Create the MCP server and register the tools.
-	srv, tools, err := handleToolsRegistration(ctx, srv, serveOpts)
+	// The openapi-mcp library logs to stdout/stderr.
+	// We capture and redirect it to our logger to honor the log levels.
+	// TODO(agamez): remove if the library is updated, see:
+	// https://github.com/evcc-io/openapi-mcp/blob/0c909602302e0e228c89808be3f33bc6d521f0ce/schema.go#L71
+	// https://github.com/evcc-io/openapi-mcp/blob/0c909602302e0e228c89808be3f33bc6d521f0ce/register.go#L423
+	var tools []string
+
+	err := utils.CaptureLibraryLogs(ctx, func() error {
+		var (
+			regErr          error
+			registeredSrv   *mcp.Server
+			registeredTools []string
+		)
+
+		registeredSrv, registeredTools, regErr = handleToolsRegistration(ctx, srv, serveOpts)
+		if regErr == nil {
+			srv = registeredSrv
+			tools = registeredTools
+		}
+
+		return regErr
+	})
 	if err != nil {
 		return err
 	}
@@ -85,7 +104,7 @@ func Serve(ctx context.Context, serveOpts *ServeOptions) error {
 		return err
 	}
 
-	return err
+	return nil
 }
 
 // createMCPServer creates the MCP server, but does not start serving it yet.
