@@ -118,7 +118,7 @@ func createMCPServer(ctx context.Context, serveOpts *ServeOptions) *mcp.Server {
 func handleToolsRegistration(
 	ctx context.Context,
 	srv *mcp.Server,
-	serveOpts *ServeOptions,
+	serveOpts *ServeOptions, //nolint:revive
 ) (*mcp.Server, []string, error) {
 	// Load OpenAPI spec.
 	oasDoc, err := openapi2mcp.LoadOpenAPISpec(serveOpts.OASPath)
@@ -148,18 +148,23 @@ func handleToolsRegistration(
 	// see https://github.com/jedisct1/openapi-mcp/blob/7fc6e6013a413754e52fbac2197f8027c68040f9/pkg/openapi2mcp/register.go#L901
 	if len(serveOpts.TagFilter) > 0 {
 		filteredOperations := []openapi2mcp.OpenAPIOperation{}
+
 		for _, op := range operations {
 			matched := false
+
 			for _, x := range serveOpts.TagFilter {
 				if slices.Contains(op.Tags, x) {
 					matched = true
+
 					break
 				}
 			}
+
 			if matched {
 				filteredOperations = append(filteredOperations, op)
 			}
 		}
+
 		operations = filteredOperations
 	}
 
@@ -186,7 +191,7 @@ func handleToolsRegistration(
 }
 
 // handleServerRun configures and starts the appropriate server based on the selected transport.
-// It sets up an authentication context wrapper and blocks until a shutdown signal is received.
+// It sets up an authentication context wrapper and blocks until a shutdown signal is received. //nolint:lll.
 func handleServerRun(ctx context.Context, srv *mcp.Server, serveOpts *ServeOptions) error {
 	// Build the address to listen to
 	listenAddr := fmt.Sprintf(":%d", serveOpts.Port)
@@ -271,6 +276,7 @@ func startStreamableHTTPServer(
 	streamableHandler := mcp.NewStreamableHTTPHandler(
 		func(r *http.Request) *mcp.Server {
 			handleAPIKeyAuth(r, headerName)
+
 			return mcpSrv
 		},
 		&mcp.StreamableHTTPOptions{},
@@ -292,6 +298,7 @@ func startSSEServer(
 	sseHandler := mcp.NewSSEHandler(
 		func(r *http.Request) *mcp.Server {
 			handleAPIKeyAuth(r, headerName)
+
 			return mcpSrv
 		},
 	)
@@ -361,7 +368,7 @@ func handleAPIKeyAuth(r *http.Request, headerName string) {
 	}
 }
 
-// withLogger returns a middleware to log each invocation of the mcp server
+// withLogger returns a middleware to log each invocation of the mcp server.
 func withLogger(logger *slog.Logger) mcp.Middleware {
 	return func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
