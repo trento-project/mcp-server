@@ -11,7 +11,7 @@ require (
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/mark3labs/mcp-go v0.38.0
 	github.com/spf13/cobra v1.10.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 )
 
 require (
