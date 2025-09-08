@@ -84,7 +84,7 @@ fix-ending: ## Fix the line endings, converting them back to unix.
 	find . -path "./.git" -prune -o -type f -exec dos2unix {} \+;
 
 .PHONY: lint
-lint: linter-golangci linter-license linter-shellcheck linter-yamllint linter-manifests ## Run all the linters.
+lint: linter-golangci linter-license linter-shellcheck linter-yamllint linter-asciidoc linter-manifests ## Run all the linters.
 
 .PHONY: linter-golangci
 linter-golangci: golangci-lint ## Run golangci-lint linter.
@@ -101,6 +101,10 @@ linter-shellcheck: ## Run shellcheck script.
 .PHONY: linter-yamllint
 linter-yamllint: ## Run yamllint script.
 	./hack/linters/yamllint.sh
+
+.PHONY: linter-asciidoc
+linter-asciidoc: ## Run asciidoc linter script.
+	./hack/linters/asciidoc-linter.sh
 
 .PHONY: linter-manifests
 linter-manifests: helm kube-score ## Analyze the manifests with kube-score.
