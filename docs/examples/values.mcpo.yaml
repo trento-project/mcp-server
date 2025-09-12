@@ -9,7 +9,7 @@ mcpo:
     - --config
     - /app/config/config.json
 
-mcpServerTrento:
+mcpServer:
   ingress:
     enabled: false
   args:
