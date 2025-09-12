@@ -1,22 +1,31 @@
 # Copyright 2024-2025 SUSE LLC
 ---
-name: Main Pipeline
+name: Continuous Integration
 
 on:
   push:
     branches:
       - main
+    paths-ignore:
+      - "VERSION"
+      - "CHANGELOG.md"
     tags-ignore:
       - "*"
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - "VERSION"
+  workflow_dispatch:
+  workflow_call:
 
 concurrency:
-  group: ${{ github.head_ref || github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   CI:
     uses: ./.github/workflows/pipeline-definition.yaml
     secrets: inherit
+    with:
+      run_linters: true

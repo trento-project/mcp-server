@@ -21,7 +21,6 @@ env:
 jobs:
   # Setup the environment and set outputs
   setup:
-    timeout-minutes: 3
     runs-on: ubuntu-latest
     outputs:
       golang_version: ${{ steps.set-outputs.outputs.golang_version }}
@@ -94,25 +93,51 @@ jobs:
           echo "VERSION: ${{steps.set-outputs.outputs.version}}"
           echo "GH_USERNAME: ${{steps.set-outputs.outputs.gh_username}}"
 
+  # Run all the linters
+  linters-run:
+    if: inputs.run_linters
+    needs:
+      - setup
+    uses: ./.github/workflows/linters.yml
+    secrets: inherit
+    with:
+      golang_version: ${{ needs.setup.outputs.golang_version }}
+
+  # Check aggregated result of all linters
+  linters-result:
+    if: inputs.run_linters && always()
+    needs: linters
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all linters result
+        if: needs.linters.result != 'success'
+        run: exit 1
+
   # Check go unit tests
-  test_go:
-    timeout-minutes: 6
+  test-with-go:
     needs:
       - setup
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         name: Checkout
-      - uses: actions/setup-go@v6
-        name: Set up Go
+      - uses: endorama/asdf-parse-tool-versions@v1
+        name: Read .tool-versions
+        id: tool-versions
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GOLANG_VERSION }}
+      - uses: actions/cache@v4
+        name: Cache Go modules
+        id: go-cache
+        with:
+          path: ~/go/pkg/mod
+          key: go-${{ env.GOLANG_VERSION }}-${{ hashFiles('**/go.sum') }}
       - name: Run go unit tests
         run: make test
 
   # Ensure the Helm chart is valid
-  test_chart_render:
-    timeout-minutes: 3
+  test-chart-render:
     needs:
       - setup
     runs-on: ubuntu-latest
@@ -140,7 +165,6 @@ jobs:
 
   # Build the container images
   build_container_images:
-    timeout-minutes: 12
     name: "Build ${{matrix.image}} image"
     needs:
       - setup
@@ -188,9 +212,23 @@ jobs:
           name: ${{matrix.image}}-image
           path: ${{ steps.setup.outputs.img_file }}
 
+  # Update sum.golang.org and pkg.go.dev
+  generate_docs:
+    if: needs.setup.outputs.running_on_main == 'true' || inputs.trigger_release
+    runs-on: ubuntu-latest
+    needs:
+      - setup
+      - build_container_images
+      - test_chart_render
+      - test-with-go
+      - test-chart-render
+      - linters-result
+    steps:
+      - uses: essentialkaos/godoc-action@v1
+        name: Trigger docs update in sum.golang.org and pkg.go.dev
+
   # Push the container images to the registry
   push_images:
-    timeout-minutes: 3
     if: needs.setup.outputs.running_on_main == 'true' || inputs.trigger_release
     runs-on: ubuntu-latest
     permissions:
@@ -199,6 +237,10 @@ jobs:
     needs:
       - setup
       - build_container_images
+      - test_chart_render
+      - test-with-go
+      - test-chart-render
+      - linters-result
     env:
       IMG_PROD_TAG: ${{ needs.setup.outputs.img_prod_tag }}
       IMG_PREFIX: ${{ needs.setup.outputs.img_prefix }}
@@ -240,14 +282,29 @@ jobs:
             docker push $prod_image
           done
 
+  obs-sync:
+    name: OBS sync
+    if: vars.OBS_ENABLED == 'true' && (github.event_name == 'push' && github.ref_name == 'main') || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/obs.yaml
+    needs:
+      - setup
+      - build_container_images
+      - test_chart_render
+      - test-with-go
+      - test-chart-render
+      - linters-result
+    secrets: inherit
+    with:
+      obs_project: ${{ vars.OBS_PROJECT_ROLLING }}
+
   # Delete image artifacts, as they are not needed anymore
   cleanup:
-    timeout-minutes: 3
     needs:
       - push_images
     runs-on: ubuntu-latest
     steps:
       - uses: geekyeggo/delete-artifact@v5
+        name: Delete artifacts
         with:
           name: |
             *-image

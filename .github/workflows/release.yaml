@@ -1,0 +1,111 @@
+# Copyright 2025 SUSE LLC
+---
+name: Lib - Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "VERSION"
+
+concurrency: ${{ github.workflow }}
+
+jobs:
+  # Job: pre-release
+  # Purpose: Detect if a new version should be released, draft the release, and update the changelog.
+  pre-release:
+    name: Detect new version, draft release, update changelog
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.detect-version.outputs.current-version }}
+    steps:
+      # Checkout the repository with SSH key for release
+      - name: Check out the repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+          ssh-key: ${{ secrets.RELEASE_KEY }}
+
+      # Check if there is a parent commit (required for version detection)
+      - name: Check if there is a parent commit
+        id: check-parent-commit
+        run: |
+          echo "sha=$(git rev-parse --verify --quiet HEAD^)" >> $GITHUB_OUTPUT
+
+      # Detect new version from VERSION file
+      - name: Detect new version
+        id: detect-version
+        if: steps.check-parent-commit.outputs.sha
+        uses: salsify/action-detect-and-tag-new-version@v2
+        with:
+          create-tag: false
+          version-command: |
+            cat VERSION
+
+      # Draft a new release using release-drafter
+      - name: Draft release
+        id: draft-release
+        uses: release-drafter/release-drafter@v6
+        with:
+          publish: false
+          version: ${{ steps.detect-version.outputs.current-version }}
+          disable-autolabeler: true
+          config-name: release_drafter.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Update the CHANGELOG.md file with new release notes
+      - name: Update CHANGELOG.md
+        uses: stefanzweifel/changelog-updater-action@v1
+        with:
+          latest-version: ${{ steps.draft-release.outputs.tag_name }}
+          release-notes: ${{ steps.draft-release.outputs.body }}
+
+      # Commit the updated changelog to main branch
+      - name: Commit new changelog
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          branch: main
+          commit_message: "Automatically update CHANGELOG.md for release ${{ steps.detect-version.outputs.current-version }}"
+
+  # Job: release
+  # Purpose: Tag and publish the release on GitHub using the detected version from pre-release.
+  release:
+    name: Tag and publish release
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.publish-release.outputs.tag_name }}
+    needs:
+      - pre-release
+    steps:
+      # Publish the release using release-drafter
+      - name: Publish release
+        id: publish-release
+        uses: release-drafter/release-drafter@v6
+        with:
+          publish: true
+          tag: ${{ needs.pre-release.outputs.version }}
+          version: ${{ needs.pre-release.outputs.version }}
+          disable-autolabeler: true
+          config-name: release_drafter.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Job: obs-sync
+  # Purpose: Synchronize the release with the openSUSE Build Service (OBS) and update the changelog in the OBS project.
+  obs-sync:
+    name: OBS Sync
+    if: vars.OBS_ENABLED == 'true'
+    uses: ./.github/workflows/obs.yaml
+    needs:
+      - release
+    secrets: inherit
+    with:
+      # Update changelog and sync with OBS project
+      update_changelog: true
+      obs_project: ${{ vars.OBS_PROJECT_STABLE }}
