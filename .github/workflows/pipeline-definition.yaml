@@ -14,10 +14,6 @@ env:
   IMG_PREFIX_FOR_FORKS: "your-registry-username/"
   IMAGES_TO_PUSH: "trento-mcp-server"
 
-  # Versions
-  GOLANG_VERSION: "1.24.4" # See https://go.dev/dl/, must be aligned with "toolchain goX.X.X" in go.mod
-  HELM_VERSION: "v3.18.6" # See https://github.com/helm/helm/releases
-
 jobs:
   # Set up environment variables and outputs for downstream jobs.
   setup:
@@ -25,6 +21,7 @@ jobs:
     outputs:
       # Output variables for use in other jobs.
       golang_version: ${{ steps.set-outputs.outputs.golang_version }}
+      helm_version: ${{ steps.set-outputs.outputs.helm_version }}
       img_modifier: ${{ steps.set-outputs.outputs.img_modifier }}
       img_prefix: ${{ steps.set-outputs.outputs.img_prefix }}
       img_dev_tag: ${{ steps.set-outputs.outputs.img_dev_tag }}
@@ -33,6 +30,9 @@ jobs:
       triggered_from_fork: ${{ steps.set-outputs.outputs.triggered_from_fork }}
       gh_username: ${{ steps.set-outputs.outputs.gh_username }}
     steps:
+      # Checkout the repository.
+      - uses: actions/checkout@v5
+        name: Checkout
       # Show the GitHub event context for debugging.
       - name: Show GitHub event
         env:
@@ -51,6 +51,11 @@ jobs:
           PR_SOURCE_REPO_NAME: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
           set -euo pipefail
+
+          # Read versions from .tool-versions file (no fallbacks - must exist)
+          GOLANG_VERSION=$(grep '^golang' .tool-versions | cut -d' ' -f2)
+          HELM_VERSION="v$(grep '^helm' .tool-versions | cut -d' ' -f2)"
+
           if [[ "${GITHUB_REPOSITORY}" == "${TRENTO_REPO}" ]]; then
             echo "img_prefix=${IMG_PREFIX}" >> $GITHUB_OUTPUT
           else
@@ -80,6 +85,7 @@ jobs:
           fi
 
           echo "golang_version=${GOLANG_VERSION}" >> $GITHUB_OUTPUT
+          echo "helm_version=${HELM_VERSION}" >> $GITHUB_OUTPUT
           echo "img_modifier=${IMG_MODIFIER}" >> $GITHUB_OUTPUT
           echo "img_dev_tag=${IMG_DEV_TAG}" >> $GITHUB_OUTPUT
           # Set it directly in GitHub repository variables:
@@ -89,6 +95,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "GOLANG_VERSION: ${{steps.set-outputs.outputs.golang_version}}"
+          echo "HELM_VERSION: ${{steps.set-outputs.outputs.helm_version}}"
           echo "IMG_MODIFIER: ${{steps.set-outputs.outputs.img_modifier}}"
           echo "IMG_PREFIX: ${{steps.set-outputs.outputs.img_prefix}}"
           echo "IMG_DEV_TAG: ${{steps.set-outputs.outputs.img_dev_tag}}"
@@ -133,16 +140,16 @@ jobs:
         name: Read .tool-versions
         id: tool-versions
       # Setup Go environment.
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GOLANG_VERSION }}
+          go-version: ${{ needs.setup.outputs.golang_version }}
       # Cache Go modules for faster builds.
       - uses: actions/cache@v4
         name: Cache Go modules
         id: go-cache
         with:
           path: ~/go/pkg/mod
-          key: go-${{ env.GOLANG_VERSION }}-${{ hashFiles('**/go.sum') }}
+          key: go- ${{ needs.setup.outputs.golang_version }}-${{ hashFiles('**/go.sum') }}
       # Run Go unit tests.
       - name: Run go unit tests
         run: make test
@@ -160,6 +167,7 @@ jobs:
       - name: Install Helm binary
         run: |
           set -euo pipefail
+          HELM_VERSION="${{ needs.setup.outputs.helm_version }}"
           echo "Installing Helm ${HELM_VERSION}"
           pushd /tmp
           wget "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
@@ -330,7 +338,7 @@ jobs:
       - push_images
     runs-on: ubuntu-latest
     steps:
-        # Delete image artifacts after pushing to the registry.
+      # Delete image artifacts after pushing to the registry.
       - uses: geekyeggo/delete-artifact@v5
         name: Delete artifacts
         with:

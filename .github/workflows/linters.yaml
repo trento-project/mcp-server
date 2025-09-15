@@ -23,7 +23,7 @@ jobs:
         name: Read .tool-versions
         id: tool-versions
       # Setup Go environment
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GOLANG_VERSION }}
       # Cache Go modules for faster builds

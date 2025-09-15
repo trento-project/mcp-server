@@ -47,7 +47,7 @@ jobs:
         uses: endorama/asdf-parse-tool-versions@v1.3.4
         id: tool-versions
       # Setup Go environment for dependency management
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GOLANG_VERSION }}
       # Cache Go modules for faster builds
