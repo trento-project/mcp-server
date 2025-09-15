@@ -118,7 +118,7 @@ jobs:
   # Check the result of all linters and fails if any linter failed.
   linters-result:
     if: inputs.run_linters && always()
-    needs: linters
+    needs: linters-run
     runs-on: ubuntu-latest
     steps:
       # Fail the job if any linter did not succeed.
@@ -241,7 +241,7 @@ jobs:
           path: ${{ steps.setup.outputs.img_file }}
 
   # Update sum.golang.org and pkg.go.dev
-  generate_docs:
+  generate-docs:
     # This job triggers documentation update in Go module registries.
     if: needs.setup.outputs.running_on_main == 'true' || inputs.trigger_release
     runs-on: ubuntu-latest
