@@ -110,7 +110,7 @@ jobs:
     if: inputs.run_linters
     needs:
       - setup
-    uses: ./.github/workflows/linters.yml
+    uses: ./.github/workflows/linters.yaml
     secrets: inherit
     with:
       golang_version: ${{ needs.setup.outputs.golang_version }}
