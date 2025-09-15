@@ -33,10 +33,10 @@ jobs:
           key: go-${{ env.GOLANG_VERSION }}-${{ hashFiles('**/go.sum') }}
       # Run go vet for static analysis
       - name: go vet check
-        run: make vet-check
+        run: make vet
       # Run go fmt to check code formatting
       - name: go fmt check
-        run: make fmt-check
+        run: make fmt
       # Run golangci-lint for advanced linting
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
