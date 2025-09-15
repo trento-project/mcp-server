@@ -58,8 +58,8 @@ jobs:
           set -euo pipefail
 
           # Read versions from .tool-versions file (no fallbacks - must exist)
-          GOLANG_VERSION=$(grep '^golang' .tool-versions | cut -d' ' -f2)
-          HELM_VERSION="v$(grep '^helm' .tool-versions | cut -d' ' -f2)"
+          GOLANG_VERSION=$(grep '^golang ' .tool-versions | cut -d' ' -f2)
+          HELM_VERSION="v$(grep '^helm ' .tool-versions | cut -d' ' -f2)"
 
           if [[ "${GITHUB_REPOSITORY}" == "${TRENTO_REPO}" ]]; then
             echo "img_prefix=${IMG_PREFIX}" >> $GITHUB_OUTPUT
