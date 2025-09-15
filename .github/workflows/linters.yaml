@@ -11,8 +11,6 @@ on:
 jobs:
   # Run Go static analysis tools (vet, fmt, golangci-lint) to ensure code quality and style.
   static-code-analysis:
-    needs:
-      - setup
     runs-on: ubuntu-latest
     steps:
       # Checkout the repository
@@ -25,7 +23,7 @@ jobs:
       # Setup Go environment
       - uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GOLANG_VERSION }}
+          go-version: ${{ inputs.golang_version }}
       # Cache Go modules for faster builds
       - uses: actions/cache@v4
         name: Cache Go modules
