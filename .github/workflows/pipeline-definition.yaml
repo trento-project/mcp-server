@@ -9,7 +9,7 @@ env:
   TRENTO_REPO: "trento-project/mcp-server"
   IMG_DEV_TAG: "build-${{ github.sha }}"
   IMG_MODIFIER: "-ci"
-  IMG_PLATFORMS: "linux/amd64" # TODO: add more? "linux/arm64"
+  IMG_PLATFORMS: "linux/amd64"
   IMG_PREFIX: "ghcr.io/trento-project/"
   IMG_PREFIX_FOR_FORKS: "your-registry-username/"
   IMAGES_TO_PUSH: "trento-mcp-server"
@@ -140,6 +140,10 @@ jobs:
 
   # Build the container images
   build_container_images:
+    permissions:
+      actions: read
+      contents: write
+      id-token: write
     timeout-minutes: 12
     name: "Build ${{matrix.image}} image"
     needs:
@@ -174,6 +178,7 @@ jobs:
           DOCKER_BUILD_SUMMARY: false
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
+          sbom: true
           file: Dockerfile
           platforms: ${{ env.IMG_PLATFORMS }}
           tags: ${{ steps.meta.outputs.tags }}
@@ -183,7 +188,20 @@ jobs:
             VERSION=${{ needs.setup.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          outputs: type=docker,dest=${{ steps.setup.outputs.img_file }}
+          outputs: type=oci,dest=${{ steps.setup.outputs.img_file }}
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          file: ${{ steps.setup.outputs.img_file }}
+          format: 'spdx-json'
+          output-file: 'sbom.spdx.json'
+      - name: Attest
+        uses: actions/attest-sbom@v3
+        id: attest
+        with:
+          subject-name: ghcr.io/${{matrix.image}}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          sbom-path: 'sbom.spdx.json'
       - uses: actions/upload-artifact@v4
         name: Upload artifacts
         with:
