@@ -128,7 +128,7 @@ jobs:
     steps:
       # Fail the job if any linter did not succeed.
       - name: Check all linters result
-        if: needs.linters.result != 'success'
+        if: needs.linters-run.result != 'success'
         run: exit 1
 
   # Check go unit tests
