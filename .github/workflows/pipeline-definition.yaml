@@ -94,7 +94,7 @@ jobs:
           echo "helm_version=${HELM_VERSION}" >> $GITHUB_OUTPUT
           echo "img_modifier=${IMG_MODIFIER}" >> $GITHUB_OUTPUT
           echo "img_dev_tag=${IMG_DEV_TAG}" >> $GITHUB_OUTPUT
-          # Set it directly in GitHub repository variables:.
+          # Set it directly in GitHub repository variables:
           echo "gh_username=${{ vars.GH_USERNAME }}" >> $GITHUB_OUTPUT
       # Display the output variables for debugging.
       - name: Show outputs
@@ -325,6 +325,22 @@ jobs:
             echo "::notice ::Pushing image ${prod_image}"
             docker push $prod_image
           done
+
+  # Sync the project with OBS (Open Build Service).
+  obs-sync:
+    name: OBS sync
+    if: vars.OBS_ENABLED == 'true' && (github.event_name == 'push' && github.ref_name == 'main') || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/obs.yaml
+    needs:
+      - setup
+      - build-container-images
+      - test-chart-render
+      - test-with-go
+      - test-chart-render
+      - linters-result
+    secrets: inherit
+    with:
+      obs_project: ${{ vars.OBS_PROJECT_ROLLING }}
 
   # Delete image artifacts, as they are not needed anymore.
   cleanup:
