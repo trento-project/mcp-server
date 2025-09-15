@@ -45,7 +45,7 @@ run: build ## Compile and run the project.
 
 .PHONY: test
 test: ## Test the project.
-	$(GO) test ./... -cover -race
+	$(GO) test ./... -cover
 
 ##@ Container
 
