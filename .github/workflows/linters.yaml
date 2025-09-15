@@ -1,4 +1,4 @@
-# Copyright 2024-2025 SUSE LLC
+# Copyright 2025 SUSE LLC
 ---
 name: Lib - Linters section
 on:
@@ -9,8 +9,7 @@ on:
         required: true
 
 jobs:
-  # Job: static-code-analysis
-  # Purpose: Run Go static analysis tools (vet, fmt, golangci-lint) to ensure code quality and style.
+  # Run Go static analysis tools (vet, fmt, golangci-lint) to ensure code quality and style.
   static-code-analysis:
     needs:
       - setup
@@ -48,8 +47,7 @@ jobs:
           skip-cache: true
           args: "--timeout=5m"
 
-  # Job: linter-license-headers
-  # Purpose: Check that all source files have the correct license headers.
+  # Check that all source files have the correct license headers.
   linter-license-headers:
     runs-on: ubuntu-latest
     steps:
@@ -60,8 +58,7 @@ jobs:
       - uses: apache/skywalking-eyes/header@v0.7.0
         name: Check license Headers
 
-  # Job: linter-documentation
-  # Purpose: Lint all AsciiDoc documentation files using asciidoctor and a custom script.
+  # Lint all AsciiDoc documentation files using asciidoctor and a custom script.
   linter-documentation:
     runs-on: ubuntu-latest
     steps:
@@ -75,13 +72,13 @@ jobs:
       - name: Run AsciiDoc linter
         run: bash hack/linters/asciidoc-linter.sh
 
-  # Job: linter-shellscripts
-  # Purpose: Run ShellCheck on all shell scripts to catch common scripting errors.
+  # Run ShellCheck on all shell scripts to catch common scripting errors.
   linter-shellscripts:
     runs-on: ubuntu-latest
     steps:
       # Checkout the repository
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        name: Checkout
       # Run ShellCheck linter on shell scripts
       - uses: ludeeus/action-shellcheck@2.0.0
         name: Run ShellCheck

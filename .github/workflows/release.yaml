@@ -12,13 +12,12 @@ on:
 concurrency: ${{ github.workflow }}
 
 jobs:
-  # Job: pre-release
-  # Purpose: Detect if a new version should be released, draft the release, and update the changelog.
+  # Detect if a new version should be released, draft the release, and update the changelog.
   pre-release:
     name: Detect new version, draft release, update changelog
     permissions:
       contents: write
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.detect-version.outputs.current-version }}
     steps:
@@ -71,13 +70,12 @@ jobs:
           branch: main
           commit_message: "Automatically update CHANGELOG.md for release ${{ steps.detect-version.outputs.current-version }}"
 
-  # Job: release
-  # Purpose: Tag and publish the release on GitHub using the detected version from pre-release.
+  # Tag and publish the release on GitHub using the detected version from pre-release.
   release:
     name: Tag and publish release
     permissions:
       contents: write
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.publish-release.outputs.tag_name }}
     needs:
@@ -96,8 +94,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Job: obs-sync
-  # Purpose: Synchronize the release with the openSUSE Build Service (OBS) and update the changelog in the OBS project.
+  # Synchronize the release with the openSUSE Build Service (OBS) and update the changelog in the OBS project.
   obs-sync:
     name: OBS Sync
     if: vars.OBS_ENABLED == 'true'

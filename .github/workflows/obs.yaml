@@ -26,11 +26,10 @@ env:
   AUTHOR_EMAIL: trento-developers@suse.com
 
 jobs:
-  # Job: update-rpm
-  # Purpose: Update the 'trento-agent' package in the specified OBS project. This job prepares sources, updates dependencies, optionally updates the changelog, and commits changes to OBS.
+  # Update the 'trento-agent' package in the specified OBS project. This job prepares sources, updates dependencies, optionally updates the changelog, and commits changes to OBS.
   update-rpm:
     name: Update 'trento-agent' package
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     container:
       image: ghcr.io/trento-project/continuous-delivery:main
       env:
