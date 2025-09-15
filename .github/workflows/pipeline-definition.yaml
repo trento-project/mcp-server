@@ -3,6 +3,11 @@
 name: Lib - Pipeline definition
 on:
   workflow_call:
+    inputs:
+      run_linters:
+        required: false
+        type: boolean
+        default: true
 
 env:
   BRANCH_TRENTO_REPO: "main"
