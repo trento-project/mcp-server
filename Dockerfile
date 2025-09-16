@@ -4,39 +4,53 @@
 ARG GO_VERSION=1.24
 ARG OS_VER=15.6
 
+ARG GOARCH
+ARG GOOS
 ARG VERSION
+ARG PORT=5000
 
 # Base build image
 FROM registry.suse.com/bci/golang:${GO_VERSION} AS builder
 
 WORKDIR /go/src/github.com/trento-project/mcp-server
 
-COPY go.mod go.sum main.go ./
+COPY go.mod go.sum main.go Makefile hack ./
 COPY cmd cmd
 COPY internal internal
 
-# We are mounting the ssh auth sock in the GHA
-# See: https://docs.docker.com/reference/cli/docker/buildx/build/#ssh
-# Keep Go build cache between builds
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=ssh \
-    go mod download
+ARG GOARCH
+ARG GOOS
+ARG VERSION
 
-# Build the main grpc server, setting version via ldflags
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=ssh \
-    go build \
-    -ldflags "-X github.com/trento-project/mcp-server/cmd.version=$VERSION" \
-    -o /go/src/github.com/trento-project/mcp-server/trento-mcp-server \
-    ./main.go
+ENV GOARCH=${GOARCH}
+ENV GOOS=${GOOS}
+ENV VERSION=${VERSION}
+
+# Build the binary using the Makefile
+RUN go mod download
+
+RUN make build
 
 FROM registry.suse.com/bci/bci-micro:${OS_VER}
 
-COPY --from=builder /go/src/github.com/trento-project/mcp-server/trento-mcp-server /trento-mcp-server
+ARG GOARCH
+ARG GOOS
+ARG VERSION
+ARG PORT
+
+COPY --from=builder /go/src/github.com/trento-project/mcp-server/bin/${GOOS}-${GOARCH}/trento-mcp-server /trento-mcp-server
 COPY api api
 
+LABEL org.opencontainers.image.title="Trento MCP Server"
+LABEL org.opencontainers.image.source="https://github.com/trento-project/mcp-server"
+LABEL org.opencontainers.image.description="Model Context Protocol server wrapping Trento API"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.vendor="SUSE LLC"
+LABEL org.opencontainers.image.url="https://github.com/trento-project/mcp-server"
+LABEL org.opencontainers.image.authors="https://github.com/trento-project/mcp-server/graphs/contributors"
+
 USER 1001
+
+EXPOSE ${PORT}/tcp
 
 ENTRYPOINT [ "/trento-mcp-server" ]
