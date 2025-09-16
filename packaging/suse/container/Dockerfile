@@ -8,8 +8,6 @@
 #!BuildTag: trento/trento-mcp-server:%%VERSION%%-build%RELEASE%
 #!UseOBSRepositories
 #!ExclusiveArch: x86_64
-# Copyright 2025 SUSE LLC
-# SPDX-License-Identifier: Apache-2.0
 
 ARG GO_VERSION=1.24
 ARG OS_VER=15.6
@@ -34,7 +32,7 @@ ARG VERSION
 
 ENV GOARCH=${GOARCH}
 ENV GOOS=${GOOS}
-ENV VERSION=${VERSION}
+ENV VERSION=%%VERSION%%
 
 # Build the binary using the Makefile
 RUN go mod download
