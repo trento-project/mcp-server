@@ -122,7 +122,7 @@ jobs:
     with:
       golang_version: ${{ needs.setup.outputs.golang_version }}
 
-  # Check the result of all linters and fails if any linter failed.
+  # Check the result of all linters and fail if any linter failed.
   linters-result:
     name: Check linters result
     if: inputs.run_linters && always()
