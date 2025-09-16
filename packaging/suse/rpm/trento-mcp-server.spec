@@ -46,15 +46,25 @@ Trento Model Context Protocol (MCP) server is a wrapper around the Trento API to
 
 %build
 # Use the Makefile to build the binary
-VERSION=%{version} BUILD_OUTPUT="%{binaryname}" make build
+VERSION=%{version} BUILD_OUTPUT="%{binaryname}" CGO_ENABLED=1 make build
+
+%check
+echo "No test suite defined."
 
 %install
+
+# Remove executable bit from files
+find . -type f \( -name '*.adoc' -o -name '*.md' -o -name '*.yaml' -o -name 'LICENSE' -o -name 'Dockerfile' \) -exec chmod -x {} +
 
 # Install the binary from the local build directory to the buildroot.
 install -D -m 0755 %{binaryname} "%{buildroot}%{_bindir}/%{binaryname}"
 
 # Install the systemd unit
 install -D -m 0644 packaging/suse/rpm/systemd/trento-mcp-server.service %{buildroot}%{_unitdir}/trento-mcp-server.service
+
+# Add rc symlink
+mkdir -p %{buildroot}/usr/sbin
+ln -sf /usr/sbin/service %{buildroot}/usr/sbin/rc%{binaryname}
 
 # TODO(agamez): add the default configuration file once we have it
 
@@ -75,6 +85,7 @@ install -D -m 0644 packaging/suse/rpm/systemd/trento-mcp-server.service %{buildr
 
 %{_bindir}/%{binaryname}
 %{_unitdir}/%{binaryname}.service
+%{_sbindir}/rc%{binaryname}
 
 %license LICENSE
 
