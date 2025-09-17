@@ -26,26 +26,48 @@ env:
   AUTHOR_EMAIL: trento-developers@suse.com
 
 jobs:
-  # Update the 'trento-agent' package in the specified OBS project. This job prepares sources, updates dependencies, optionally updates the changelog, and commits changes to OBS.
-  update-rpm:
-    name: Update 'trento-agent' package
-    runs-on: ubuntu-latest
+  # Update the 'trento-mcp-server-image' package in the specified OBS project.
+  # This job prepares sources, updates dependencies, optionally updates the changelog, and commits changes to OBS.
+  update-image:
+    name: Update 'trento-mcp-server-image' package
+    runs-on: ubuntu-24.04
     container:
+      # See https://github.com/trento-project/continuous-delivery
       image: ghcr.io/trento-project/continuous-delivery:main
       env:
-        OBS_PACKAGE_NAME: trento-agent
-        SOURCE_DIR: packaging/suse
-        CHECKOUT_DIR: /tmp/trento-agent
+        OBS_PACKAGE_NAME: trento-mcp-server-image
+        CHECKOUT_DIR: /tmp/trento-mcp-server-image
+        SOURCE_DIR: packaging/suse/container
       options: -u 0:0
     steps:
       # Checkout the repository with full history for versioning.
-      - uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
       # Read tool versions for environment setup.
       - name: Read .tool-versions
         uses: endorama/asdf-parse-tool-versions@v1.3.4
         id: tool-versions
+      # Configure git for safe operations inside the container.
+      - name: Configure git for in-container operations
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+      # Get the correct revision SHA for OBS.
+      - name: Get revision SHA
+        id: get_revision
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            REVISION_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            REVISION_SHA="${{ github.sha }}"
+          fi
+          echo "revision_sha=$REVISION_SHA" >> $GITHUB_OUTPUT
+      # Get the current version from git history.
+      - name: Get version from git history
+        id: get_version_from_git
+        run: |
+          VERSION=$(./hack/get_version_from_git.sh)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
       # Setup Go environment for dependency management.
       - uses: actions/setup-go@v6
         with:
@@ -56,15 +78,107 @@ jobs:
         with:
           path: ~/go/pkg/mod
           key: go-${{ env.GOLANG_VERSION }}-${{ hashFiles('**/go.sum') }}
+      # Create a deterministic vendor dependencies archive for OBS.
+      - name: create vendor dependencies archive
+        # The following tar options strip metadata to make the archive reproducible.
+        run: |
+          go mod vendor
+          tar --sort=name --owner=root:0 --group=root:0 --mtime='UTC 1970-01-01' -c vendor | gzip -n > vendor.tar.gz
+      # Configure OSC (Open Build Service CLI) credentials.
+      - name: Configure OSC
+        env:
+          OBS_USER: ${{ secrets.OBS_USER }}
+          OBS_PASS: ${{ secrets.OBS_PASS }}
+        run: |
+          # hack needed because the HOME variable is set to '/github/home' and cannot be changed
+          mkdir -p $HOME/.config/osc
+          cp /home/osc/.config/osc/oscrc $HOME/.config/osc
+          /scripts/init_osc_creds.sh
+      # Checkout the OBS package to a working directory.
+      - name: Checkout OBS package
+        run: osc checkout $OBS_PROJECT $OBS_PACKAGE_NAME -o $CHECKOUT_DIR
+      # Prepare the Dockerfile with the current version.
+      - name: Prepare Dockerfile
+        run: |
+          VERSION="${{ steps.get_version_from_git.outputs.version }}"
+          # "+" character is not allowed in OBS dockerfile version strings
+          VERSION=${VERSION//[+]/-}
+          sed -i 's~%%VERSION%%~'"${VERSION}"'~' $SOURCE_DIR/Dockerfile
+          sed -i 's~%%REVISION%%~${{ steps.get_revision.outputs.revision_sha }}~' $SOURCE_DIR/Dockerfile
+      # Optionally update the .changes file from GitHub release notes.
+      - name: Prepare .changes file
+        if: inputs.update_changelog
+        env:
+          GITHUB_OAUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.get_version_from_git.outputs.version }}"
+          REPOSITORY=${{ github.repository }}
+          CHANGES_FILE=${OBS_PACKAGE_NAME}.changes
+          /scripts/gh_release_to_obs_changeset.py $REPOSITORY -a $AUTHOR_EMAIL -t $VERSION -f $CHECKOUT_DIR/$CHANGES_FILE
+      # Update sources and create project archive.
+      - name: Update sources
+        run: |
+          cp -r $SOURCE_DIR/* $CHECKOUT_DIR
+          tar --transform 's,^./,/trento-mcp-server/,' -zcvf $CHECKOUT_DIR/trento-mcp-server.tar.gz --exclude=.git --exclude=vendor .
+          cp vendor.tar.gz $CHECKOUT_DIR
+      # Commit changes to OBS.
+      - name: Commit to OBS
+        run: |
+          pushd $CHECKOUT_DIR
+          osc ar
+          osc commit -m "GitHub Actions automated update to reference ${{ steps.get_revision.outputs.revision_sha }}"
+
+  # Update the 'trento-mcp-server' package in the specified OBS project.
+  # This job prepares sources, updates dependencies, optionally updates the changelog, and commits changes to OBS.
+  update-rpm:
+    name: Update 'trento-mcp-server' package
+    runs-on: ubuntu-latest
+    container:
+      # See https://github.com/trento-project/continuous-delivery
+      image: ghcr.io/trento-project/continuous-delivery:main
+      env:
+        OBS_PACKAGE_NAME: trento-mcp-server
+        SOURCE_DIR: packaging/suse/rpm
+        CHECKOUT_DIR: /tmp/trento-mcp-server
+      options: -u 0:0
+    steps:
+      # Checkout the repository with full history for versioning.
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      # Read tool versions for environment setup.
+      - name: Read .tool-versions
+        uses: endorama/asdf-parse-tool-versions@v1.3.4
+        id: tool-versions
       # Configure git for safe operations inside the container.
       - name: Configure git for in-container operations
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
+      # Get the correct revision SHA for OBS.
+      - name: Get revision SHA
+        id: get_revision
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            REVISION_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            REVISION_SHA="${{ github.sha }}"
+          fi
+          echo "revision_sha=$REVISION_SHA" >> $GITHUB_OUTPUT
       # Get the current version from git history.
       - name: Get version from git history
         id: get_version_from_git
         run: |
-          VERSION=$(/scripts/get_version_from_git.sh)
+          VERSION=$(./hack/get_version_from_git.sh)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+      # Setup Go environment for dependency management.
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GOLANG_VERSION }}
+      # Cache Go modules for faster builds.
+      - uses: actions/cache@v4.2.4
+        id: go-cache
+        with:
+          path: ~/go/pkg/mod
+          key: go-${{ env.GOLANG_VERSION }}-${{ hashFiles('**/go.sum') }}
       # Create a deterministic vendor dependencies archive for OBS.
       - name: create vendor dependencies archive
         # The following tar options strip metadata to make the archive reproducible.
@@ -87,7 +201,7 @@ jobs:
       # Prepare the _service file with current revision, repository, and version.
       - name: prepare _service file
         run: |
-          sed -i 's~%%REVISION%%~${{ github.sha }}~' $SOURCE_DIR/_service
+          sed -i 's~%%REVISION%%~${{ steps.get_revision.outputs.revision_sha }}~' $SOURCE_DIR/_service
           sed -i 's~%%REPOSITORY%%~${{ github.repository }}~' $SOURCE_DIR/_service
           sed -i 's~%%VERSION%%~${{ steps.get_version_from_git.outputs.version }}~' $SOURCE_DIR/_service
       # Optionally update the .changes file from GitHub release notes.
@@ -115,4 +229,4 @@ jobs:
         run: |
           pushd $CHECKOUT_DIR
           osc ar
-          osc commit -m "GitHub Actions automated update to reference ${{ github.sha }}"
+          osc commit -m "GitHub Actions automated update to reference ${{ steps.get_revision.outputs.revision_sha }}"
