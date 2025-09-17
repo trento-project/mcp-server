@@ -49,6 +49,10 @@ jobs:
         env:
           PR_CONTEXT: ${{ toJSON(github.event.pull_request) }}
         run: echo $PR_CONTEXT | jq
+      # Read tool versions for environment setup.
+      - name: Read .tool-versions
+        uses: endorama/asdf-parse-tool-versions@v1.3.4
+        id: tool-versions
       # Set output variables for downstream jobs.
       - name: Set outputs
         id: set-outputs
@@ -57,10 +61,6 @@ jobs:
           PR_SOURCE_REPO_NAME: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
           set -euo pipefail
-
-          # Read versions from .tool-versions file (no fallbacks - must exist).
-          GOLANG_VERSION=$(grep '^golang ' .tool-versions | cut -d' ' -f2)
-          HELM_VERSION="v$(grep '^helm ' .tool-versions | cut -d' ' -f2)"
 
           if [[ "${GITHUB_REPOSITORY}" == "${TRENTO_REPO}" ]]; then
             echo "img_prefix=${IMG_PREFIX}" >> $GITHUB_OUTPUT
@@ -94,7 +94,7 @@ jobs:
           echo "helm_version=${HELM_VERSION}" >> $GITHUB_OUTPUT
           echo "img_modifier=${IMG_MODIFIER}" >> $GITHUB_OUTPUT
           echo "img_dev_tag=${IMG_DEV_TAG}" >> $GITHUB_OUTPUT
-          # Set it directly in GitHub repository variables:.
+          # Set it directly in GitHub repository variables:
           echo "gh_username=${{ vars.GH_USERNAME }}" >> $GITHUB_OUTPUT
       # Display the output variables for debugging.
       - name: Show outputs
