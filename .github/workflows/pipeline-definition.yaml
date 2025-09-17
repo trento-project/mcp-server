@@ -180,8 +180,8 @@ jobs:
           HELM_VERSION="${{ needs.setup.outputs.helm_version }}"
           echo "Installing Helm ${HELM_VERSION}"
           pushd /tmp
-          wget "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
-          tar zxf "helm-$HELM_VERSION-linux-amd64.tar.gz"
+          wget "https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz"
+          tar zxf "helm-v${HELM_VERSION}-linux-amd64.tar.gz"
           sudo mv linux-amd64/helm "/usr/local/bin/helm"
           popd
           echo "Done. Helm has been installed"
