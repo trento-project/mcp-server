@@ -24,12 +24,21 @@ LDFLAGS = -X github.com/trento-project/mcp-server/cmd.version="$(VERSION)"
 DEBUG ?= 0
 BUILD_OUTPUT ?= $(BIN)/$(GOOS)-$(GOARCH)/$(BIN_NAME)
 PLATFORMS ?= linux/amd64 linux/ppc64le linux/s390x darwin/amd64 windows/amd64
+CGO_ENABLED ?= 0
 
-ifeq ($(DEBUG), 0)
-	LDFLAGS += -s -w
-	GO_BUILD = CGO_ENABLED=0 $(GO) build -ldflags "$(LDFLAGS)" -trimpath
-else
-	GO_BUILD = CGO_ENABLED=0 $(GO) build -ldflags "$(LDFLAGS)"
+##
+# Build hardened Go binaries for Linux packaging:
+# -buildmode=pie: Position Independent Executable (PIE), enables ASLR (Address Space Layout Randomization) for better security.
+# -ldflags "-extldflags=-Wl,-z,now,-z,relro":
+#     -z now: Immediate symbol resolution at startup, prevents lazy binding attacks.
+#     -z relro: Read-only relocations, makes some binary sections read-only after startup to prevent memory corruption exploits.
+# -s -w: Strip debug and symbol tables, reducing binary size and removing potentially sensitive info.
+# -trimpath: Removes file system paths from the binary for reproducible builds and privacy.
+LDFLAGS += -s -w
+GO_BUILD ?= CGO_ENABLED=$(CGO_ENABLED) $(GO) build -buildmode=pie -ldflags "$(LDFLAGS) -extldflags=-Wl,-z,now,-z,relro" -trimpath
+
+ifeq ($(DEBUG), 1)
+	GO_BUILD = CGO_ENABLED=$(CGO_ENABLED) $(GO) build -ldflags "$(LDFLAGS)"
 endif
 
 GO := "$(shell which go)"

@@ -1,0 +1,16 @@
+# Copyright 2025 SUSE LLC
+# SPDX-License-Identifier: Apache-2.0
+
+[Unit]
+Description=Trento MCP Server service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/trento-mcp-server
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
