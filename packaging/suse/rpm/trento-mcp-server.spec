@@ -29,8 +29,6 @@ ExclusiveArch:  x86_64 ppc64le s390x
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 BuildRequires:  golang(API) = 1.24
 Provides:       %{name} = %{version}-%{release}
-Provides:       trento = %{version}-%{release}
-Obsoletes:      trento < %{version}-%{release}
 
 %description
 Trento is an open cloud-native web application for SAP Applications administrators.
@@ -42,7 +40,6 @@ Trento Model Context Protocol (MCP) server is a wrapper around the Trento API to
 %setup -q -T -D -a 1 # unpack go dependencies in vendor.tar.gz, which was prepared by the source services
 
 %define binaryname trento-mcp-server
-%define shortname mcp-server
 
 %build
 # Use the Makefile to build the binary
