@@ -53,7 +53,7 @@ const (
 )
 
 var (
-	defaultTagFilter = []string{"MCP"}
+	defaultTagFilter = []string{}
 	defaultTransport = string(utils.TransportStreamable)
 
 	// Configuration search paths
