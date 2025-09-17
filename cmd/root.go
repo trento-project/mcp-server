@@ -5,18 +5,20 @@
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 
 	"github.com/carlmjohnson/versioninfo"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/trento-project/mcp-server/internal/server"
 	"github.com/trento-project/mcp-server/internal/utils"
 )
 
 var (
 	// version will be set via ldflags.
-	logLevel  utils.LogLevel      //nolint:gochecknoglobals
+	logLevel  utils.LogLevel      //nolint:gochecknoglobals // initialized in initLogger
 	serveOpts server.ServeOptions //nolint:gochecknoglobals
 	version   string              //nolint:gochecknoglobals
 
@@ -26,11 +28,36 @@ var (
 
 const (
 	name                    = "trento-mcp-server"
-	defaultLogLevel         = utils.LogLevelInfo
+	defaultVerbosity        = "info"
 	defaultOASPath          = "./api/openapi.json"
 	defaultPort             = 5000
 	defaultTrentoHeaderName = "X-TRENTO-MCP-APIKEY"
 	defaultTrentoURL        = "https://demo.trento-project.io"
+
+	// Configuration file settings
+	configFileName = "trento-mcp-server.config"
+	configFileType = "yaml"
+
+	// Environment variable prefix
+	envPrefix = "TRENTO_MCP"
+
+	// Configuration keys (to avoid repetition and typos)
+	configKeyPort             = "port"
+	configKeyOASPath          = "oasPath"
+	configKeyTransport        = "transport"
+	configKeyTrentoURL        = "trentoURL"
+	configKeyTrentoHeaderName = "trentoHeaderName"
+	configKeyTagFilter        = "tagFilter"
+	configKeyVerbosity        = "verbosity"
+	configKeyConfig           = "config"
+)
+
+var (
+	defaultTagFilter = []string{"MCP"}
+	defaultTransport = string(utils.TransportStreamable)
+
+	// Configuration search paths
+	configPaths = []string{".", "/etc/trento/"}
 )
 
 func newRootCmd() *cobra.Command {
@@ -40,6 +67,16 @@ func newRootCmd() *cobra.Command {
 		Long:              `MCP server to interact with Trento`,
 		PersistentPreRunE: initLogger,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			// Set serveOpts from Viper after flags are parsed
+			if err := viper.Unmarshal(&serveOpts); err != nil {
+				return fmt.Errorf("failed to unmarshal config: %w", err)
+			}
+
+			// Ensure transport has a valid default if not set
+			if serveOpts.Transport == "" {
+				serveOpts.Transport = utils.TransportStreamable
+			}
+
 			return server.Serve(cmd.Context(), &serveOpts)
 		},
 		Version: Version(),
@@ -48,18 +85,52 @@ func newRootCmd() *cobra.Command {
 
 // setFlags defines which flags this CLI command will accept.
 func setFlags(cmd *cobra.Command) {
+	// Initialize Viper
+	viper.SetConfigName(configFileName)
+	viper.SetConfigType(configFileType)
+
+	// Add configuration search paths
+	for _, path := range configPaths {
+		viper.AddConfigPath(path)
+	}
+
+	// Enable environment variables with prefix
+	viper.SetEnvPrefix(envPrefix)
+	viper.AutomaticEnv()
+
 	// MCP SERVER
-	cmd.Flags().IntVarP(&serveOpts.Port, "port", "p", defaultPort, "The port on which to run the server")
-	cmd.Flags().StringVarP(&serveOpts.OASPath, "oasPath", "P", defaultOASPath, "Path to the OpenAPI spec file")
-	serveOpts.Transport = utils.TransportStreamable // Set default value for transport
-	cmd.Flags().Var(&serveOpts.Transport, "transport", "The protocol to use, choose 'streamable' (default) or 'sse'")
+	cmd.Flags().IntP("port", "p", defaultPort, "The port on which to run the server")
+	viper.SetDefault(configKeyPort, defaultPort)
+	viper.BindPFlag(configKeyPort, cmd.Flags().Lookup("port"))
+
+	cmd.Flags().StringP("oasPath", "P", defaultOASPath, "Path to the OpenAPI spec file")
+	viper.SetDefault(configKeyOASPath, defaultOASPath)
+	viper.BindPFlag(configKeyOASPath, cmd.Flags().Lookup("oasPath"))
+
+	cmd.Flags().StringP("transport", "t", defaultTransport, `The protocol to use, choose "streamable" or "sse"`)
+	viper.SetDefault(configKeyTransport, defaultTransport)
+	viper.BindPFlag(configKeyTransport, cmd.Flags().Lookup("transport"))
+
 	// Trento
-	cmd.Flags().StringVar(&serveOpts.TrentoURL, "trento-url", defaultTrentoURL, "URL for the target Trento server")                                 //nolint:lll
-	cmd.Flags().StringVar(&serveOpts.TrentoHeaderName, "header-name", defaultTrentoHeaderName, "The header name to be used for the Trento API key") //nolint:lll
-	cmd.Flags().StringSliceVar(&serveOpts.TagFilter, "tag-filter", []string{"MCP"}, "Only include operations with at least one of these tags")      //nolint:lll
+	cmd.Flags().StringP("trento-url", "u", defaultTrentoURL, "URL for the target Trento server")
+	viper.SetDefault(configKeyTrentoURL, defaultTrentoURL)
+	viper.BindPFlag(configKeyTrentoURL, cmd.Flags().Lookup("trento-url"))
+
+	cmd.Flags().StringP("header-name", "H", defaultTrentoHeaderName, "The header name to be used for the Trento API key")
+	viper.SetDefault(configKeyTrentoHeaderName, defaultTrentoHeaderName)
+	viper.BindPFlag(configKeyTrentoHeaderName, cmd.Flags().Lookup("header-name"))
+
+	cmd.Flags().StringSliceP("tag-filter", "f", defaultTagFilter, "Only include operations with at least one of these tags")
+	viper.SetDefault(configKeyTagFilter, defaultTagFilter)
+	viper.BindPFlag(configKeyTagFilter, cmd.Flags().Lookup("tag-filter"))
+
 	// OTHERS
-	logLevel = defaultLogLevel
-	cmd.PersistentFlags().VarP(&logLevel, "verbosity", "v", "log level verbosity (debug, info, warning, error)") //nolint:lll
+	cmd.PersistentFlags().StringP("verbosity", "v", defaultVerbosity, "log level verbosity (debug, info, warning, error)")
+	viper.SetDefault(configKeyVerbosity, defaultVerbosity)
+	viper.BindPFlag(configKeyVerbosity, cmd.PersistentFlags().Lookup("verbosity"))
+
+	cmd.PersistentFlags().StringP("config", "c", "", "config file path (default search: ./trento-mcp-server.config.yaml or /etc/trento/trento-mcp-server.config.yaml)")
+	viper.BindPFlag(configKeyConfig, cmd.PersistentFlags().Lookup("config"))
 
 	// Set version and name
 	serveOpts.Version = Version()
@@ -78,9 +149,46 @@ func init() {
 // initLogger creates a new logger once the flags have been parsed,
 // this way, the log level is being properly set.
 func initLogger(_ *cobra.Command, _ []string) error {
+	// Set logLevel from Viper (flags, env vars, or config file)
+	if lvl := viper.GetString(configKeyVerbosity); lvl != "" {
+		logLevel = utils.LogLevel(lvl)
+	} else {
+		logLevel = defaultVerbosity // fallback to default
+	}
+
 	logger := utils.CreateLogger(logLevel)
 
 	slog.SetDefault(logger)
+
+	// Log configuration search paths for user visibility
+	slog.Debug("configuration search paths initialized",
+		"config.name", configFileName,
+		"config.type", configFileType,
+		"search.paths", configPaths,
+		"env.prefix", envPrefix,
+	)
+
+	// Handle custom config file path if specified
+	configPath := viper.GetString(configKeyConfig)
+	if configPath != "" {
+		viper.SetConfigFile(configPath)
+	}
+
+	// Read config file after logger is initialized
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			slog.Debug("no configuration file found, using default values",
+				"config.path", configPath,
+				"used", viper.ConfigFileUsed(),
+			)
+		} else {
+			slog.Warn("failed to read configuration file",
+				"config.path", configPath,
+				"config.used", viper.ConfigFileUsed(),
+				"error", err,
+			)
+		}
+	}
 
 	slog.Debug("CLI initialization completed, ready to invoke the server",
 		"logger.level", logLevel,
