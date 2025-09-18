@@ -324,7 +324,23 @@ jobs:
             exit 1
           fi
 
-  # Delete image artifacts, as they are not needed anymore
+  # Sync the project with OBS (Open Build Service).
+  obs-sync:
+    name: OBS sync
+    if: vars.OBS_ENABLED == 'true' && (github.event_name == 'push' && github.ref_name == 'main') || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/obs.yaml
+    needs:
+      - setup
+      - build-container-images
+      - test-chart-render
+      - test-with-go
+      - test-chart-render
+      - linters-result
+    secrets: inherit
+    with:
+      obs_project: ${{ vars.OBS_PROJECT_ROLLING }}
+
+  # Delete image artifacts, as they are not needed anymore.
   cleanup:
     name: Cleanup
     needs:
