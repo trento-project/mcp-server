@@ -14,7 +14,10 @@ header:
       Copyright (?:\d{4}-\d{4}|\d{4}) SUSE LLC
   paths-ignore:
     - .github/
+    - .tool-versions
+    - CHANGELOG.md
     - LICENSE
+    - VERSION
     - api/openapi.json
     - go.sum
     - helm/trento-mcp-server/.helmignore

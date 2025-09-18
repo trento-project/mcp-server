@@ -3,43 +3,50 @@
 name: Lib - Pipeline definition
 on:
   workflow_call:
+    inputs:
+      run_linters:
+        required: false
+        type: boolean
+        default: true
 
 env:
   BRANCH_TRENTO_REPO: "main"
   TRENTO_REPO: "trento-project/mcp-server"
   IMG_DEV_TAG: "build-${{ github.sha }}"
   IMG_MODIFIER: "-ci"
-  IMG_PLATFORMS: "linux/amd64" # TODO: add more? "linux/arm64"
+  IMG_PLATFORMS: "linux/amd64"
   IMG_PREFIX: "ghcr.io/trento-project/"
   IMG_PREFIX_FOR_FORKS: "your-registry-username/"
   IMAGES_TO_PUSH: "trento-mcp-server"
 
 jobs:
-  # Setup the environment and set outputs
+  # Set up environment variables and outputs for downstream jobs.
   setup:
-    timeout-minutes: 3
+    name: Setup
     runs-on: ubuntu-latest
     outputs:
-      golang_version: ${{ steps.set-outputs.outputs.golang_version }}
-      helm_version: ${{ steps.set-outputs.outputs.helm_version }}
+      # Output variables for use in other jobs.
       img_modifier: ${{ steps.set-outputs.outputs.img_modifier }}
       img_prefix: ${{ steps.set-outputs.outputs.img_prefix }}
       img_dev_tag: ${{ steps.set-outputs.outputs.img_dev_tag }}
       img_prod_tag: ${{ steps.set-outputs.outputs.img_prod_tag }}
       running_on_main: ${{ steps.set-outputs.outputs.running_on_main }}
       triggered_from_fork: ${{ steps.set-outputs.outputs.triggered_from_fork }}
-      gh_username: ${{ steps.set-outputs.outputs.gh_username }}
     steps:
+      # Checkout the repository.
       - uses: actions/checkout@v5
         name: Checkout
+      # Show the GitHub event context for debugging.
       - name: Show GitHub event
         env:
           EVENT_CONTEXT: ${{ toJSON(github.event) }}
         run: echo $EVENT_CONTEXT | jq
+      # Show the pull request context for debugging.
       - name: Show PR context
         env:
           PR_CONTEXT: ${{ toJSON(github.event.pull_request) }}
         run: echo $PR_CONTEXT | jq
+      # Set output variables for downstream jobs.
       - name: Set outputs
         id: set-outputs
         env:
@@ -48,18 +55,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Read versions from .tool-versions file (no fallbacks - must exist)
-          GOLANG_VERSION=$(grep '^golang ' .tool-versions | cut -d' ' -f2)
-          HELM_VERSION="v$(grep '^helm ' .tool-versions | cut -d' ' -f2)"
-
           if [[ "${GITHUB_REPOSITORY}" == "${TRENTO_REPO}" ]]; then
             echo "img_prefix=${IMG_PREFIX}" >> $GITHUB_OUTPUT
           else
-            # When running in forks, push the images to a personal namespace if configured
+            # When running in forks, push the images to a personal namespace if configured.
             echo "img_prefix=${IMG_PREFIX_FOR_FORKS}" >> $GITHUB_OUTPUT
           fi;
 
-          # Check if the workflow is triggered due to a PR from an external fork
+          # Check if the workflow is triggered due to a PR from an external fork.
           if [[ ("${PR_CONTEXT}" != "" && "${PR_CONTEXT}" != null) && "${PR_SOURCE_REPO_NAME}" != "${GITHUB_REPOSITORY}" ]]; then
             echo "triggered_from_fork=true" >> $GITHUB_OUTPUT
           else
@@ -80,17 +83,13 @@ jobs:
             echo "running_on_main=false" >> $GITHUB_OUTPUT
           fi
 
-          echo "golang_version=${GOLANG_VERSION}" >> $GITHUB_OUTPUT
-          echo "helm_version=${HELM_VERSION}" >> $GITHUB_OUTPUT
           echo "img_modifier=${IMG_MODIFIER}" >> $GITHUB_OUTPUT
           echo "img_dev_tag=${IMG_DEV_TAG}" >> $GITHUB_OUTPUT
           # Set it directly in GitHub repository variables:
-          echo "gh_username=${{ vars.GH_USERNAME }}" >> $GITHUB_OUTPUT
+      # Display the output variables for debugging.
       - name: Show outputs
         run: |
           set -euo pipefail
-          echo "GOLANG_VERSION: ${{steps.set-outputs.outputs.golang_version}}"
-          echo "HELM_VERSION: ${{steps.set-outputs.outputs.helm_version}}"
           echo "IMG_MODIFIER: ${{steps.set-outputs.outputs.img_modifier}}"
           echo "IMG_PREFIX: ${{steps.set-outputs.outputs.img_prefix}}"
           echo "IMG_DEV_TAG: ${{steps.set-outputs.outputs.img_dev_tag}}"
@@ -98,56 +97,95 @@ jobs:
           echo "RUNNING_ON_MAIN: ${{steps.set-outputs.outputs.running_on_main}}"
           echo "TRIGGERED_FROM_FORK: ${{steps.set-outputs.outputs.triggered_from_fork}}"
           echo "VERSION: ${{steps.set-outputs.outputs.version}}"
-          echo "GH_USERNAME: ${{steps.set-outputs.outputs.gh_username}}"
 
-  # Check go unit tests
-  test_go:
-    timeout-minutes: 6
+  # Run all the linters.
+  linters-run:
+    name: Run all linters
+    if: inputs.run_linters
+    needs:
+      - setup
+    uses: ./.github/workflows/linters.yaml
+    secrets: inherit
+
+  # Check the result of all linters and fail if any linter failed.
+  linters-result:
+    name: Check linters result
+    if: inputs.run_linters && always()
+    needs: linters-run
+    runs-on: ubuntu-latest
+    steps:
+      # Fail the job if any linter did not succeed.
+      - name: Check all linters result
+        if: needs.linters-run.result != 'success'
+        run: exit 1
+
+  # Check go unit tests.
+  test-with-go:
+    name: Check Go test suite
     needs:
       - setup
     runs-on: ubuntu-latest
     steps:
+      # Checkout the repository.
       - uses: actions/checkout@v5
         name: Checkout
+      # Read tool versions for environment setup.
+      - uses: endorama/asdf-parse-tool-versions@v1
+        name: Read .tool-versions
+        id: tool-versions
+      # Setup Go environment.
       - uses: actions/setup-go@v6
-        name: Set up Go
         with:
-          go-version: ${{ needs.setup.outputs.golang_version }}
+          go-version: ${{ env.GOLANG_VERSION }}
+      # Cache Go modules for faster builds.
+      - uses: actions/cache@v4
+        name: Cache Go modules
+        id: go-cache
+        with:
+          path: ~/go/pkg/mod
+          key: go-${{ env.GOLANG_VERSION }}-${{ hashFiles('**/go.sum') }}
+      # Run Go unit tests.
       - name: Run go unit tests
         run: make test
 
-  # Ensure the Helm chart is valid
-  test_chart_render:
-    timeout-minutes: 3
+  # Ensure the Helm chart is valid.
+  test-chart-render:
+    name: Check Helm chart
     needs:
       - setup
     runs-on: ubuntu-latest
     steps:
+      # Checkout the repository.
       - uses: actions/checkout@v5
         name: Checkout
+      # Read tool versions for environment setup.
+      - uses: endorama/asdf-parse-tool-versions@v1
+        name: Read .tool-versions
+        id: tool-versions
+      # Install Helm binary for chart validation.
       - name: Install Helm binary
         run: |
           set -euo pipefail
-          HELM_VERSION="${{ needs.setup.outputs.helm_version }}"
+          HELM_VERSION="${{ env.HELM_VERSION }}"
           echo "Installing Helm ${HELM_VERSION}"
           pushd /tmp
-          wget "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
-          tar zxf "helm-$HELM_VERSION-linux-amd64.tar.gz"
+          wget "https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz"
+          tar zxf "helm-v${HELM_VERSION}-linux-amd64.tar.gz"
           sudo mv linux-amd64/helm "/usr/local/bin/helm"
           popd
           echo "Done. Helm has been installed"
+      # Run chart template test to ensure chart renders correctly.
       - name: Run chart template test
         run: |
           set -euo pipefail
-          # Remove the kubeVersion field as it would fail otherwise as there isn't any k8s cluster
+          # Remove the kubeVersion field as it would fail otherwise as there isn't any k8s cluster.
           CHART_DIR=./helm/trento-mcp-server
           sed -i.bk -e "s/kubeVersion.*//g" "${CHART_DIR}/Chart.yaml"
           helm dep up "${CHART_DIR}"
           helm template "${CHART_DIR}" --debug
 
-  # Build the container images
-  build_container_images:
-    timeout-minutes: 12
+  # Build the container images.
+  build-container-images:
     name: "Build ${{matrix.image}} image"
     needs:
       - setup
@@ -158,12 +196,14 @@ jobs:
         image:
           - trento-mcp-server
     steps:
+      # Setup building process and output image name and file.
       - name: Setup building process
         id: setup
         run: |
           set -euo pipefail
           echo "img_name=${{matrix.image}}" >> $GITHUB_OUTPUT
           echo "img_file=/tmp/${{matrix.image}}-image.tar" >> $GITHUB_OUTPUT
+      # Set container image metadata for tagging.
       - uses: docker/metadata-action@v5
         name: Set container image metadata
         id: meta
@@ -171,10 +211,13 @@ jobs:
           images: ${{needs.setup.outputs.img_prefix}}${{steps.setup.outputs.img_name}}${{needs.setup.outputs.img_modifier}}
           flavor: latest=true
           tags: ${{needs.setup.outputs.img_dev_tag}}
+      # Setup QEMU for multi-architecture builds.
       - uses: docker/setup-qemu-action@v3
         name: Setup QEMU
+      # Setup Docker buildx for builds.
       - uses: docker/setup-buildx-action@v3
         name: Setup buildx
+      # Build the container image using Docker.
       - uses: docker/build-push-action@v6
         name: Build container image
         env:
@@ -191,35 +234,60 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           outputs: type=docker,dest=${{ steps.setup.outputs.img_file }}
+      # Upload the built image as an artifact.
       - uses: actions/upload-artifact@v4
         name: Upload artifacts
         with:
           name: ${{matrix.image}}-image
           path: ${{ steps.setup.outputs.img_file }}
 
-  # Push the container images to the registry
+  # Update sum.golang.org and pkg.go.dev.
+  generate-docs:
+    name: Update Go docs site
+    if: needs.setup.outputs.running_on_main == 'true' || inputs.trigger_release
+    runs-on: ubuntu-latest
+    needs:
+      - setup
+      - build-container-images
+      - test-chart-render
+      - test-with-go
+      - test-chart-render
+      - linters-result
+    steps:
+      # Trigger docs update in Go registries.
+      - uses: essentialkaos/godoc-action@v1
+        name: Trigger docs update in sum.golang.org and pkg.go.dev
+
+  # Push the container images to the registry.
   push_images:
-    timeout-minutes: 3
+    name: Push container images
     if: needs.setup.outputs.running_on_main == 'true' || inputs.trigger_release
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write # required for creating ghcr.io packages
+      packages: write # required for creating ghcr.io packages.
     needs:
       - setup
-      - build_container_images
+      - build-container-images
+      - test-chart-render
+      - test-with-go
+      - test-chart-render
+      - linters-result
     env:
       IMG_PROD_TAG: ${{ needs.setup.outputs.img_prod_tag }}
       IMG_PREFIX: ${{ needs.setup.outputs.img_prefix }}
     steps:
+      # Log into the container image registry.
       - uses: docker/login-action@v3
         name: Log into the container image registry
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # Download built image artifacts.
       - uses: actions/download-artifact@v5
         name: Download artifacts
+      # Push container images to the registry.
       - name: Push container images to the registry
         run: |
           set -euo pipefail
@@ -249,14 +317,16 @@ jobs:
             docker push $prod_image
           done
 
-  # Delete image artifacts, as they are not needed anymore
+  # Delete image artifacts, as they are not needed anymore.
   cleanup:
-    timeout-minutes: 3
+    name: Cleanup
     needs:
       - push_images
     runs-on: ubuntu-latest
     steps:
+      # Delete image artifacts after pushing to the registry.
       - uses: geekyeggo/delete-artifact@v5
+        name: Delete artifacts
         with:
           name: |
             *-image
