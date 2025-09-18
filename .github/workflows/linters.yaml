@@ -64,7 +64,9 @@ jobs:
         name: Checkout
       # Install asciidoctor for linting .adoc files.
       - name: Install asciidoctor
-        run: sudo apt-get update && sudo apt-get install -y asciidoctor
+        uses: gerlero/apt-install@v1
+        with:
+          packages: asciidoctor
       # Run the custom AsciiDoc linter script.
       - name: Run AsciiDoc linter
         run: bash hack/linters/asciidoc-linter.sh
