@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Checkout the repository.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         name: Checkout
       # Run SkyWalking Eyes to check license headers.
       - uses: apache/skywalking-eyes/header@v0.7.0
