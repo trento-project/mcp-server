@@ -1,0 +1,11 @@
+<!--
+Copyright 2025 SUSE LLC
+SPDX-License-Identifier: Apache-2.0
+-->
+<constraints>
+  <hardware>
+    <disk>
+      <size unit="G">8</size>
+    </disk>
+  </hardware>
+</constraints>

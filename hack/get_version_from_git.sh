@@ -11,7 +11,12 @@ SEMVER_REGEX="^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-
 TAG=$(git tag 2>/dev/null | grep -P "$SEMVER_REGEX" | sed '/-/!{s/$/_/}' | sort -V | sed 's/_$//' | tail -n1 || true)
 
 if [ -z "${TAG}" ]; then
-  echo "devel"
+  # Fall back to VERSION file if no tags found
+  if [ -f "VERSION" ]; then
+    cat VERSION
+  else
+    echo "devel"
+  fi
 else
   COMMITS_SINCE_TAG=$(git rev-list "${TAG}".. --count)
   if [ "${COMMITS_SINCE_TAG}" -gt 0 ]; then

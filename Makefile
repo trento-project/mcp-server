@@ -24,12 +24,21 @@ LDFLAGS = -X github.com/trento-project/mcp-server/cmd.version="$(VERSION)"
 DEBUG ?= 0
 BUILD_OUTPUT ?= $(BIN)/$(GOOS)-$(GOARCH)/$(BIN_NAME)
 PLATFORMS ?= linux/amd64 linux/ppc64le linux/s390x darwin/amd64 windows/amd64
+CGO_ENABLED ?= 0
 
-ifeq ($(DEBUG), 0)
-	LDFLAGS += -s -w
-	GO_BUILD = CGO_ENABLED=0 $(GO) build -ldflags "$(LDFLAGS)" -trimpath
-else
-	GO_BUILD = CGO_ENABLED=0 $(GO) build -ldflags "$(LDFLAGS)"
+##
+# Build hardened Go binaries for Linux packaging:
+# -buildmode=pie: Position Independent Executable (PIE), enables ASLR (Address Space Layout Randomization) for better security.
+# -ldflags "-extldflags=-Wl,-z,now,-z,relro":
+#     -z now: Immediate symbol resolution at startup, prevents lazy binding attacks.
+#     -z relro: Read-only relocations, makes some binary sections read-only after startup to prevent memory corruption exploits.
+# -s -w: Strip debug and symbol tables, reducing binary size and removing potentially sensitive info.
+# -trimpath: Removes file system paths from the binary for reproducible builds and privacy.
+LDFLAGS += -s -w
+GO_BUILD ?= CGO_ENABLED=$(CGO_ENABLED) $(GO) build -buildmode=pie -ldflags "$(LDFLAGS) -extldflags=-Wl,-z,now,-z,relro" -trimpath
+
+ifeq ($(DEBUG), 1)
+	GO_BUILD = CGO_ENABLED=$(CGO_ENABLED) $(GO) build -ldflags "$(LDFLAGS)"
 endif
 
 GO := "$(shell which go)"
@@ -146,9 +155,11 @@ HELM ?= $(LOCALBIN)/helm-$(HELM_VERSION)
 KUBE_SCORE ?= $(LOCALBIN)/kube-score-$(KUBE_SCORE_VERSION)
 
 ## Tool Versions
-GOLANGCI_LINT_VERSION ?= v2.4.0 # See https://github.com/golangci/golangci-lint/releases
-HELM_VERSION ?= v3.18.6 # See https://github.com/helm/helm/releases
-KUBE_SCORE_VERSION ?= v1.20.0 # See https://github.com/zegl/kube-score/releases
+TOOL_VERSIONS_FILE := ${CURDIR}/.tool-versions
+
+GOLANGCI_LINT_VERSION ?= v$(shell grep '^golangci-lint' $(TOOL_VERSIONS_FILE) | cut -d' ' -f2) # See https://github.com/golangci/golangci-lint/releases
+HELM_VERSION ?= v$(shell grep '^helm' $(TOOL_VERSIONS_FILE) | cut -d' ' -f2) # See https://github.com/helm/helm/releases
+KUBE_SCORE_VERSION ?= v$(shell grep '^kube-score' $(TOOL_VERSIONS_FILE) | cut -d' ' -f2) # See https://github.com/zegl/kube-score/releases
 
 .PHONY: install-tools
 install-tools: golangci-lint helm kube-score ## Download all the required tools.

@@ -1,0 +1,84 @@
+# Copyright 2025 SUSE LLC
+---
+name: Lib - Linters section
+on:
+  workflow_call:
+
+jobs:
+  # Run Go static analysis tools (vet, fmt, golangci-lint) to ensure code quality and style.
+  static-code-analysis:
+    name: Check Go static analysis tools
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the repository.
+      - uses: actions/checkout@v5
+        name: Checkout
+      # Read tool versions for environment setup.
+      - uses: endorama/asdf-parse-tool-versions@v1
+        name: Read .tool-versions
+        id: tool-versions
+      # Setup Go environment.
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GOLANG_VERSION }}
+      # Cache Go modules for faster builds.
+      - uses: actions/cache@v4
+        name: Cache Go modules
+        id: go-cache
+        with:
+          path: ~/go/pkg/mod
+          key: go-${{ env.GOLANG_VERSION }}-${{ hashFiles('**/go.sum') }}
+      # Run go vet for static analysis.
+      - name: go vet check
+        run: make vet
+      # Run go fmt to check code formatting.
+      - name: go fmt check
+        run: make fmt
+      # Run golangci-lint for advanced linting.
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+          skip-cache: true
+          args: "--timeout=5m"
+
+  # Check that all source files have the correct license headers.
+  linter-license-headers:
+    name: Check license headers
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the repository.
+      - uses: actions/checkout@v4
+        name: Checkout
+      # Run SkyWalking Eyes to check license headers.
+      - uses: apache/skywalking-eyes/header@v0.7.0
+        name: Check license Headers
+
+  # Lint all AsciiDoc documentation files using asciidoctor and a custom script.
+  linter-documentation:
+    name: Check documentation files
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the repository.
+      - uses: actions/checkout@v5
+        name: Checkout
+      # Install asciidoctor for linting .adoc files.
+      - name: Install asciidoctor
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: asciidoctor
+      # Run the custom AsciiDoc linter script.
+      - name: Run AsciiDoc linter
+        run: bash hack/linters/asciidoc-linter.sh
+
+  # Run ShellCheck on all shell scripts to catch common scripting errors.
+  linter-shellscripts:
+    name: Check shell scripts
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the repository.
+      - uses: actions/checkout@v5
+        name: Checkout
+      # Run ShellCheck linter on shell scripts.
+      - uses: ludeeus/action-shellcheck@2.0.0
+        name: Run ShellCheck
