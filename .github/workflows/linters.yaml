@@ -3,10 +3,6 @@
 name: Lib - Linters section
 on:
   workflow_call:
-    inputs:
-      golang_version:
-        type: string
-        required: true
 
 jobs:
   # Run Go static analysis tools (vet, fmt, golangci-lint) to ensure code quality and style.
@@ -24,7 +20,7 @@ jobs:
       # Setup Go environment.
       - uses: actions/setup-go@v6
         with:
-          go-version: ${{ inputs.golang_version }}
+          go-version: ${{ env.GOLANG_VERSION }}
       # Cache Go modules for faster builds.
       - uses: actions/cache@v4
         name: Cache Go modules
@@ -68,7 +64,9 @@ jobs:
         name: Checkout
       # Install asciidoctor for linting .adoc files.
       - name: Install asciidoctor
-        run: sudo apt-get update && sudo apt-get install -y asciidoctor
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: asciidoctor
       # Run the custom AsciiDoc linter script.
       - name: Run AsciiDoc linter
         run: bash hack/linters/asciidoc-linter.sh
