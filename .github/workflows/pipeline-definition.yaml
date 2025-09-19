@@ -320,15 +320,15 @@ jobs:
   # Sync the project with OBS (Open Build Service).
   obs-sync:
     name: OBS sync
-    # if: vars.OBS_ENABLED == 'true' && (github.event_name == 'push' && github.ref_name == 'main') || github.event_name == 'workflow_dispatch'
+    if: vars.OBS_ENABLED == 'true' && (github.event_name == 'push' && github.ref_name == 'main') || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/obs.yaml
     needs:
       - setup
-      # - build-container-images
-      # - test-chart-render
-      # - test-with-go
-      # - test-chart-render
-      # - linters-result
+      - build-container-images
+      - test-chart-render
+      - test-with-go
+      - test-chart-render
+      - linters-result
     secrets: inherit
     with:
       obs_project: ${{ vars.OBS_PROJECT_ROLLING }}
