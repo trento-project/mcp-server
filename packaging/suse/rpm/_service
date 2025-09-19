@@ -13,7 +13,7 @@ SPDX-License-Identifier: Apache-2.0
         <param name="filename">trento-mcp-server</param>
     </service>
     <service name="set_version" mode="manual">
-        <param name="file">trento-mcp-server.spec</param>
+        <param name="file">mcp-server-trento.spec</param>
     </service>
     <service name="recompress" mode="manual">
         <param name="file">*.tar</param>
