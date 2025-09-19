@@ -26,17 +26,17 @@ env:
   AUTHOR_EMAIL: trento-developers@suse.com
 
 jobs:
-  # Update the 'trento-mcp-server-image' package in the specified OBS project.
+  # Update the 'mcp-server-trento-image' package in the specified OBS project.
   # This job prepares sources, updates dependencies, optionally updates the changelog, and commits changes to OBS.
   update-image:
-    name: Update 'trento-mcp-server-image' package
-    runs-on: ubuntu-24.04
+    name: Update 'mcp-server-trento-image' package
+    runs-on: ubuntu-latest
     container:
       # See https://github.com/trento-project/continuous-delivery
       image: ghcr.io/trento-project/continuous-delivery:main
       env:
-        OBS_PACKAGE_NAME: trento-mcp-server-image
-        CHECKOUT_DIR: /tmp/trento-mcp-server-image
+        OBS_PACKAGE_NAME: mcp-server-trento-image
+        CHECKOUT_DIR: /tmp/mcp-server-trento-image
         SOURCE_DIR: packaging/suse/container
       options: -u 0:0
     steps:
@@ -128,18 +128,18 @@ jobs:
           osc ar
           osc commit -m "GitHub Actions automated update to reference ${{ steps.get_revision.outputs.revision_sha }}"
 
-  # Update the 'trento-mcp-server' package in the specified OBS project.
+  # Update the 'mcp-server-trento' package in the specified OBS project.
   # This job prepares sources, updates dependencies, optionally updates the changelog, and commits changes to OBS.
   update-rpm:
-    name: Update 'trento-mcp-server' package
+    name: Update 'mcp-server-trento' package
     runs-on: ubuntu-latest
     container:
       # See https://github.com/trento-project/continuous-delivery
       image: ghcr.io/trento-project/continuous-delivery:main
       env:
-        OBS_PACKAGE_NAME: trento-mcp-server
+        OBS_PACKAGE_NAME: mcp-server-trento
         SOURCE_DIR: packaging/suse/rpm
-        CHECKOUT_DIR: /tmp/trento-mcp-server
+        CHECKOUT_DIR: /tmp/mcp-server-trento
       options: -u 0:0
     steps:
       # Checkout the repository with full history for versioning.
