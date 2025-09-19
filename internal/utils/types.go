@@ -63,7 +63,11 @@ func (l *LogLevel) String() string {
 // Set sets the LogLevel from a string.
 func (l *LogLevel) Set(v string) error {
 	switch v {
-	case "debug", "info", "warning", "error":
+	case "debug", "info", "warn", "warning", "error":
+		if v == "warn" {
+			v = "warning"
+		}
+
 		*l = LogLevel(v)
 
 		return nil
@@ -75,4 +79,32 @@ func (l *LogLevel) Set(v string) error {
 // Type returns the type of the LogLevel for pflag.
 func (*LogLevel) Type() string {
 	return "string"
+}
+
+// FlagType represents the type of a CLI flag.
+type FlagType string
+
+const (
+	// FlagTypeInt represents an integer flag.
+	FlagTypeInt FlagType = "int"
+	// FlagTypeString represents a string flag.
+	FlagTypeString FlagType = "string"
+	// FlagTypeStringSlice represents a string slice flag.
+	FlagTypeStringSlice FlagType = "stringSlice"
+)
+
+// String returns the string representation of the FlagType.
+func (ft FlagType) String() string {
+	return string(ft)
+}
+
+// FlagConfig holds the configuration for a single flag.
+type FlagConfig struct {
+	Key          string
+	DefaultValue any
+	FlagName     string
+	IsPersistent bool
+	FlagType     FlagType
+	Short        string
+	Description  string
 }

@@ -106,6 +106,7 @@ func TestLogLevel(t *testing.T) {
 			t.Parallel()
 
 			var level utils.LogLevel
+
 			err := level.Set(tt.input)
 
 			if tt.expectErr {
