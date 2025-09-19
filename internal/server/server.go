@@ -6,8 +6,10 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -33,6 +35,7 @@ type ServeOptions struct {
 	TagFilter        []string
 	TrentoURL        string
 	Version          string
+	InsecureTLS      bool
 }
 
 // StoppableServer defines an interface for servers that can be started and shut down.
@@ -114,55 +117,133 @@ func createMCPServer(ctx context.Context, serveOpts *ServeOptions) *mcp.Server {
 	return srv
 }
 
-// handleToolsRegistration loads the OAS file, transforms it into MCP tools and registers them into the MCP server.
-func handleToolsRegistration(
-	ctx context.Context,
-	srv *mcp.Server,
-	serveOpts *ServeOptions,
-) (*mcp.Server, []string, error) {
-	// Load OpenAPI spec.
-	oasDoc, err := openapi2mcp.LoadOpenAPISpec(serveOpts.OASPath)
+// createHTTPClient creates an HTTP client configured for corporate environments
+func createHTTPClient(insecureTLS bool) *http.Client {
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: insecureTLS, //nolint:gosec // Allow insecure TLS when explicitly requested
+		},
+	}
+
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   30 * time.Second,
+	}
+
+	return client
+}
+
+// loadOpenAPISpec loads the OpenAPI specification from either a URL or local file
+func loadOpenAPISpec(ctx context.Context, serveOpts *ServeOptions) (*openapi3.T, error) {
+	var oasDoc *openapi3.T
+	var err error
+
+	if strings.HasPrefix(serveOpts.OASPath, "http://") || strings.HasPrefix(serveOpts.OASPath, "https://") {
+		oasDoc, err = loadOpenAPISpecFromURL(ctx, serveOpts)
+	} else {
+		oasDoc, err = openapi2mcp.LoadOpenAPISpec(serveOpts.OASPath)
+		if err != nil {
+			slog.ErrorContext(ctx, "failed to read the API spec",
+				"error", err,
+			)
+			return nil, fmt.Errorf("failed to read the API spec: %w", err)
+		}
+	}
+
+	return oasDoc, err
+}
+
+// loadOpenAPISpecFromURL fetches the OpenAPI specification from a remote URL
+func loadOpenAPISpecFromURL(ctx context.Context, serveOpts *ServeOptions) (*openapi3.T, error) {
+	client := createHTTPClient(serveOpts.InsecureTLS)
+	req, err := http.NewRequestWithContext(ctx, "GET", serveOpts.OASPath, nil)
 	if err != nil {
-		slog.ErrorContext(ctx, "failed to read the API spec",
+		slog.ErrorContext(ctx, "failed to create HTTP request",
+			"url", serveOpts.OASPath,
 			"error", err,
 		)
+		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+	req.Header.Set("User-Agent", fmt.Sprintf("%s/%s", serveOpts.Name, serveOpts.Version))
 
-		return nil, []string{}, fmt.Errorf("failed to read the API spec: %w", err)
+	resp, err := client.Do(req)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to fetch OpenAPI spec from URL",
+			"url", serveOpts.OASPath,
+			"error", err,
+		)
+		return nil, fmt.Errorf("failed to fetch OpenAPI spec from URL: %w", err)
+	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			slog.WarnContext(ctx, "failed to close response body", "error", closeErr)
+		}
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		slog.ErrorContext(ctx, "failed to fetch OpenAPI spec, bad status code",
+			"url", serveOpts.OASPath,
+			"status", resp.StatusCode,
+		)
+		return nil, fmt.Errorf("failed to fetch OpenAPI spec, status code: %d", resp.StatusCode)
 	}
 
-	// Overwrite the Trento URL in the OpenAPI
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to read response body",
+			"error", err,
+		)
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	loader := &openapi3.Loader{IsExternalRefsAllowed: true}
+	oasDoc, err := loader.LoadFromData(data)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to parse OpenAPI spec from data",
+			"error", err,
+		)
+		return nil, fmt.Errorf("failed to parse OpenAPI spec from data: %w", err)
+	}
+
+	return oasDoc, nil
+}
+
+// configureOpenAPIServers sets the Trento URL in the OpenAPI specification
+func configureOpenAPIServers(oasDoc *openapi3.T, trentoURL string) {
 	if len(oasDoc.Servers) > 0 {
-		oasDoc.Servers[0].URL = serveOpts.TrentoURL
+		oasDoc.Servers[0].URL = trentoURL
 	} else {
-		// Or just add it
 		oasDoc.Servers = append(oasDoc.Servers, &openapi3.Server{
-			URL: serveOpts.TrentoURL,
+			URL: trentoURL,
 		})
 	}
+}
 
-	// Extract the API operations.
-	operations := openapi2mcp.ExtractOpenAPIOperations(oasDoc)
-
-	// TODO(agamez): Pre-filter operations by tag intersection to avoid relying on external library filtering.
-	//nolint:lll
-	// see https://github.com/jedisct1/openapi-mcp/blob/7fc6e6013a413754e52fbac2197f8027c68040f9/pkg/openapi2mcp/register.go#L901
-	if len(serveOpts.TagFilter) > 0 {
-		filteredOperations := []openapi2mcp.OpenAPIOperation{}
-		for _, op := range operations {
-			matched := false
-			for _, x := range serveOpts.TagFilter {
-				if slices.Contains(op.Tags, x) {
-					matched = true
-					break
-				}
-			}
-			if matched {
-				filteredOperations = append(filteredOperations, op)
-			}
-		}
-		operations = filteredOperations
+// filterOperationsByTag filters OpenAPI operations based on tag matching
+func filterOperationsByTag(operations []openapi2mcp.OpenAPIOperation, tagFilter []string) []openapi2mcp.OpenAPIOperation {
+	if len(tagFilter) == 0 {
+		return operations
 	}
 
+	filteredOperations := []openapi2mcp.OpenAPIOperation{}
+	for _, op := range operations {
+		matched := false
+		for _, x := range tagFilter {
+			if slices.Contains(op.Tags, x) {
+				matched = true
+				break
+			}
+		}
+		if matched {
+			filteredOperations = append(filteredOperations, op)
+		}
+	}
+	return filteredOperations
+}
+
+// registerMCPOperations registers the filtered operations as MCP tools
+func registerMCPOperations(srv *mcp.Server, operations []openapi2mcp.OpenAPIOperation, oasDoc *openapi3.T) []string {
 	opts := &openapi2mcp.ToolGenOptions{
 		TagFilter:               nil, // TODO(agamez): revert back to "serveOpts.TagFilter," once we can.
 		ConfirmDangerousActions: true,
@@ -179,8 +260,35 @@ func handleToolsRegistration(
 		},
 	}
 
+	return openapi2mcp.RegisterOpenAPITools(srv, operations, oasDoc, opts)
+}
+
+// handleToolsRegistration loads the OAS file, transforms it into MCP tools and registers them into the MCP server.
+func handleToolsRegistration(
+	ctx context.Context,
+	srv *mcp.Server,
+	serveOpts *ServeOptions,
+) (*mcp.Server, []string, error) {
+	// Load OpenAPI spec.
+	oasDoc, err := loadOpenAPISpec(ctx, serveOpts)
+	if err != nil {
+		return nil, []string{}, err
+	}
+
+	// Configure Trento URL in the OpenAPI spec
+	configureOpenAPIServers(oasDoc, serveOpts.TrentoURL)
+
+	// Extract the API operations.
+	operations := openapi2mcp.ExtractOpenAPIOperations(oasDoc)
+
+	// Filter operations by tag
+	// TODO(agamez): Pre-filter operations by tag intersection to avoid relying on external library filtering.
+	//nolint:lll
+	// see https://github.com/jedisct1/openapi-mcp/blob/7fc6e6013a413754e52fbac2197f8027c68040f9/pkg/openapi2mcp/register.go#L901
+	operations = filterOperationsByTag(operations, serveOpts.TagFilter)
+
 	// Register them as MCP tools.
-	tools := openapi2mcp.RegisterOpenAPITools(srv, operations, oasDoc, opts)
+	tools := registerMCPOperations(srv, operations, oasDoc)
 
 	return srv, tools, nil
 }
