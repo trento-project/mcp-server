@@ -47,7 +47,7 @@ jobs:
           fetch-depth: 0
       # Read tool versions for environment setup.
       - name: Read .tool-versions
-        uses: endorama/asdf-parse-tool-versions@v1.3.4
+        uses: endorama/asdf-parse-tool-versions@v1
         id: tool-versions
       # Configure git for safe operations inside the container.
       - name: Configure git for in-container operations
@@ -73,7 +73,7 @@ jobs:
         with:
           go-version: ${{ env.GOLANG_VERSION }}
       # Cache Go modules for faster builds.
-      - uses: actions/cache@v4.2.4
+      - uses: actions/cache@v4
         id: go-cache
         with:
           path: ~/go/pkg/mod
@@ -148,7 +148,7 @@ jobs:
           fetch-depth: 0
       # Read tool versions for environment setup.
       - name: Read .tool-versions
-        uses: endorama/asdf-parse-tool-versions@v1.3.4
+        uses: endorama/asdf-parse-tool-versions@v1
         id: tool-versions
       # Configure git for safe operations inside the container.
       - name: Configure git for in-container operations
@@ -174,7 +174,7 @@ jobs:
         with:
           go-version: ${{ env.GOLANG_VERSION }}
       # Cache Go modules for faster builds.
-      - uses: actions/cache@v4.2.4
+      - uses: actions/cache@v4
         id: go-cache
         with:
           path: ~/go/pkg/mod
