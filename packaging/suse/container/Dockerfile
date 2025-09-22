@@ -3,9 +3,9 @@
 
 # Note: This file should be the same as the one in the root of the repository
 
-#!BuildTag: trento/trento-mcp-server:latest
-#!BuildTag: trento/trento-mcp-server:%%VERSION%%
-#!BuildTag: trento/trento-mcp-server:%%VERSION%%-build%RELEASE%
+#!BuildTag: trento/mcp-server-trento:latest
+#!BuildTag: trento/mcp-server-trento:%%VERSION%%
+#!BuildTag: trento/mcp-server-trento:%%VERSION%%-build%RELEASE%
 #!UseOBSRepositories
 #!ExclusiveArch: x86_64
 
