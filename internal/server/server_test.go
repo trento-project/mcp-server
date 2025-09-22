@@ -120,6 +120,7 @@ func TestCreateMCPServer(t *testing.T) {
 	client := mcp.NewClient(clientImpl, nil)
 	cs, err := client.Connect(ctx, clientTransport, nil)
 	require.NoError(t, err, "failed to connect client")
+
 	defer func() { _ = cs.Close() }()
 
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -343,6 +344,7 @@ func TestHandleServerRun(t *testing.T) {
 				lc := net.ListenConfig{KeepAlive: time.Second}
 				l, err := lc.Listen(ctx, "tcp", fmt.Sprintf(":%d", port))
 				require.NoError(t, err)
+
 				defer l.Close() //nolint:errcheck
 				// Give the OS a moment to register the port as in use
 				time.Sleep(200 * time.Millisecond)
