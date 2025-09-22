@@ -9,7 +9,7 @@ require (
 	github.com/carlmjohnson/versioninfo v0.22.5
 	github.com/evcc-io/openapi-mcp v0.5.1
 	github.com/getkin/kin-openapi v0.133.0
-	github.com/modelcontextprotocol/go-sdk v0.5.0
+	github.com/modelcontextprotocol/go-sdk v0.6.0
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
 )
