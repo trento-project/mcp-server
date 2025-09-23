@@ -340,6 +340,7 @@ func TestVersion(t *testing.T) {
 	assert.Contains(t, v, "devel")
 }
 
+//nolint:paralleltest
 func TestServeOpts(t *testing.T) {
 	viper.Reset()
 	defer viper.Reset()
@@ -380,6 +381,7 @@ func TestServeOpts(t *testing.T) {
 	assert.Equal(t, expected.InsecureTLS, opts.InsecureTLS)
 }
 
+//nolint:paralleltest
 func TestCreateAndBindFlags(t *testing.T) {
 	// Reset viper for clean state
 	viper.Reset()
@@ -423,10 +425,12 @@ func TestCreateAndBindFlags(t *testing.T) {
 	assert.Equal(t, "Test path flag", pathFlag.Usage)
 
 	// Verify bindings work by setting flag values and checking viper
-	testCmd.Flags().Set("test-port", "9090")
+	err := testCmd.Flags().Set("test-port", "9090")
+	require.NoError(t, err)
 	assert.Equal(t, 9090, viper.Get("testPort"))
 
-	testCmd.Flags().Set("test-path", "/custom/path")
+	err = testCmd.Flags().Set("test-path", "/custom/path")
+	require.NoError(t, err)
 	assert.Equal(t, "/custom/path", viper.Get("testPath"))
 }
 
@@ -474,6 +478,7 @@ func TestGetConfigDescription(t *testing.T) {
 	assert.Equal(t, expectedDescription, description)
 }
 
+//nolint:paralleltest
 func TestSetFlags(t *testing.T) {
 	// Reset viper for clean state
 	viper.Reset()

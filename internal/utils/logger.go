@@ -25,6 +25,8 @@ func CreateLogger(logLevel LogLevel) *slog.Logger {
 }
 
 // ParseLogLevel converts a LogLevel representation to slog.Level.
+//
+//nolint:revive
 func ParseLogLevel(logLevel LogLevel) slog.Level {
 	switch logLevel {
 	case LogLevelDebug:

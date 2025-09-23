@@ -189,9 +189,9 @@ func TestFlagType_Constants(t *testing.T) {
 	t.Parallel()
 
 	// Test that constants have expected values
-	assert.Equal(t, utils.FlagType("int"), utils.FlagTypeInt)
-	assert.Equal(t, utils.FlagType("string"), utils.FlagTypeString)
-	assert.Equal(t, utils.FlagType("stringSlice"), utils.FlagTypeStringSlice)
+	assert.Equal(t, utils.FlagTypeInt, utils.FlagType("int"))
+	assert.Equal(t, utils.FlagTypeString, utils.FlagType("string"))
+	assert.Equal(t, utils.FlagTypeStringSlice, utils.FlagType("stringSlice"))
 
 	// Test that all constants are distinct
 	flagTypes := []utils.FlagType{
@@ -200,7 +200,7 @@ func TestFlagType_Constants(t *testing.T) {
 		utils.FlagTypeStringSlice,
 	}
 
-	for i := 0; i < len(flagTypes); i++ {
+	for i := range flagTypes {
 		for j := i + 1; j < len(flagTypes); j++ {
 			assert.NotEqual(t, flagTypes[i], flagTypes[j], "FlagType constants should be unique")
 		}
