@@ -51,7 +51,9 @@ func setFlags(cmd *cobra.Command) {
 	// MCP SERVER
 	cmd.Flags().IntVarP(&serveOpts.Port, "port", "p", defaultPort, "The port on which to run the server")
 	cmd.Flags().StringVarP(&serveOpts.OASPath, "oasPath", "P", defaultOASPath, "Path to the OpenAPI spec file")
-	serveOpts.Transport = utils.TransportStreamable // Set default value for transport
+	cmd.Flags().BoolVar(&serveOpts.InsecureTLS, "insecure-tls", false, "Skip TLS certificate verification when fetching OpenAPI spec from HTTPS URLs") //nolint:lll
+	// Set default value for transport
+	serveOpts.Transport = utils.TransportStreamable //nolint:lll
 	cmd.Flags().Var(&serveOpts.Transport, "transport", "The protocol to use, choose 'streamable' (default) or 'sse'")
 	// Trento
 	cmd.Flags().StringVar(&serveOpts.TrentoURL, "trento-url", defaultTrentoURL, "URL for the target Trento server")                                 //nolint:lll
