@@ -257,11 +257,14 @@ func startServer(
 	errChan chan<- error,
 ) *http.Server {
 	httpSrv := &http.Server{
-		Addr:              listenAddr,
-		Handler:           handler,
-		ReadTimeout:       1 * time.Second,
-		WriteTimeout:      1 * time.Second,
-		IdleTimeout:       30 * time.Second,
+		Addr:    listenAddr,
+		Handler: handler,
+		// The WriteTimeout needs to be longer than the MCP KeepAlive interval (30s)
+		// to prevent the server from prematurely closing long-lived SSE/Streamable connections.
+		// ReadTimeout and IdleTimeout are also increased to be more lenient.
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      45 * time.Second,
+		IdleTimeout:       60 * time.Second,
 		ReadHeaderTimeout: 2 * time.Second,
 	}
 
