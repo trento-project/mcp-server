@@ -92,7 +92,7 @@ func flagConfigs() []utils.FlagConfig {
 			Key:          configKeyOASPath,
 			DefaultValue: defaultOASPath,
 			FlagType:     utils.FlagTypeString,
-			FlagName:     "oasPath",
+			FlagName:     "oas-path",
 			Short:        "P",
 			Description:  "Path to the OpenAPI spec file",
 		},

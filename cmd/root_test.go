@@ -29,7 +29,7 @@ func TestParseFlagsCorrect(t *testing.T) {
 			name: "all arguments are captured",
 			args: []string{
 				"--port", "9090",
-				"--oasPath", "/tmp/api.json",
+				"--oas-path", "/tmp/api.json",
 				"--transport", "sse",
 				"--trento-url", "http://trento.example.com",
 				"--header-name", "X-My-Header",
@@ -258,7 +258,7 @@ func TestReadConfigFile(t *testing.T) {
 		{
 			name: "all keys set",
 			configContent: `port: 9999
-oasPath: /custom/api.json
+oas-path: /custom/api.json
 transport: streamable
 trento-url: https://custom.trento.io
 header-name: X-Custom-Header
@@ -269,7 +269,7 @@ verbosity: info`,
 			setConfigFile: true,
 			expected: map[string]any{
 				"port":        9999,
-				"oasPath":     "/custom/api.json",
+				"oas-path":    "/custom/api.json",
 				"transport":   "streamable",
 				"trento-url":  "https://custom.trento.io",
 				"header-name": "X-Custom-Header",
