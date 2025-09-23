@@ -1,6 +1,14 @@
 # Copyright 2025 SUSE LLC
 # SPDX-License-Identifier: Apache-2.0
 
+# Note: This file should be the same as the one in the root of the repository
+
+#!BuildTag: trento/trento-mcp-server:latest
+#!BuildTag: trento/trento-mcp-server:%%VERSION%%
+#!BuildTag: trento/trento-mcp-server:%%VERSION%%-build%RELEASE%
+#!UseOBSRepositories
+#!ExclusiveArch: x86_64
+
 ARG GO_VERSION=1.24
 ARG OS_VER=15.6
 
@@ -12,11 +20,10 @@ ARG PORT=5000
 # Base build image
 FROM registry.suse.com/bci/golang:${GO_VERSION} AS builder
 
-WORKDIR /go/src/github.com/trento-project/mcp-server
-
-COPY go.mod go.sum main.go Makefile hack ./
-COPY cmd cmd
-COPY internal internal
+# Add the tarball as the build context root
+ADD trento-mcp-server.tar.gz /build/
+ADD vendor.tar.gz /build/trento-mcp-server/
+WORKDIR /build/trento-mcp-server
 
 ARG GOARCH
 ARG GOOS
@@ -24,11 +31,9 @@ ARG VERSION
 
 ENV GOARCH=${GOARCH}
 ENV GOOS=${GOOS}
-ENV VERSION=${VERSION}
+ENV VERSION=%%VERSION%%
 
 # Build the binary using the Makefile
-RUN go mod download
-
 RUN make build
 
 FROM registry.suse.com/bci/bci-micro:${OS_VER}
@@ -38,8 +43,8 @@ ARG GOOS
 ARG VERSION
 ARG PORT
 
-COPY --from=builder /go/src/github.com/trento-project/mcp-server/bin/${GOOS}-${GOARCH}/trento-mcp-server /trento-mcp-server
-COPY api api
+COPY --from=builder /build/trento-mcp-server/bin/${GOOS}-${GOARCH}/trento-mcp-server /trento-mcp-server
+COPY --from=builder build/trento-mcp-server/api api
 
 LABEL org.opencontainers.image.title="Trento MCP Server"
 LABEL org.opencontainers.image.source="https://github.com/trento-project/mcp-server"
