@@ -23,7 +23,7 @@ jobs:
   # Set up environment variables and outputs for downstream jobs.
   setup:
     name: Setup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       # Output variables for use in other jobs.
       img_modifier: ${{ steps.set-outputs.outputs.img_modifier }}
@@ -112,7 +112,7 @@ jobs:
     name: Check linters result
     if: inputs.run_linters && always()
     needs: linters-run
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       # Fail the job if any linter did not succeed.
       - name: Check all linters result
@@ -124,7 +124,7 @@ jobs:
     name: Check Go test suite
     needs:
       - setup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       # Checkout the repository.
       - uses: actions/checkout@v5
@@ -153,7 +153,7 @@ jobs:
     name: Check Helm chart
     needs:
       - setup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       # Checkout the repository.
       - uses: actions/checkout@v5
@@ -189,7 +189,7 @@ jobs:
     name: "Build ${{matrix.image}} image"
     needs:
       - setup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -245,7 +245,7 @@ jobs:
   generate-docs:
     name: Update Go docs site
     if: needs.setup.outputs.running_on_main == 'true' || inputs.trigger_release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
       - setup
       - build-container-images
@@ -262,7 +262,7 @@ jobs:
   push_images:
     name: Push container images
     if: needs.setup.outputs.running_on_main == 'true' || inputs.trigger_release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: write # required for creating ghcr.io packages.
@@ -345,7 +345,7 @@ jobs:
     name: Cleanup
     needs:
       - push_images
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       # Delete image artifacts after pushing to the registry.
       - uses: geekyeggo/delete-artifact@v5
