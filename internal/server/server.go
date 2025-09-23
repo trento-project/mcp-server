@@ -6,8 +6,10 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -33,6 +35,7 @@ type ServeOptions struct {
 	TagFilter        []string
 	TrentoURL        string
 	Version          string
+	InsecureTLS      bool
 }
 
 // StoppableServer defines an interface for servers that can be started and shut down.
@@ -52,8 +55,6 @@ const (
 
 // Serve is the root command that is run when no other sub-commands are present.
 func Serve(ctx context.Context, serveOpts *ServeOptions) error {
-	var err error
-
 	slog.DebugContext(ctx, "starting Serve() command",
 		"server.options", fmt.Sprintf("%+v", *serveOpts),
 	)
@@ -67,7 +68,28 @@ func Serve(ctx context.Context, serveOpts *ServeOptions) error {
 	)
 
 	// Create the MCP server and register the tools.
-	srv, tools, err := handleToolsRegistration(ctx, srv, serveOpts)
+	// The openapi-mcp library logs to stdout/stderr.
+	// We capture and redirect it to our logger to honor the log levels.
+	// TODO(agamez): remove if the library is updated, see:
+	// https://github.com/evcc-io/openapi-mcp/blob/0c909602302e0e228c89808be3f33bc6d521f0ce/schema.go#L71
+	// https://github.com/evcc-io/openapi-mcp/blob/0c909602302e0e228c89808be3f33bc6d521f0ce/register.go#L423
+	var tools []string
+
+	err := utils.CaptureLibraryLogs(ctx, func() error {
+		var (
+			regErr          error
+			registeredSrv   *mcp.Server
+			registeredTools []string
+		)
+
+		registeredSrv, registeredTools, regErr = handleToolsRegistration(ctx, srv, serveOpts)
+		if regErr == nil {
+			srv = registeredSrv
+			tools = registeredTools
+		}
+
+		return regErr
+	})
 	if err != nil {
 		return err
 	}
@@ -85,7 +107,7 @@ func Serve(ctx context.Context, serveOpts *ServeOptions) error {
 		return err
 	}
 
-	return err
+	return nil
 }
 
 // createMCPServer creates the MCP server, but does not start serving it yet.
@@ -118,10 +140,10 @@ func createMCPServer(ctx context.Context, serveOpts *ServeOptions) *mcp.Server {
 func handleToolsRegistration(
 	ctx context.Context,
 	srv *mcp.Server,
-	serveOpts *ServeOptions,
+	serveOpts *ServeOptions, //nolint:revive
 ) (*mcp.Server, []string, error) {
 	// Load OpenAPI spec.
-	oasDoc, err := openapi2mcp.LoadOpenAPISpec(serveOpts.OASPath)
+	oasDoc, err := loadOpenAPISpec(ctx, serveOpts)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to read the API spec",
 			"error", err,
@@ -148,18 +170,23 @@ func handleToolsRegistration(
 	// see https://github.com/jedisct1/openapi-mcp/blob/7fc6e6013a413754e52fbac2197f8027c68040f9/pkg/openapi2mcp/register.go#L901
 	if len(serveOpts.TagFilter) > 0 {
 		filteredOperations := []openapi2mcp.OpenAPIOperation{}
+
 		for _, op := range operations {
 			matched := false
+
 			for _, x := range serveOpts.TagFilter {
 				if slices.Contains(op.Tags, x) {
 					matched = true
+
 					break
 				}
 			}
+
 			if matched {
 				filteredOperations = append(filteredOperations, op)
 			}
 		}
+
 		operations = filteredOperations
 	}
 
@@ -185,8 +212,86 @@ func handleToolsRegistration(
 	return srv, tools, nil
 }
 
+// loadOpenAPISpec loads the OpenAPI specification from either a URL or local file.
+func loadOpenAPISpec(ctx context.Context, serveOpts *ServeOptions) (*openapi3.T, error) {
+	var (
+		oasDoc *openapi3.T
+		err    error
+	)
+
+	// Check if it is a remote path.
+	if strings.HasPrefix(serveOpts.OASPath, "http://") || strings.HasPrefix(serveOpts.OASPath, "https://") {
+		oasDoc, err = loadOpenAPISpecFromURL(ctx, serveOpts)
+	} else {
+		// If not, load the spec from disk.
+		oasDoc, err = openapi2mcp.LoadOpenAPISpec(serveOpts.OASPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read the API spec: %w", err)
+		}
+	}
+
+	return oasDoc, err
+}
+
+// loadOpenAPISpecFromURL fetches the OpenAPI specification from a remote URL.
+func loadOpenAPISpecFromURL(ctx context.Context, serveOpts *ServeOptions) (*openapi3.T, error) {
+	// Create a client based on the TLS preferences and proxy settings from env.
+	client := &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: serveOpts.InsecureTLS, //nolint:gosec // Allow insecure TLS when explicitly requested
+			},
+		},
+		Timeout: 30 * time.Second,
+	}
+
+	// Generate the GET request.
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, serveOpts.OASPath, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	// Set the UA to track the version.
+	req.Header.Set("User-Agent", fmt.Sprintf("%s/%s", serveOpts.Name, serveOpts.Version))
+
+	// Perform the request.
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch OpenAPI spec from URL: %w", err)
+	}
+
+	defer func() {
+		closeErr := resp.Body.Close()
+		if closeErr != nil {
+			slog.DebugContext(ctx, "failed to close response body", "error", closeErr)
+		}
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to fetch OpenAPI spec, status code: %d", resp.StatusCode)
+	}
+
+	// Store the OAS docs.
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Create the loader.
+	loader := &openapi3.Loader{IsExternalRefsAllowed: true}
+
+	// Load the OAS spec.
+	oasDoc, err := loader.LoadFromData(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse OpenAPI spec from data: %w", err)
+	}
+
+	return oasDoc, nil
+}
+
 // handleServerRun configures and starts the appropriate server based on the selected transport.
-// It sets up an authentication context wrapper and blocks until a shutdown signal is received.
+// It sets up an authentication context wrapper and blocks until a shutdown signal is received. //nolint:lll.
 func handleServerRun(ctx context.Context, srv *mcp.Server, serveOpts *ServeOptions) error {
 	// Build the address to listen to
 	listenAddr := fmt.Sprintf(":%d", serveOpts.Port)
@@ -233,11 +338,14 @@ func startServer(
 	errChan chan<- error,
 ) *http.Server {
 	httpSrv := &http.Server{
-		Addr:              listenAddr,
-		Handler:           handler,
-		ReadTimeout:       1 * time.Second,
-		WriteTimeout:      1 * time.Second,
-		IdleTimeout:       30 * time.Second,
+		Addr:    listenAddr,
+		Handler: handler,
+		// The WriteTimeout needs to be longer than the MCP KeepAlive interval (30s)
+		// to prevent the server from prematurely closing long-lived SSE/Streamable connections.
+		// ReadTimeout and IdleTimeout are also increased to be more lenient.
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      45 * time.Second,
+		IdleTimeout:       60 * time.Second,
 		ReadHeaderTimeout: 2 * time.Second,
 	}
 
@@ -271,6 +379,7 @@ func startStreamableHTTPServer(
 	streamableHandler := mcp.NewStreamableHTTPHandler(
 		func(r *http.Request) *mcp.Server {
 			handleAPIKeyAuth(r, headerName)
+
 			return mcpSrv
 		},
 		&mcp.StreamableHTTPOptions{},
@@ -292,6 +401,7 @@ func startSSEServer(
 	sseHandler := mcp.NewSSEHandler(
 		func(r *http.Request) *mcp.Server {
 			handleAPIKeyAuth(r, headerName)
+
 			return mcpSrv
 		},
 		&mcp.SSEOptions{},
@@ -362,7 +472,7 @@ func handleAPIKeyAuth(r *http.Request, headerName string) {
 	}
 }
 
-// withLogger returns a middleware to log each invocation of the mcp server
+// withLogger returns a middleware to log each invocation of the mcp server.
 func withLogger(logger *slog.Logger) mcp.Middleware {
 	return func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {

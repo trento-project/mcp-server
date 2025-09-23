@@ -9,13 +9,13 @@ mcpo:
     - --config
     - /app/config/config.json
 
-mcpServerTrento:
+mcpServer:
   ingress:
     enabled: false
   args:
     - --port=8080
     - --transport=sse
-    - --oasPath=/app/api/openapi.json
+    - --oas-path=/app/api/openapi.json
     - --trento-url=https://demo.trento-project.io
     - --header-name=X-TRENTO-MCP-APIKEY
     - --tag-filter=MCP

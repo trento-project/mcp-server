@@ -12,4 +12,6 @@ var (
 	StartStreamableHTTPServer = startStreamableHTTPServer
 	WaitForShutdown           = waitForShutdown
 	HandleAPIKeyAuth          = handleAPIKeyAuth
+	LoadOpenAPISpec           = loadOpenAPISpec
+	LoadOpenAPISpecFromURL    = loadOpenAPISpecFromURL
 )
