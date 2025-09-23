@@ -1,18 +1,42 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
-= Getting started with Trento MCP Server
+= Getting Started with Trento MCP Server
 
-This document provides a comprehensive guide to get started with `Trento MCP Server` development. It covers the development environment setup, project architecture, building, running, testing, and debugging the project.
+This guide provides everything you need to start developing with the `Trento MCP Server`. It covers environment setup, project architecture, building, running, testing, and debugging.
 
 == Building the Project
 
-Before starting development, ensure you have the following tools installed:
+Before you begin development, ensure you have the following tools installed:
 
-* Go 1.24.4 or later (see link:https://golang.org/doc/install[Go installation guide])
-* Docker (for containerization)
+* Go (see link:https://golang.org/doc/install[Go installation guide])
+* Docker or Podman (for containerization)
 * Make (for build automation)
 * Git (for version control)
+
+=== Using asdf for Version Management
+
+link:https://asdf-vm.com/guide/introduction.html[asdf] is a version manager that allows you to use specific versions of programming languages and tools that are known to be compatible with this project, rather than relying on globally installed versions.
+
+To get started with asdf:
+
+* Follow the official link:https://asdf-vm.com/guide/getting-started.html[asdf getting started guide] to install asdf.
+
+* Install all required plugins from the project's link:https://github.com/trento-project/mcp-server/blob/main/.tool-versions[`.tool-versions`] file:
+
+....
+
+cut -d' ' -f1 .tool-versions | xargs -I {} asdf plugin add {}
+
+....
+
+* Install the specified versions:
+
+....
+
+asdf install
+
+....
 
 === Project Overview
 
