@@ -132,7 +132,7 @@ jobs:
   # This job prepares sources, updates dependencies, optionally updates the changelog, and commits changes to OBS.
   update-rpm:
     name: Update 'trento-mcp-server' package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
       # See https://github.com/trento-project/continuous-delivery
       image: ghcr.io/trento-project/continuous-delivery:main

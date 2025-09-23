@@ -382,6 +382,7 @@ func startSSEServer(
 
 			return mcpSrv
 		},
+		&mcp.SSEOptions{},
 	)
 
 	httpServer := startServer(ctx, listenAddr, sseHandler, utils.TransportSSE, errChan)
