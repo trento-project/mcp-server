@@ -30,6 +30,7 @@ Viper searches for configuration files in the following order:
 port: 5000
 oas-path: "./api/openapi.json"
 transport: "streamable"  # or "sse"
+insecureTLS: false
 
 # Trento server configuration
 trentoURL: "https://demo.trento-project.io"
@@ -68,15 +69,16 @@ Environment variables use the `TRENTO_MCP_` prefix and follow the same naming co
 
 [width="100%",cols="25%,25%,50%",options="header",]
 |===
-|Environment Variable |Configuration Key |Description
+|Environment Variable |Flag |Description
 |`TRENTO_MCP_PORT` |`port` |Server port number
-|`TRENTO_MCP_OASPATH` |`oasPath` |Path to OpenAPI specification file
+|`TRENTO_MCP_OASPATH` |`oas-path` |Path to OpenAPI specification file
 |`TRENTO_MCP_TRANSPORT` |`transport` |Transport protocol (`streamable` or `sse`)
-|`TRENTO_MCP_TRENTOURL` |`trentoURL` |Trento server URL
-|`TRENTO_MCP_TRENTOHEADERNAME` |`trentoHeaderName` |HTTP header name for API key
-|`TRENTO_MCP_TAGFILTER` |`tagFilter` |Comma-separated list of OpenAPI tags
+|`TRENTO_MCP_TRENTOURL` |`trento-url` |Trento server URL
+|`TRENTO_MCP_TRENTOHEADERNAME` |`trento-header-name` |HTTP header name for API key
+|`TRENTO_MCP_TAGFILTER` |`tag-filter` |Comma-separated list of OpenAPI tags
 |`TRENTO_MCP_VERBOSITY` |`verbosity` |Log level (`debug`, `info`, `warning`, `error`)
 |`TRENTO_MCP_CONFIG` |`config` |Path to configuration file
+|`TRENTO_MCP_INSECURETLS` |`insecure-tls` |Skip TLS certificate verification for HTTPS URLs
 |===
 
 == Command-Line Parameters
@@ -92,6 +94,7 @@ The `trento-mcp-server` binary accepts several command-line flags to configure i
 |`--trento-url`, `-u` |`https://demo.trento-project.io` |URL for the target Trento server.
 |`--header-name`, `-H` |`X-TRENTO-MCP-APIKEY` |The header name to be used for the Trento API key.
 |`--tag-filter`, `-f` |`MCP` |A comma-separated list of OpenAPI tags. Only operations with at least one of these tags will be exposed as tools.
+|`--insecure-tls`, `-i` |`false` |Skip TLS certificate verification when fetching OpenAPI spec from HTTPS URLs.
 |`--verbosity`, `-v` |`info` |log level verbosity (debug, info, warning, error).
 |`--config`, `-c` | |config file path (default search: ./trento-mcp-server.config.yaml or /etc/trento/trento-mcp-server.config.yaml).
 |===

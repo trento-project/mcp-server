@@ -195,6 +195,8 @@ func TestConfigureCLI(t *testing.T) {
 				"TRENTO_MCP_TRENTOHEADERNAME": "X-Env-Header",
 				"TRENTO_MCP_TAGFILTER":        "X,Y",
 				"TRENTO_MCP_VERBOSITY":        "info",
+				"TRENTO_MCP_CONFIG":           "/env/config.yaml",
+				"TRENTO_MCP_INSECURETLS":      "true",
 			},
 			expected: server.ServeOptions{
 				Port:             8888,
@@ -203,6 +205,7 @@ func TestConfigureCLI(t *testing.T) {
 				TrentoURL:        "https://env.trento.io",
 				TrentoHeaderName: "X-Env-Header",
 				TagFilter:        []string{"X", "Y"},
+				InsecureTLS:      true,
 			},
 		},
 	}
