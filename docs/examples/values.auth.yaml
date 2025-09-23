@@ -5,7 +5,7 @@
 mcpo:
   enabled: false
 
-mcpServerTrento:
+mcpServer:
   ingress:
     enabled: true
     tls: true
@@ -19,7 +19,7 @@ mcpServerTrento:
   args:
     - --port=8080
     - --transport=streamable
-    - --oasPath=/app/api/openapi.json
+    - --oas-path=/app/api/openapi.json
     - --trento-url=https://demo.trento-project.io
     - --header-name=X-TRENTO-MCP-APIKEY
     - --tag-filter=MCP

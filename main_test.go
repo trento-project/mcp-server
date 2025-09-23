@@ -52,7 +52,7 @@ func TestMainExec(t *testing.T) {
 		},
 		{
 			name:           "should return error for non-existent oas file",
-			args:           []string{"--oasPath", "/tmp/non-existent-file.json"},
+			args:           []string{"--oas-path", "/tmp/non-existent-file.json"},
 			expectErr:      true,
 			outputContains: "failed to read the API spec",
 		},
