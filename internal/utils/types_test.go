@@ -150,3 +150,59 @@ func TestLogLevel_Type(t *testing.T) {
 
 	assert.Equal(t, "string", ll.Type())
 }
+
+func TestFlagType_String(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		flagType utils.FlagType
+		expected string
+	}{
+		{
+			name:     "FlagTypeInt",
+			flagType: utils.FlagTypeInt,
+			expected: "int",
+		},
+		{
+			name:     "FlagTypeString",
+			flagType: utils.FlagTypeString,
+			expected: "string",
+		},
+		{
+			name:     "FlagTypeStringSlice",
+			flagType: utils.FlagTypeStringSlice,
+			expected: "stringSlice",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tc.expected, tc.flagType.String())
+		})
+	}
+}
+
+func TestFlagType_Constants(t *testing.T) {
+	t.Parallel()
+
+	// Test that constants have expected values
+	assert.Equal(t, utils.FlagTypeInt, utils.FlagType("int"))
+	assert.Equal(t, utils.FlagTypeString, utils.FlagType("string"))
+	assert.Equal(t, utils.FlagTypeStringSlice, utils.FlagType("stringSlice"))
+
+	// Test that all constants are distinct
+	flagTypes := []utils.FlagType{
+		utils.FlagTypeInt,
+		utils.FlagTypeString,
+		utils.FlagTypeStringSlice,
+	}
+
+	for i := range flagTypes {
+		for j := i + 1; j < len(flagTypes); j++ {
+			assert.NotEqual(t, flagTypes[i], flagTypes[j], "FlagType constants should be unique")
+		}
+	}
+}

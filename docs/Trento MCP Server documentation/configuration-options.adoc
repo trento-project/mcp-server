@@ -3,7 +3,83 @@
 
 = Configuration Options
 
-This document provides an overview of how to configure the `trento-mcp-server` using command-line parameters.
+This document provides an overview of how to configure the `trento-mcp-server` using command-line parameters, configuration files, and environment variables.
+
+== Configuration Sources
+
+The `trento-mcp-server` supports multiple configuration sources with the following priority order (highest to lowest):
+
+1. **Command-line flags** - Override all other settings
+2. **Environment variables** - Useful for containerized deployments
+3. **Configuration file** - YAML file for persistent settings
+4. **Built-in defaults** - Fallback values
+
+== Configuration File
+
+You can create a `trento-mcp-server.config.yaml` file in the working directory or specify a custom path using the `--config` flag.
+
+Viper searches for configuration files in the following order:
+1. Current working directory (`./trento-mcp-server.config.yaml`)
+2. System-wide directory (`/etc/trento/trento-mcp-server.config.yaml`)
+3. Custom path specified with `--config` flag
+
+[source,yaml]
+----
+# Trento MCP Server Configuration
+# Server configuration
+port: 5000
+oas-path: "./api/openapi.json"
+transport: "streamable"  # or "sse"
+insecureTLS: false
+
+# Trento server configuration
+trentoURL: "https://demo.trento-project.io"
+trentoHeaderName: "X-TRENTO-MCP-APIKEY"
+tagFilter:
+  - "MCP"
+
+# Logging
+verbosity: "info"  # debug, info, warning, error
+----
+
+=== System-Wide Configuration
+
+For system-wide configuration, place the config file in `/etc/trento/trento-mcp-server.config.yaml`:
+
+[source,console]
+----
+sudo mkdir -p /etc/trento
+sudo tee /etc/trento/trento-mcp-server.config.yaml > /dev/null <<EOF
+port: 8080
+trentoURL: "https://prod.trento.io"
+verbosity: "info"
+EOF
+----
+
+Then run the server:
+
+[source,console]
+----
+trento-mcp-server
+----
+
+== Environment Variables
+
+Environment variables use the `TRENTO_MCP_` prefix and follow the same naming convention as the configuration file keys.
+
+[width="100%",cols="25%,25%,50%",options="header",]
+|===
+|Environment Variable |Flag |Description
+|`TRENTO_MCP_PORT` |`port` |Server port number
+|`TRENTO_MCP_OASPATH` |`oas-path` |Path to OpenAPI specification file
+|`TRENTO_MCP_TRANSPORT` |`transport` |Transport protocol (`streamable` or `sse`)
+|`TRENTO_MCP_TRENTOURL` |`trento-url` |Trento server URL
+|`TRENTO_MCP_TRENTOHEADERNAME` |`trento-header-name` |HTTP header name for API key
+|`TRENTO_MCP_TAGFILTER` |`tag-filter` |Comma-separated list of OpenAPI tags
+|`TRENTO_MCP_VERBOSITY` |`verbosity` |Log level (`debug`, `info`, `warning`, `error`)
+|`TRENTO_MCP_CONFIG` |`config` |Path to configuration file
+|`TRENTO_MCP_INSECURETLS` |`insecure-tls` |Skip TLS certificate verification for HTTPS URLs
+|===
 
 == Command-Line Parameters
 
@@ -13,13 +89,93 @@ The `trento-mcp-server` binary accepts several command-line flags to configure i
 |===
 |Flag |Default |Description
 |`--port`, `-p` |`5000` |The port on which to run the server.
-|`--oasPath`, `-P` |`./api/openapi.json` |Path to the OpenAPI spec file.
-|`--transport` |`streamable` |The protocol to use. Can be `streamable` or `sse`.
-|`--trento-url` |`https://demo.trento-project.io` |URL for the target Trento server.
-|`--header-name` |`X-TRENTO-MCP-APIKEY` |The HTTP header name that clients should use to send the Trento API key.
-|`--tag-filter` |`MCP` |A comma-separated list of OpenAPI tags. Only operations with at least one of these tags will be exposed as tools.
-|`--verbosity`, `-v` |`info` |Log level verbosity. Can be `debug`, `info`, `warning`, or `error`.
+|`--oas-path`, `-P` |`./api/openapi.json` |Path to the OpenAPI spec file.
+|`--transport`, `-t` |`streamable` |The protocol to use, choose "streamable" or "sse".
+|`--trento-url`, `-u` |`https://demo.trento-project.io` |URL for the target Trento server.
+|`--header-name`, `-H` |`X-TRENTO-MCP-APIKEY` |The header name to be used for the Trento API key.
+|`--tag-filter`, `-f` |`MCP` |A comma-separated list of OpenAPI tags. Only operations with at least one of these tags will be exposed as tools.
+|`--insecure-tls`, `-i` |`false` |Skip TLS certificate verification when fetching OpenAPI spec from HTTPS URLs.
+|`--verbosity`, `-v` |`info` |log level verbosity (debug, info, warning, error).
+|`--config`, `-c` | |config file path (default search: ./trento-mcp-server.config.yaml or /etc/trento/trento-mcp-server.config.yaml).
 |===
+
+== Configuration Examples
+
+=== Using Configuration File Only
+
+[source,console]
+----
+# Create trento-mcp-server.config.yaml with your settings
+trento-mcp-server
+----
+
+=== Using Environment Variables
+
+[source,console]
+----
+export TRENTO_MCP_PORT=8080
+export TRENTO_MCP_TRENTOURL=https://prod.trento.io
+export TRENTO_MCP_VERBOSITY=debug
+trento-mcp-server
+----
+
+=== Using Command-Line Flags (Override Everything)
+
+[source,console]
+----
+trento-mcp-server --port 9000 --verbosity debug --trento-url https://test.trento.io
+----
+
+=== Mixed Configuration
+
+[source,console]
+----
+# Set base config via environment
+export TRENTO_MCP_PORT=8080
+export TRENTO_MCP_VERBOSITY=info
+
+# Override specific values via flags
+trento-mcp-server --port 9000 --config /etc/trento/trento-mcp-server.config.yaml
+# Result: port=9000 (from flag), verbosity=info (from env), other settings from config file
+----
+
+=== Docker Container Example
+
+[source,console]
+----
+docker run -p 8080:8080 \
+  -e TRENTO_MCP_PORT=8080 \
+  -e TRENTO_MCP_TRENTOURL=https://prod.trento.io \
+  -v /host/config:/app/trento-mcp-server.config.yaml \
+  trento-mcp-server
+----
+
+=== Kubernetes Deployment Example
+
+[source,yaml]
+----
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trento-mcp-server
+spec:
+  template:
+    spec:
+      containers:
+      - name: trento-mcp-server
+        image: trento-mcp-server:latest
+        env:
+        - name: TRENTO_MCP_PORT
+          value: "8080"
+        - name: TRENTO_MCP_TRENTOURL
+          value: "https://prod.trento.io"
+        - name: TRENTO_MCP_VERBOSITY
+          value: "info"
+        ports:
+        - containerPort: 8080
+----
+
+== Help and Validation
 
 You can see all available flags by running:
 
@@ -27,3 +183,5 @@ You can see all available flags by running:
 ----
 trento-mcp-server --help
 ----
+
+The server will validate configuration on startup and log any issues with debug verbosity enabled.

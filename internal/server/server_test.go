@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -23,9 +24,8 @@ import (
 	"github.com/trento-project/mcp-server/internal/utils"
 )
 
+//nolint:paralleltest
 func TestServe(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		name        string
 		transport   utils.TransportType
@@ -63,11 +63,9 @@ func TestServe(t *testing.T) {
 			errContains: "invalid transport type",
 		},
 	}
-
+	//nolint:paralleltest
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			tmpFile := createTempOASFile(t, tt.oasContent)
 
 			ctx, cancel := context.WithCancel(context.Background())
@@ -120,6 +118,7 @@ func TestCreateMCPServer(t *testing.T) {
 	client := mcp.NewClient(clientImpl, nil)
 	cs, err := client.Connect(ctx, clientTransport, nil)
 	require.NoError(t, err, "failed to connect client")
+
 	defer func() { _ = cs.Close() }()
 
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -286,6 +285,74 @@ func TestHandleToolsRegistration(t *testing.T) {
 	}
 }
 
+func TestHandleToolsRegistrationWithURL(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		oasContent    string
+		trentoURL     string
+		tagFilter     []string
+		expectErr     bool
+		errContains   string
+		expectedTools int
+	}{
+		{
+			name:          "should register tools from URL with Trento URL override",
+			oasContent:    createSimpleOASContent(),
+			trentoURL:     "https://custom-trento.example.com",
+			tagFilter:     []string{"MCP"},
+			expectErr:     false,
+			expectedTools: 2, // getTest + info
+		},
+		{
+			name:        "invalid OAS from URL",
+			oasContent:  `{ "invalid": "json"`,
+			trentoURL:   "https://trento.test",
+			tagFilter:   []string{"MCP"},
+			expectErr:   true,
+			errContains: "failed to parse OpenAPI spec",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := context.Background()
+
+			testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(tt.oasContent))
+			}))
+			defer testServer.Close()
+
+			serveOpts := &server.ServeOptions{
+				Name:        "trento-mcp-server",
+				Version:     "1.0.0",
+				OASPath:     testServer.URL + "/openapi.json",
+				TrentoURL:   tt.trentoURL,
+				TagFilter:   tt.tagFilter,
+				InsecureTLS: false,
+			}
+
+			srv := server.CreateMCPServer(ctx, serveOpts)
+			require.NotNil(t, srv)
+
+			srv, tools, err := server.HandleToolsRegistration(ctx, srv, serveOpts)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, srv)
+				assert.Len(t, tools, tt.expectedTools)
+			}
+		})
+	}
+}
+
 func TestHandleServerRun(t *testing.T) {
 	t.Parallel()
 
@@ -343,6 +410,7 @@ func TestHandleServerRun(t *testing.T) {
 				lc := net.ListenConfig{KeepAlive: time.Second}
 				l, err := lc.Listen(ctx, "tcp", fmt.Sprintf(":%d", port))
 				require.NoError(t, err)
+
 				defer l.Close() //nolint:errcheck
 				// Give the OS a moment to register the port as in use
 				time.Sleep(200 * time.Millisecond)
@@ -753,6 +821,192 @@ func TestHandleAPIKeyAuth(t *testing.T) {
 
 			if tt.expectEnvSet {
 				assert.Equal(t, tt.expectedAPIKey, actualAPIKey)
+			}
+		})
+	}
+}
+
+func TestLoadOpenAPISpec(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		oasPath       string
+		isHTTPLoad    bool
+		oasContent    string
+		expectErr     bool
+		errContains   string
+		expectedTitle string
+	}{
+		{
+			name:          "should load from HTTP URL",
+			oasPath:       "",
+			isHTTPLoad:    true,
+			oasContent:    createSimpleOASContent(),
+			expectErr:     false,
+			expectedTitle: "Simple API",
+		},
+		{
+			name:          "should load from file path",
+			oasPath:       "",
+			isHTTPLoad:    false,
+			oasContent:    createSimpleOASContent(),
+			expectErr:     false,
+			expectedTitle: "Simple API",
+		},
+		{
+			name:        "invalid file",
+			oasPath:     "/non/existent/file.json",
+			isHTTPLoad:  false,
+			oasContent:  "",
+			expectErr:   true,
+			errContains: "failed to read the API spec",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := context.Background()
+			serveOpts := &server.ServeOptions{
+				Name:        "trento-mcp-server",
+				Version:     "1.0.0",
+				OASPath:     tt.oasPath,
+				InsecureTLS: false,
+			}
+
+			var cleanup func()
+
+			if tt.isHTTPLoad {
+				testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(tt.oasContent))
+				}))
+				serveOpts.OASPath = testServer.URL + "/openapi.json"
+				cleanup = testServer.Close
+			} else {
+				tmpFile := createTempOASFile(t, tt.oasContent)
+				serveOpts.OASPath = tmpFile
+				cleanup = func() {}
+			}
+
+			defer cleanup()
+
+			oasDoc, err := server.LoadOpenAPISpec(ctx, serveOpts)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+				assert.Nil(t, oasDoc)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, oasDoc)
+				assert.Equal(t, tt.expectedTitle, oasDoc.Info.Title)
+			}
+		})
+	}
+}
+
+func TestLoadOpenAPISpecFromURL(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		oasContent    string
+		statusCode    int
+		insecureTLS   bool
+		expectErr     bool
+		oasPath       string
+		errContains   string
+		expectedTitle string
+	}{
+		{
+			name:          "valid OAS from HTTP URL",
+			oasContent:    createSimpleOASContent(),
+			statusCode:    http.StatusOK,
+			insecureTLS:   false,
+			expectErr:     false,
+			oasPath:       "",
+			expectedTitle: "Simple API",
+		},
+		{
+			name:          "valid OAS from HTTPS URL with insecure TLS",
+			oasContent:    createSimpleOASContent(),
+			statusCode:    http.StatusOK,
+			insecureTLS:   true,
+			expectErr:     false,
+			oasPath:       "",
+			expectedTitle: "Simple API",
+		},
+		{
+			name:        "404 status code",
+			oasContent:  createSimpleOASContent(),
+			statusCode:  http.StatusNotFound,
+			insecureTLS: false,
+			expectErr:   true,
+			oasPath:     "",
+			errContains: "status code: 404",
+		},
+		{
+			name:        "invalid JSON",
+			oasContent:  `{ "invalid": "json"`,
+			statusCode:  http.StatusOK,
+			insecureTLS: false,
+			expectErr:   true,
+			oasPath:     "",
+			errContains: "failed to parse OpenAPI spec",
+		},
+		{
+			name:        "network error",
+			oasContent:  createSimpleOASContent(),
+			statusCode:  http.StatusOK,
+			insecureTLS: false,
+			expectErr:   true,
+			oasPath:     "http://non-existent-server.com/openapi.json",
+			errContains: "failed to fetch OpenAPI spec",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Verify User-Agent header is set
+				userAgent := r.Header.Get("User-Agent")
+				assert.Contains(t, userAgent, "trento-mcp-server")
+
+				w.WriteHeader(tt.statusCode)
+				_, _ = w.Write([]byte(tt.oasContent))
+			}))
+			defer testServer.Close()
+
+			ctx := context.Background()
+			serveOpts := &server.ServeOptions{
+				Name:        "trento-mcp-server",
+				Version:     "1.0.0",
+				OASPath:     "",
+				InsecureTLS: tt.insecureTLS,
+			}
+
+			// If oasPath is unset, use the test server url.
+			if tt.oasPath == "" {
+				serveOpts.OASPath = testServer.URL + "/openapi.json"
+			} else {
+				serveOpts.OASPath = tt.oasPath
+			}
+
+			oasDoc, err := server.LoadOpenAPISpecFromURL(ctx, serveOpts)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+				assert.Nil(t, oasDoc)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, oasDoc)
+				assert.Equal(t, tt.expectedTitle, oasDoc.Info.Title)
 			}
 		})
 	}

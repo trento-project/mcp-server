@@ -5,66 +5,55 @@
 package cmd
 
 import (
-	"log/slog"
+	"fmt"
 	"os"
 
 	"github.com/carlmjohnson/versioninfo"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/trento-project/mcp-server/internal/server"
 	"github.com/trento-project/mcp-server/internal/utils"
 )
 
 var (
 	// version will be set via ldflags.
-	logLevel  utils.LogLevel      //nolint:gochecknoglobals
+	version string //nolint:gochecknoglobals
+
+	// serveOpts are the options passed to the server.
 	serveOpts server.ServeOptions //nolint:gochecknoglobals
-	version   string              //nolint:gochecknoglobals
 
 	// rootCmd represents the base command when called without any subcommands.
 	rootCmd *cobra.Command //nolint:gochecknoglobals
+
+	// Default values.
+	defaultTagFilter   = []string{}                        //nolint:gochecknoglobals
+	defaultTransport   = string(utils.TransportStreamable) //nolint:gochecknoglobals
+	defaultConfigPaths = []string{".", "/etc/trento/"}     //nolint:gochecknoglobals
 )
 
 const (
-	name                    = "trento-mcp-server"
-	defaultLogLevel         = utils.LogLevelInfo
+	name = "trento-mcp-server"
+
+	// Default values.
+	defaultVerbosity        = "info"
 	defaultOASPath          = "./api/openapi.json"
 	defaultPort             = 5000
 	defaultTrentoHeaderName = "X-TRENTO-MCP-APIKEY"
 	defaultTrentoURL        = "https://demo.trento-project.io"
+	defaultConfig           = ""
+	defaultInsecureTLS      = false
+
+	// Configuration keys.
+	configKeyPort             = "port"
+	configKeyOASPath          = "oasPath"
+	configKeyTransport        = "transport"
+	configKeyTrentoURL        = "trentoURL"
+	configKeyTrentoHeaderName = "trentoHeaderName"
+	configKeyTagFilter        = "tagFilter"
+	configKeyVerbosity        = "verbosity"
+	configKeyConfig           = "config"
+	configKeyInsecureTLS      = "insecureTLS"
 )
-
-func newRootCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:               name,
-		Short:             "Trento MCP Server",
-		Long:              `MCP server to interact with Trento`,
-		PersistentPreRunE: initLogger,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			return server.Serve(cmd.Context(), &serveOpts)
-		},
-		Version: Version(),
-	}
-}
-
-// setFlags defines which flags this CLI command will accept.
-func setFlags(cmd *cobra.Command) {
-	// MCP SERVER
-	cmd.Flags().IntVarP(&serveOpts.Port, "port", "p", defaultPort, "The port on which to run the server")
-	cmd.Flags().StringVarP(&serveOpts.OASPath, "oasPath", "P", defaultOASPath, "Path to the OpenAPI spec file")
-	serveOpts.Transport = utils.TransportStreamable // Set default value for transport
-	cmd.Flags().Var(&serveOpts.Transport, "transport", "The protocol to use, choose 'streamable' (default) or 'sse'")
-	// Trento
-	cmd.Flags().StringVar(&serveOpts.TrentoURL, "trento-url", defaultTrentoURL, "URL for the target Trento server")                                 //nolint:lll
-	cmd.Flags().StringVar(&serveOpts.TrentoHeaderName, "header-name", defaultTrentoHeaderName, "The header name to be used for the Trento API key") //nolint:lll
-	cmd.Flags().StringSliceVar(&serveOpts.TagFilter, "tag-filter", []string{"MCP"}, "Only include operations with at least one of these tags")      //nolint:lll
-	// OTHERS
-	logLevel = defaultLogLevel
-	cmd.PersistentFlags().VarP(&logLevel, "verbosity", "v", "log level verbosity (debug, info, warning, error)") //nolint:lll
-
-	// Set version and name
-	serveOpts.Version = Version()
-	serveOpts.Name = name
-}
 
 // init creates a new command, append the runtime version and set flags.
 // note that here the flags have not being parsed yet.
@@ -75,16 +64,121 @@ func init() {
 `)
 }
 
-// initLogger creates a new logger once the flags have been parsed,
-// this way, the log level is being properly set.
-func initLogger(_ *cobra.Command, _ []string) error {
-	logger := utils.CreateLogger(logLevel)
+func newRootCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:               name,
+		Short:             "Trento MCP Server",
+		Long:              `MCP server to interact with Trento`,
+		PersistentPreRunE: configureCLI,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return server.Serve(cmd.Context(), &serveOpts)
+		},
+		Version: Version(),
+	}
+}
 
-	slog.SetDefault(logger)
+// flagConfigs returns the config flags for this CLI.
+func flagConfigs() []utils.FlagConfig {
+	return []utils.FlagConfig{
+		{
+			Key:          configKeyPort,
+			DefaultValue: defaultPort,
+			FlagType:     utils.FlagTypeInt,
+			FlagName:     "port",
+			Short:        "p",
+			Description:  "The port on which to run the server",
+		},
+		{
+			Key:          configKeyOASPath,
+			DefaultValue: defaultOASPath,
+			FlagType:     utils.FlagTypeString,
+			FlagName:     "oas-path",
+			Short:        "P",
+			Description:  "Path to the OpenAPI spec file",
+		},
+		{
+			Key:          configKeyTransport,
+			DefaultValue: defaultTransport,
+			FlagType:     utils.FlagTypeString,
+			FlagName:     "transport",
+			Short:        "t",
+			Description:  `The protocol to use, choose "streamable" or "sse"`,
+		},
+		{
+			Key:          configKeyTrentoURL,
+			DefaultValue: defaultTrentoURL,
+			FlagType:     utils.FlagTypeString,
+			FlagName:     "trento-url",
+			Short:        "u",
+			Description:  "URL for the target Trento server",
+		},
+		{
+			Key:          configKeyTrentoHeaderName,
+			DefaultValue: defaultTrentoHeaderName,
+			FlagType:     utils.FlagTypeString,
+			FlagName:     "header-name",
+			Short:        "H",
+			Description:  "The header name to be used for the Trento API key",
+		},
+		{
+			Key:          configKeyTagFilter,
+			DefaultValue: defaultTagFilter,
+			FlagType:     utils.FlagTypeStringSlice,
+			FlagName:     "tag-filter",
+			Short:        "f",
+			Description:  "Only include operations with at least one of these tags",
+		},
+		{
+			Key:          configKeyInsecureTLS,
+			DefaultValue: defaultInsecureTLS,
+			FlagType:     utils.FlagTypeBool,
+			FlagName:     "insecure-tls",
+			IsPersistent: false,
+			Short:        "i",
+			Description:  "Skip TLS certificate verification when fetching OpenAPI spec from HTTPS URLs",
+		},
+		{
+			Key:          configKeyVerbosity,
+			DefaultValue: defaultVerbosity,
+			FlagType:     utils.FlagTypeString,
+			FlagName:     "verbosity",
+			IsPersistent: true,
+			Short:        "v",
+			Description:  "log level verbosity (debug, info, warning, error)",
+		},
+		{
+			Key:          configKeyConfig,
+			DefaultValue: defaultConfig,
+			FlagType:     utils.FlagTypeString,
+			FlagName:     "config",
+			IsPersistent: true,
+			Short:        "c",
+			Description:  getConfigDescription(),
+		},
+	}
+}
 
-	slog.Debug("CLI initialization completed, ready to invoke the server",
-		"logger.level", logLevel,
-	)
+// configureCLI prepares the CLI, initializes the logger an
+// reads the config file if any. Finally, it unmarshal the
+// configuration into the server options passed through.
+func configureCLI(_ *cobra.Command, _ []string) error {
+	// Set the global logger
+	err := initLogger()
+	if err != nil {
+		return fmt.Errorf("failed init logger: %w", err)
+	}
+
+	// try reading a file with the configuration
+	err = readConfigFile()
+	if err != nil {
+		return fmt.Errorf("failed read config file: %w", err)
+	}
+
+	// Set serveOpts from Viper after flags are parsed
+	err = viper.Unmarshal(&serveOpts)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal config: %w", err)
+	}
 
 	return nil
 }
