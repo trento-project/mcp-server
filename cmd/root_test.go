@@ -35,6 +35,7 @@ func TestParseFlagsCorrect(t *testing.T) {
 				"--header-name", "X-My-Header",
 				"--tag-filter", "A,B",
 				"--verbosity", "debug",
+				"--insecure-tls",
 			},
 			expConf: server.ServeOptions{
 				Port:             9090,
@@ -43,6 +44,7 @@ func TestParseFlagsCorrect(t *testing.T) {
 				TrentoURL:        "http://trento.example.com",
 				TrentoHeaderName: "X-My-Header",
 				TagFilter:        []string{"A", "B"},
+				InsecureTLS:      true,
 			},
 			errExpected: false,
 		},
