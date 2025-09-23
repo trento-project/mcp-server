@@ -292,22 +292,22 @@ jobs:
         run: |
           set -euo pipefail
           echo "IMAGES_TO_PUSH=\"${IMAGES_TO_PUSH}\"" >> $GITHUB_ENV
+          upload_count=0
           for artifact in *; do
-            echo "::debug::Processing artifact '${artifact}'"
-
-            if [[ "${artifact}" != *"-image" ]]; then
+            # Only process files ending with -image.tar
+            if [[ "$artifact" != *-image.tar ]]; then
               echo "::notice ::Skipping artifact ${artifact}, it's not a container image"
               continue
             fi
 
-            image=${artifact/-image/}
+            image=${artifact/-image.tar/}
             if [[ "${IMAGES_TO_PUSH}" != *"${image}"* ]]; then
               echo "::notice ::Skipping image ${image}, it's not an image to push"
               continue
             fi
 
             echo "::notice ::Loading image ${image}"
-            docker load --input "${artifact}/${artifact}.tar"
+            docker load --input "${artifact}"
 
             dev_image=${IMG_PREFIX}${image}${IMG_MODIFIER}:${IMG_DEV_TAG}
             prod_image=${IMG_PREFIX}${image}:${IMG_PROD_TAG}
@@ -315,7 +315,14 @@ jobs:
 
             echo "::notice ::Pushing image ${prod_image}"
             docker push $prod_image
+            upload_count=$((upload_count+1))
           done
+
+          echo "::notice ::Total container images uploaded: $upload_count"
+          if [[ $upload_count -eq 0 ]]; then
+            echo "::error ::No container images found to upload. Failing the job."
+            exit 1
+          fi
 
   # Sync the project with OBS (Open Build Service).
   obs-sync:
