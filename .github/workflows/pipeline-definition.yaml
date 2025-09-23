@@ -23,7 +23,7 @@ jobs:
   # Set up environment variables and outputs for downstream jobs.
   setup:
     name: Setup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       # Output variables for use in other jobs.
       img_modifier: ${{ steps.set-outputs.outputs.img_modifier }}
@@ -112,7 +112,7 @@ jobs:
     name: Check linters result
     if: inputs.run_linters && always()
     needs: linters-run
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       # Fail the job if any linter did not succeed.
       - name: Check all linters result
@@ -124,7 +124,7 @@ jobs:
     name: Check Go test suite
     needs:
       - setup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       # Checkout the repository.
       - uses: actions/checkout@v5
@@ -153,7 +153,7 @@ jobs:
     name: Check Helm chart
     needs:
       - setup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       # Checkout the repository.
       - uses: actions/checkout@v5
@@ -189,7 +189,7 @@ jobs:
     name: "Build ${{matrix.image}} image"
     needs:
       - setup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -245,7 +245,7 @@ jobs:
   generate-docs:
     name: Update Go docs site
     if: needs.setup.outputs.running_on_main == 'true' || inputs.trigger_release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
       - setup
       - build-container-images
@@ -262,7 +262,7 @@ jobs:
   push_images:
     name: Push container images
     if: needs.setup.outputs.running_on_main == 'true' || inputs.trigger_release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: write # required for creating ghcr.io packages.
@@ -292,22 +292,22 @@ jobs:
         run: |
           set -euo pipefail
           echo "IMAGES_TO_PUSH=\"${IMAGES_TO_PUSH}\"" >> $GITHUB_ENV
+          upload_count=0
           for artifact in *; do
-            echo "::debug::Processing artifact '${artifact}'"
-
-            if [[ "${artifact}" != *"-image" ]]; then
+            # Only process files ending with -image.tar
+            if [[ "$artifact" != *-image.tar ]]; then
               echo "::notice ::Skipping artifact ${artifact}, it's not a container image"
               continue
             fi
 
-            image=${artifact/-image/}
+            image=${artifact/-image.tar/}
             if [[ "${IMAGES_TO_PUSH}" != *"${image}"* ]]; then
               echo "::notice ::Skipping image ${image}, it's not an image to push"
               continue
             fi
 
             echo "::notice ::Loading image ${image}"
-            docker load --input "${artifact}/${artifact}.tar"
+            docker load --input "${artifact}"
 
             dev_image=${IMG_PREFIX}${image}${IMG_MODIFIER}:${IMG_DEV_TAG}
             prod_image=${IMG_PREFIX}${image}:${IMG_PROD_TAG}
@@ -315,7 +315,14 @@ jobs:
 
             echo "::notice ::Pushing image ${prod_image}"
             docker push $prod_image
+            upload_count=$((upload_count+1))
           done
+
+          echo "::notice ::Total container images uploaded: $upload_count"
+          if [[ $upload_count -eq 0 ]]; then
+            echo "::error ::No container images found to upload. Failing the job."
+            exit 1
+          fi
 
   # Sync the project with OBS (Open Build Service).
   obs-sync:
@@ -338,7 +345,7 @@ jobs:
     name: Cleanup
     needs:
       - push_images
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       # Delete image artifacts after pushing to the registry.
       - uses: geekyeggo/delete-artifact@v5
