@@ -6,9 +6,12 @@ package cmd
 
 // Exports for testing.
 var (
-	ConfigureCLI   = configureCLI
-	InitLogger     = initLogger
-	ReadConfigFile = readConfigFile
-	NewRootCmd     = newRootCmd
-	SetFlags       = setFlags
+	ConfigureCLI         = configureCLI
+	InitLogger           = initLogger
+	ReadConfigFile       = readConfigFile
+	NewRootCmd           = newRootCmd
+	SetFlags             = setFlags
+	GetConfigDescription = getConfigDescription
+	CreateAndBindFlags   = createAndBindFlags
+	FlagConfigs          = flagConfigs
 )

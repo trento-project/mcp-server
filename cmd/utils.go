@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/trento-project/mcp-server/internal/utils"
 )
@@ -157,15 +156,10 @@ func createAndBindFlags(flagConfigs []utils.FlagConfig, cmd *cobra.Command) {
 			flagSet = cmd.PersistentFlags()
 		}
 
-		bindFlag(config.Key, flagSet.Lookup(config.FlagName))
-	}
-}
-
-// bindFlag is a helper to bind flag and panic on error.
-func bindFlag(key string, flag *pflag.Flag) {
-	err := viper.BindPFlag(key, flag)
-	if err != nil {
-		panic(fmt.Sprintf("failed to bind flag %s: %v", key, err))
+		err := viper.BindPFlag(config.Key, flagSet.Lookup(config.FlagName))
+		if err != nil {
+			panic(fmt.Sprintf("failed to bind flag %s: %v", config.Key, err))
+		}
 	}
 }
 

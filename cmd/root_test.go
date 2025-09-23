@@ -5,10 +5,12 @@ package cmd_test
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"testing"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,12 +20,11 @@ import (
 )
 
 //nolint:paralleltest
-func TestParseFlagsCorrect(t *testing.T) {
+func TestExecute(t *testing.T) {
 	tests := []struct {
-		name        string
-		args        []string
-		expConf     server.ServeOptions
-		errExpected bool
+		name    string
+		args    []string
+		expConf server.ServeOptions
 	}{
 		{
 			name: "all arguments are captured",
@@ -46,7 +47,6 @@ func TestParseFlagsCorrect(t *testing.T) {
 				TagFilter:        []string{"A", "B"},
 				InsecureTLS:      true,
 			},
-			errExpected: false,
 		},
 		{
 			name: "default values",
@@ -59,7 +59,6 @@ func TestParseFlagsCorrect(t *testing.T) {
 				TrentoHeaderName: "X-TRENTO-MCP-APIKEY",
 				TagFilter:        []string{},
 			},
-			errExpected: false,
 		},
 		{
 			name: "invalid transport",
@@ -72,13 +71,11 @@ func TestParseFlagsCorrect(t *testing.T) {
 				TrentoHeaderName: "X-TRENTO-MCP-APIKEY",
 				TagFilter:        []string{},
 			},
-			errExpected: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Do not run in parallel because they modify a global variable (serveOpts)
 			b := bytes.NewBufferString("")
 			command := cmd.NewRootCmd()
 			// We only want to test flags, not the server execution
@@ -89,17 +86,13 @@ func TestParseFlagsCorrect(t *testing.T) {
 			command.SetArgs(tt.args)
 			err := command.Execute()
 
-			if !tt.errExpected {
-				require.NoError(t, err)
+			require.NoError(t, err)
 
-				opts := cmd.ServeOpts()
-				// Name and Version are set automatically.
-				tt.expConf.Name = opts.Name
-				tt.expConf.Version = opts.Version
-				assert.Equal(t, tt.expConf, opts)
-			} else {
-				require.Error(t, err)
-			}
+			opts := cmd.ServeOpts()
+			// Name and Version are set automatically.
+			tt.expConf.Name = opts.Name
+			tt.expConf.Version = opts.Version
+			assert.Equal(t, tt.expConf, opts)
 		})
 	}
 }
@@ -144,9 +137,7 @@ func TestInitLogger(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest
 func TestConfigureCLI(t *testing.T) {
-	// Do not run in parallel as it modifies global state
 	tests := []struct {
 		name          string
 		viperSettings map[string]any
@@ -206,6 +197,20 @@ func TestConfigureCLI(t *testing.T) {
 				TrentoHeaderName: "X-Env-Header",
 				TagFilter:        []string{"X", "Y"},
 				InsecureTLS:      true,
+			},
+		},
+		{
+			name: "invalid transport",
+			viperSettings: map[string]any{
+				"transport": "invalid-transport",
+			},
+			expected: server.ServeOptions{
+				Port:             5000,
+				OASPath:          "./api/openapi.json",
+				Transport:        "invalid-transport",
+				TrentoURL:        "https://demo.trento-project.io",
+				TrentoHeaderName: "X-TRENTO-MCP-APIKEY",
+				TagFilter:        []string{},
 			},
 		},
 	}
@@ -333,4 +338,171 @@ func TestVersion(t *testing.T) {
 
 	v := cmd.Version()
 	assert.Contains(t, v, "devel")
+}
+
+func TestServeOpts(t *testing.T) {
+	viper.Reset()
+	defer viper.Reset()
+
+	rootCmd := cmd.NewRootCmd()
+	rootCmd.RunE = func(_ *cobra.Command, _ []string) error { return nil }
+	cmd.SetFlags(rootCmd)
+
+	err := cmd.ConfigureCLI(rootCmd, []string{})
+	require.NoError(t, err)
+
+	// Get the serve options
+	opts := cmd.ServeOpts()
+
+	// Verify default values
+	expected := server.ServeOptions{
+		Port:             5000,
+		OASPath:          "./api/openapi.json",
+		Transport:        utils.TransportStreamable,
+		TrentoURL:        "https://demo.trento-project.io",
+		TrentoHeaderName: "X-TRENTO-MCP-APIKEY",
+		TagFilter:        []string{},
+		InsecureTLS:      false,
+	}
+
+	// Name and Version are set automatically
+	assert.NotEmpty(t, opts.Name)
+	assert.NotEmpty(t, opts.Version)
+	assert.Contains(t, opts.Version, "devel")
+
+	// Check all other fields match expected defaults
+	assert.Equal(t, expected.Port, opts.Port)
+	assert.Equal(t, expected.OASPath, opts.OASPath)
+	assert.Equal(t, expected.Transport, opts.Transport)
+	assert.Equal(t, expected.TrentoURL, opts.TrentoURL)
+	assert.Equal(t, expected.TrentoHeaderName, opts.TrentoHeaderName)
+	assert.Equal(t, expected.TagFilter, opts.TagFilter)
+	assert.Equal(t, expected.InsecureTLS, opts.InsecureTLS)
+}
+
+func TestCreateAndBindFlags(t *testing.T) {
+	// Reset viper for clean state
+	viper.Reset()
+	defer viper.Reset()
+
+	// Create a test command
+	testCmd := &cobra.Command{}
+
+	// Define test flag configs
+	flagConfigs := []utils.FlagConfig{
+		{
+			Key:          "testPort",
+			DefaultValue: 8080,
+			FlagType:     utils.FlagTypeInt,
+			FlagName:     "test-port",
+			Short:        "p",
+			Description:  "Test port flag",
+		},
+		{
+			Key:          "testPath",
+			DefaultValue: "/default/path",
+			FlagType:     utils.FlagTypeString,
+			FlagName:     "test-path",
+			Short:        "f",
+			Description:  "Test path flag",
+		},
+	}
+
+	// Call CreateAndBindFlags
+	cmd.CreateAndBindFlags(flagConfigs, testCmd)
+
+	// Verify flags were created
+	portFlag := testCmd.Flags().Lookup("test-port")
+	require.NotNil(t, portFlag)
+	assert.Equal(t, "p", portFlag.Shorthand)
+	assert.Equal(t, "Test port flag", portFlag.Usage)
+
+	pathFlag := testCmd.Flags().Lookup("test-path")
+	require.NotNil(t, pathFlag)
+	assert.Equal(t, "f", pathFlag.Shorthand)
+	assert.Equal(t, "Test path flag", pathFlag.Usage)
+
+	// Verify bindings work by setting flag values and checking viper
+	testCmd.Flags().Set("test-port", "9090")
+	assert.Equal(t, 9090, viper.Get("testPort"))
+
+	testCmd.Flags().Set("test-path", "/custom/path")
+	assert.Equal(t, "/custom/path", viper.Get("testPath"))
+}
+
+func TestFlagConfigs(t *testing.T) {
+	t.Parallel()
+
+	configs := cmd.FlagConfigs()
+
+	// Verify we have the expected number of configs
+	assert.Len(t, configs, 9)
+
+	// Test basic properties of each flag configuration
+	expectedFlags := []struct {
+		key      string
+		flagName string
+		short    string
+	}{
+		{"port", "port", "p"},
+		{"oasPath", "oas-path", "P"},
+		{"transport", "transport", "t"},
+		{"trentoURL", "trento-url", "u"},
+		{"trentoHeaderName", "header-name", "H"},
+		{"tagFilter", "tag-filter", "f"},
+		{"insecureTLS", "insecure-tls", "i"},
+		{"verbosity", "verbosity", "v"},
+		{"config", "config", "c"},
+	}
+
+	for i, expected := range expectedFlags {
+		assert.Equal(t, expected.key, configs[i].Key, "config %d key mismatch", i)
+		assert.Equal(t, expected.flagName, configs[i].FlagName, "config %d flag name mismatch", i)
+		assert.Equal(t, expected.short, configs[i].Short, "config %d short mismatch", i)
+	}
+}
+
+func TestGetConfigDescription(t *testing.T) {
+	t.Parallel()
+
+	description := cmd.GetConfigDescription()
+
+	// The description should contain the expected format
+	expectedPaths := "./trento-mcp-server.config.yaml or /etc/trento/trento-mcp-server.config.yaml"
+	expectedDescription := fmt.Sprintf("config file path (default search: %s)", expectedPaths)
+
+	assert.Equal(t, expectedDescription, description)
+}
+
+func TestSetFlags(t *testing.T) {
+	// Reset viper for clean state
+	viper.Reset()
+	defer viper.Reset()
+
+	// Create a test command
+	testCmd := &cobra.Command{}
+
+	// Call SetFlags
+	cmd.SetFlags(testCmd)
+
+	// Get all flag configurations
+	flagConfigs := cmd.FlagConfigs()
+
+	// Verify that all flags from flagConfigs were created on the command
+	for _, config := range flagConfigs {
+		var flagSet *pflag.FlagSet
+		if config.IsPersistent {
+			flagSet = testCmd.PersistentFlags()
+		} else {
+			flagSet = testCmd.Flags()
+		}
+
+		flag := flagSet.Lookup(config.FlagName)
+		require.NotNil(t, flag, "Flag %s should be created", config.FlagName)
+		assert.Equal(t, config.Short, flag.Shorthand, "Flag %s should have correct shorthand", config.FlagName)
+		assert.Equal(t, config.Description, flag.Usage, "Flag %s should have correct description", config.FlagName)
+
+		// Verify viper defaults are set
+		assert.Equal(t, config.DefaultValue, viper.Get(config.Key), "Viper default should be set for key %s", config.Key)
+	}
 }
