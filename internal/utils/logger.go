@@ -5,11 +5,15 @@
 package utils //nolint:revive
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
+	"strings"
+	"sync"
 )
 
 // CreateLogger creates and configures an slog logger.
@@ -34,6 +38,71 @@ func ParseLogLevel(logLevel LogLevel) slog.Level {
 	default:
 		return slog.LevelInfo
 	}
+}
+
+// CaptureLibraryLogs captures stdout and stderr from a function call and redirects it to the application's logger.
+// This is useful for libraries that log directly to stdout or stderr.
+func CaptureLibraryLogs(ctx context.Context, action func() error) error {
+	originalStdout := os.Stdout
+	originalStderr := os.Stderr
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		return fmt.Errorf("failed to create pipe for output capture: %w", err)
+	}
+
+	os.Stdout = w
+	os.Stderr = w
+
+	// Restore stdout and stderr when we're done
+	defer func() {
+		os.Stdout = originalStdout
+		os.Stderr = originalStderr
+	}()
+
+	// Channel to receive the error from the action
+	actionErrChan := make(chan error, 1)
+
+	go func() {
+		actionErrChan <- action()
+	}()
+
+	// Goroutine to read from the pipe and log
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+
+		scanner := bufio.NewScanner(r)
+		for scanner.Scan() {
+			line := scanner.Text()
+
+			switch {
+			case strings.HasPrefix(line, "[WARN]"):
+				slog.WarnContext(ctx, strings.TrimSpace(strings.TrimPrefix(line, "[WARN]")), "source", "openapi-mcp")
+			case strings.HasPrefix(line, "[ERROR]"):
+				slog.ErrorContext(ctx, strings.TrimSpace(strings.TrimPrefix(line, "[ERROR]")), "source", "openapi-mcp")
+			case strings.HasPrefix(line, "[INFO]"):
+				slog.InfoContext(ctx, strings.TrimSpace(strings.TrimPrefix(line, "[INFO]")), "source", "openapi-mcp")
+			default:
+				// Also capture unstructured output from stdout (e.g. schema dumps)
+				slog.DebugContext(ctx, "unstructured output from library", "output", line, "source", "openapi-mcp")
+			}
+		}
+	}()
+
+	// Wait for the action to complete
+	actionErr := <-actionErrChan
+
+	// Close the writer to unblock the scanner and signal the end of output
+	closeErr := w.Close()
+
+	// Wait for the logging goroutine to finish processing all lines
+	wg.Wait()
+
+	return errors.Join(actionErr, closeErr)
 }
 
 // TODO(agamez): use it as a dependency,
