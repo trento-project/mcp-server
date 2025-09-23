@@ -294,6 +294,7 @@ func startSSEServer(
 			handleAPIKeyAuth(r, headerName)
 			return mcpSrv
 		},
+		&mcp.SSEOptions{},
 	)
 
 	httpServer := startServer(ctx, listenAddr, sseHandler, utils.TransportSSE, errChan)
