@@ -41,6 +41,7 @@ const (
 	defaultTrentoHeaderName = "X-TRENTO-MCP-APIKEY"
 	defaultTrentoURL        = "https://demo.trento-project.io"
 	defaultConfig           = ""
+	defaultInsecureTLS      = false
 
 	// Configuration keys.
 	configKeyPort             = "port"
@@ -51,6 +52,7 @@ const (
 	configKeyTagFilter        = "tagFilter"
 	configKeyVerbosity        = "verbosity"
 	configKeyConfig           = "config"
+	configKeyInsecureTLS      = "insecureTLS"
 )
 
 // init creates a new command, append the runtime version and set flags.
@@ -125,6 +127,15 @@ func flagConfigs() []utils.FlagConfig {
 			FlagName:     "tag-filter",
 			Short:        "f",
 			Description:  "Only include operations with at least one of these tags",
+		},
+		{
+			Key:          configKeyInsecureTLS,
+			DefaultValue: defaultInsecureTLS,
+			FlagType:     utils.FlagTypeBool,
+			FlagName:     "insecure-tls",
+			IsPersistent: false,
+			Short:        "i",
+			Description:  "Skip TLS certificate verification when fetching OpenAPI spec from HTTPS URLs",
 		},
 		{
 			Key:          configKeyVerbosity,

@@ -91,6 +91,8 @@ const (
 	FlagTypeString FlagType = "string"
 	// FlagTypeStringSlice represents a string slice flag.
 	FlagTypeStringSlice FlagType = "stringSlice"
+	// FlagTypeBool represents a boolean flag.
+	FlagTypeBool FlagType = "bool"
 )
 
 // String returns the string representation of the FlagType.

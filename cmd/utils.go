@@ -141,6 +141,10 @@ func createAndBindFlags(flagConfigs []utils.FlagConfig, cmd *cobra.Command) {
 			if sliceVal, ok := config.DefaultValue.([]string); ok {
 				flagSet.StringSliceP(config.FlagName, config.Short, sliceVal, config.Description)
 			}
+		case utils.FlagTypeBool:
+			if boolVal, ok := config.DefaultValue.(bool); ok {
+				flagSet.BoolP(config.FlagName, config.Short, boolVal, config.Description)
+			}
 		default:
 			panic(fmt.Sprintf("unknown flag type: %s", config.FlagType))
 		}
