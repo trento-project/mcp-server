@@ -3,7 +3,7 @@
 
 module github.com/trento-project/mcp-server
 
-go 1.24.4
+go 1.25
 
 require (
 	github.com/carlmjohnson/versioninfo v0.22.5
