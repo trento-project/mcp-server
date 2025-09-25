@@ -80,7 +80,7 @@
                 "ports": {
                     "type": "array",
                     "description": "Port configuration for the MCPO service.",
-                    "default": "[]",
+                    "default": [],
                     "items": {
                         "type": "object"
                     }
@@ -121,7 +121,7 @@
                         "hosts": {
                             "type": "array",
                             "description": "Ingress hosts configuration for the mcpServer service.",
-                            "default": "[]",
+                            "default": [],
                             "items": {
                                 "type": "object"
                             }
@@ -197,7 +197,7 @@
                 "ports": {
                     "type": "array",
                     "description": "Port configuration for the mcpServer service.",
-                    "default": "[]",
+                    "default": [],
                     "items": {
                         "type": "object"
                     }
@@ -211,6 +211,82 @@
                     "type": "string",
                     "description": "The type of Kubernetes service for MCP Server (e.g., ClusterIP, NodePort).",
                     "default": "ClusterIP"
+                },
+                "port": {
+                    "type": "number",
+                    "description": "The port number for the MCP Server.",
+                    "default": 8080
+                },
+                "transport": {
+                    "type": "string",
+                    "description": "The transport protocol for the MCP Server (e.g., sse, streamable).",
+                    "default": "streamable"
+                },
+                "oasPath": {
+                    "type": "string",
+                    "description": "The path to the OpenAPI specification file.",
+                    "default": "/app/api/openapi.json"
+                },
+                "trentoURL": {
+                    "type": "string",
+                    "description": "The URL of the Trento instance.",
+                    "default": "https://demo.trento-project.io"
+                },
+                "headerName": {
+                    "type": "string",
+                    "description": "The name of the header used for API key authentication.",
+                    "default": "X-TRENTO-MCP-APIKEY"
+                },
+                "tagFilter": {
+                    "type": "array",
+                    "description": "List of tags to filter MCP operations.",
+                    "default": [
+                        "MCP"
+                    ],
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "verbosity": {
+                    "type": "string",
+                    "description": "The verbosity level for logging (e.g., info, debug).",
+                    "default": "info"
+                },
+                "insecureTLS": {
+                    "type": "boolean",
+                    "description": "Allow insecure TLS connections.",
+                    "default": false
+                },
+                "env": {
+                    "type": "object",
+                    "description": "Additional environment variables to set in the MCP Server container.",
+                    "default": {}
+                },
+                "config": {
+                    "type": "object",
+                    "description": "Configuration file options for the MCP Server.",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Enable mounting a configuration file for the MCP Server.",
+                            "default": false
+                        },
+                        "fileName": {
+                            "type": "string",
+                            "description": "Name of the configuration file inside the config map.",
+                            "default": "trento-mcp-server.config.yaml"
+                        },
+                        "mountPath": {
+                            "type": "string",
+                            "description": "Path where the configuration file will be mounted.",
+                            "default": "/app/config"
+                        },
+                        "content": {
+                            "type": "string",
+                            "description": "YAML content of the configuration file.",
+                            "default": "# Example configuration file disabled by default"
+                        }
+                    }
                 }
             }
         }

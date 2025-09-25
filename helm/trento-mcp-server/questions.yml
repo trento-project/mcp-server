@@ -133,19 +133,54 @@
                 },
                 "args": {
                     "type": "array",
-                    "description": "Command-line arguments for the MCP Server container. Includes settings for port, transport, paths, and Trento connection details.",
-                    "default": [
-                        "--port=8080",
-                        "--transport=sse",
-                        "--oas-path=/app/api/openapi.json",
-                        "--trento-url=https://demo.trento-project.io",
-                        "--header-name=X-TRENTO-MCP-APIKEY",
-                        "--tag-filter=MCP",
-                        "--verbosity=info"
-                    ],
+                    "description": "Custom command-line arguments for the MCP Server container. If specified, this overrides the individual parameters below.",
+                    "default": "[]",
                     "items": {
                         "type": "string"
                     }
+                },
+                "port": {
+                    "type": "number",
+                    "description": "The port on which the MCP Server listens for incoming connections.",
+                    "default": 8080
+                },
+                "transport": {
+                    "type": "string",
+                    "description": "The transport protocol to use for MCP communication. Options: 'streamable' (default) or 'sse'.",
+                    "default": "streamable"
+                },
+                "oasPath": {
+                    "type": "string",
+                    "description": "Path to the OpenAPI specification file within the container. This file defines the available API operations.",
+                    "default": "https://demo.trento-project.io/api/v1/openapi"
+                },
+                "trentoURL": {
+                    "type": "string",
+                    "description": "URL of the target Trento server to connect to for API operations and data retrieval.",
+                    "default": "https://demo.trento-project.io"
+                },
+                "headerName": {
+                    "type": "string",
+                    "description": "The HTTP header name used to pass the Trento API key for authentication with the Trento server.",
+                    "default": "X-TRENTO-MCP-APIKEY"
+                },
+                "tagFilter": {
+                    "type": "array",
+                    "description": "List of OpenAPI tags to filter which operations are exposed as MCP tools. Only operations with at least one matching tag will be available.",
+                    "default": "[]",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "verbosity": {
+                    "type": "string",
+                    "description": "The logging verbosity level. Options: 'debug', 'info', 'warning', 'error'.",
+                    "default": "info"
+                },
+                "insecureTLS": {
+                    "type": "boolean",
+                    "description": "Skip TLS certificate verification when connecting to HTTPS URLs. Use only in development or trusted environments.",
+                    "default": false
                 },
                 "image": {
                     "type": "object",
@@ -214,6 +249,36 @@
                     "type": "string",
                     "description": "The type of Kubernetes service for MCP Server (e.g., ClusterIP, NodePort).",
                     "default": "ClusterIP"
+                },
+                "env": {
+                    "type": "object",
+                    "description": "Additional environment variables to set in the MCP Server container.",
+                    "default": {}
+                },
+                "config": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Enable mounting a configuration file for the MCP Server.",
+                            "default": false
+                        },
+                        "fileName": {
+                            "type": "string",
+                            "description": "Name of the configuration file inside the config map.",
+                            "default": "trento-mcp-server.config.yaml"
+                        },
+                        "mountPath": {
+                            "type": "string",
+                            "description": "Path where the configuration file will be mounted.",
+                            "default": "/etc/trento"
+                        },
+                        "content": {
+                            "type": "string",
+                            "description": "YAML content of the configuration file.",
+                            "default": "# Example configuration file (disabled by default)\n# port: 8080\n# oasPath: https://demo.trento-project.io/api/v1/openapi\n# transport: streamable\n# trentoURL: https://demo.trento-project.io\n# trentoHeaderName: X-TRENTO-MCP-APIKEY\n# tagFilter:\n#   - MCP\n# verbosity: info\n# insecureTLS: false\n"
+                        }
+                    }
                 }
             }
         }
