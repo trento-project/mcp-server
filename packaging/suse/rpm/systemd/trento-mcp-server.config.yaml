@@ -1,0 +1,25 @@
+# Trento MCP Server Configuration File
+# This file contains the configuration settings for the Trento MCP Server.
+# The server acts as a bridge between MCP clients and the Trento API, exposing
+# selected API operations as MCP tools based on the configured filters.
+#
+# Configuration can be provided via this file, environment variables, or command-line flags.
+# Command-line flags take precedence over environment variables, which take precedence over this file.
+
+## The port on which the MCP Server listens for incoming connections.
+port: 8080
+## The transport protocol to use for MCP communication. Options: 'streamable' (default) or 'sse'.
+transport: streamable
+## The path to the OpenAPI specification file local or remote URL.
+oasPath: https://demo.trento-project.io/api/v1/openapi
+## Target Trento server to connect to for API operations and data retrieval.
+trentoURL: https://demo.trento-project.io
+## The HTTP header name used to pass the Trento API key for authentication with the Trento server.
+headerName: X-TRENTO-MCP-APIKEY
+## List of OpenAPI tags to filter which operations are exposed as MCP tools. Only operations with at least one matching tag will be available.
+tagFilter:
+  - MCP
+##  The logging verbosity level. Options: 'debug', 'info', 'warning', 'error'.
+verbosity: info
+## Skip TLS certificate verification when connecting to HTTPS URLs. Use only in development or trusted environments.
+insecureTLS: false

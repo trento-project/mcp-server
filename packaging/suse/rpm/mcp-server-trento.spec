@@ -59,6 +59,9 @@ install -D -m 0755 %{binaryname} "%{buildroot}%{_bindir}/%{binaryname}"
 # Install the systemd unit
 install -D -m 0644 packaging/suse/rpm/systemd/trento-mcp-server.service %{buildroot}%{_unitdir}/trento-mcp-server.service
 
+# Install example configuration file
+install -D -m 0600 packaging/suse/rpm/systemd/trento-mcp-server.config.yaml %{buildroot}/etc/trento/trento-mcp-server.config.yaml
+
 # Add rc symlink
 mkdir -p %{buildroot}/usr/sbin
 ln -sf /usr/sbin/service %{buildroot}/usr/sbin/rc%{binaryname}
