@@ -24,10 +24,37 @@ spec:
       {{- include "trento-mcp-server.selectorLabels" . | nindent 8 }}
     spec:
       containers:
-      - args: {{- toYaml .Values.mcpServer.args | nindent 8 }}
+      - args:
+        {{- if .Values.mcpServer.args }}
+        {{- range .Values.mcpServer.args }}
+        - {{ . | quote }}
+        {{- end }}
+        {{- else }}
+        {{- if .Values.mcpServer.config.enabled }}
+        - --config
+        - {{ .Values.mcpServer.config.mountPath }}/{{ .Values.mcpServer.config.fileName }}
+        {{- else }}
+        - --port={{ .Values.mcpServer.port }}
+        - --transport={{ .Values.mcpServer.transport }}
+        - --oas-path={{ .Values.mcpServer.oasPath }}
+        - --trento-url={{ .Values.mcpServer.trentoURL }}
+        - --header-name={{ .Values.mcpServer.headerName }}
+        {{- if .Values.mcpServer.tagFilter }}
+        - --tag-filter={{ join "," .Values.mcpServer.tagFilter }}
+        {{- end }}
+        - --verbosity={{ .Values.mcpServer.verbosity }}
+      {{- if .Values.mcpServer.insecureTLS }}
+        - --insecure-tls
+      {{- end }}
+      {{- end }}
+      {{- end }}
         env:
-        - name: KUBERNETES_CLUSTER_DOMAIN
-          value: {{ quote .Values.kubernetesClusterDomain }}
+          - name: KUBERNETES_CLUSTER_DOMAIN
+            value: {{ quote .Values.kubernetesClusterDomain }}
+          {{- range $k, $v := .Values.mcpServer.env }}
+          - name: {{ $k }}
+            value: {{ $v | quote }}
+          {{- end }}
         image: {{ .Values.mcpServer.image.repository }}:{{ .Values.mcpServer.image.tag | default .Chart.AppVersion }}
         name: trento-mcp-server
         ports:
@@ -35,11 +62,15 @@ spec:
           name: http
         resources: {{- toYaml .Values.mcpServer.resources | nindent 10 }}
         volumeMounts:
-        - mountPath: /app/api
-          name: trento-mcp-server-openapi-volume
+      {{- if .Values.mcpServer.config.enabled }}
+        - mountPath: {{ .Values.mcpServer.config.mountPath }}
+          name: trento-mcp-server-config-volume
           readOnly: true
+      {{- end }}
       imagePullSecrets: []
+      {{- if .Values.mcpServer.config.enabled }}
       volumes:
       - configMap:
           name: {{ include "trento-mcp-server.fullname" . }}-mcp-server
-        name: trento-mcp-server-openapi-volume
+        name: trento-mcp-server-config-volume
+      {{- end }}

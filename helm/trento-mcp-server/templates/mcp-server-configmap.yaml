@@ -9,7 +9,5 @@ metadata:
   labels:
   {{- include "trento-mcp-server.labels" . | nindent 4 }}
 data:
-  # Replace this with the actual OpenAPI JSON content
-  # kubectl --namespace {{ .Release.Namespace }} replace ConfigMap {{ include "trento-mcp-server.fullname" . }}-mcp-server --from-file=openapi.json
-  openapi.json: |
-    {}
+  {{ .Values.mcpServer.config.fileName }}: |
+{{ .Values.mcpServer.config.content | indent 4 }}
