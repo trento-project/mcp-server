@@ -28,7 +28,7 @@ import (
 // ServeOptions encapsulates the available command-line options.
 type ServeOptions struct {
 	Name             string
-	OASPath          string
+	OASPath          []string
 	Port             int
 	Transport        utils.TransportType
 	TrentoHeaderName string
@@ -142,26 +142,42 @@ func handleToolsRegistration(
 	srv *mcp.Server,
 	serveOpts *ServeOptions, //nolint:revive
 ) (*mcp.Server, []string, error) {
-	// Load OpenAPI spec.
-	oasDoc, err := loadOpenAPISpec(ctx, serveOpts)
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to read the API spec",
-			"error", err,
-		)
+	var allTools []string
 
-		return nil, []string{}, fmt.Errorf("failed to read the API spec: %w", err)
+	if len(serveOpts.OASPath) == 0 {
+		return nil, nil, errors.New("no OpenAPI spec path provided")
 	}
 
-	// Overwrite the Trento URL in the OpenAPI
-	if len(oasDoc.Servers) > 0 {
-		oasDoc.Servers[0].URL = serveOpts.TrentoURL
-	} else {
-		// Or just add it
-		oasDoc.Servers = append(oasDoc.Servers, &openapi3.Server{
-			URL: serveOpts.TrentoURL,
-		})
+	for _, path := range serveOpts.OASPath {
+		// Load OpenAPI spec.
+		oasDoc, err := loadOpenAPISpec(ctx, path, serveOpts)
+		if err != nil {
+			slog.ErrorContext(ctx, "failed to read an API spec",
+				"path", path,
+				"error", err,
+			)
+
+			return nil, nil, fmt.Errorf("failed to read API spec from %s: %w", path, err)
+		}
+
+		// Overwrite the Trento URL in the OpenAPI
+		if len(oasDoc.Servers) > 0 {
+			oasDoc.Servers[0].URL = serveOpts.TrentoURL
+		} else {
+			// Or just add it
+			oasDoc.Servers = append(oasDoc.Servers, &openapi3.Server{
+				URL: serveOpts.TrentoURL,
+			})
+		}
+
+		tools := registerToolsFromSpec(srv, oasDoc, serveOpts)
+		allTools = append(allTools, tools...)
 	}
 
+	return srv, allTools, nil
+}
+
+func registerToolsFromSpec(srv *mcp.Server, oasDoc *openapi3.T, serveOpts *ServeOptions) []string {
 	// Extract the API operations.
 	operations := openapi2mcp.ExtractOpenAPIOperations(oasDoc)
 
@@ -209,24 +225,24 @@ func handleToolsRegistration(
 	// Register them as MCP tools.
 	tools := openapi2mcp.RegisterOpenAPITools(srv, operations, oasDoc, opts)
 
-	return srv, tools, nil
+	return tools
 }
 
 // loadOpenAPISpec loads the OpenAPI specification from either a URL or local file.
-func loadOpenAPISpec(ctx context.Context, serveOpts *ServeOptions) (*openapi3.T, error) {
+func loadOpenAPISpec(ctx context.Context, path string, serveOpts *ServeOptions) (*openapi3.T, error) {
 	var (
 		oasDoc *openapi3.T
 		err    error
 	)
 
 	// Check if it is a remote path.
-	if strings.HasPrefix(serveOpts.OASPath, "http://") || strings.HasPrefix(serveOpts.OASPath, "https://") {
-		oasDoc, err = loadOpenAPISpecFromURL(ctx, serveOpts)
+	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
+		oasDoc, err = loadOpenAPISpecFromURL(ctx, path, serveOpts)
 	} else {
 		// If not, load the spec from disk.
-		oasDoc, err = openapi2mcp.LoadOpenAPISpec(serveOpts.OASPath)
+		oasDoc, err = openapi2mcp.LoadOpenAPISpec(path)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read the API spec: %w", err)
+			return nil, fmt.Errorf("failed to read the API spec from %s: %w", path, err)
 		}
 	}
 
@@ -234,7 +250,7 @@ func loadOpenAPISpec(ctx context.Context, serveOpts *ServeOptions) (*openapi3.T,
 }
 
 // loadOpenAPISpecFromURL fetches the OpenAPI specification from a remote URL.
-func loadOpenAPISpecFromURL(ctx context.Context, serveOpts *ServeOptions) (*openapi3.T, error) {
+func loadOpenAPISpecFromURL(ctx context.Context, path string, serveOpts *ServeOptions) (*openapi3.T, error) {
 	// Create a client based on the TLS preferences and proxy settings from env.
 	client := &http.Client{
 		Transport: &http.Transport{
@@ -247,7 +263,7 @@ func loadOpenAPISpecFromURL(ctx context.Context, serveOpts *ServeOptions) (*open
 	}
 
 	// Generate the GET request.
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, serveOpts.OASPath, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
 	}

@@ -178,3 +178,18 @@ func getConfigDescription() string {
 
 	return fmt.Sprintf("config file path (default search: %s)", strings.Join(paths, " or "))
 }
+
+// normalizeStringSlice handles the case where Viper reads a comma-separated string
+// from an environment variable instead of a string slice.
+func normalizeStringSlice(key string) {
+	if !viper.IsSet(key) {
+		return
+	}
+
+	value := viper.Get(key)
+	if str, ok := value.(string); ok {
+		if str != "" {
+			viper.Set(key, strings.Split(str, ","))
+		}
+	}
+}
