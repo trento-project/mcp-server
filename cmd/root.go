@@ -29,6 +29,7 @@ var (
 	defaultTagFilter   = []string{}                        //nolint:gochecknoglobals
 	defaultTransport   = string(utils.TransportStreamable) //nolint:gochecknoglobals
 	defaultConfigPaths = []string{".", "/etc/trento/"}     //nolint:gochecknoglobals
+	defaultOASPath     = []string{"./api/openapi.json"}    //nolint:gochecknoglobals
 )
 
 const (
@@ -36,7 +37,6 @@ const (
 
 	// Default values.
 	defaultVerbosity        = "info"
-	defaultOASPath          = "./api/openapi.json"
 	defaultPort             = 5000
 	defaultTrentoHeaderName = "X-TRENTO-MCP-APIKEY"
 	defaultTrentoURL        = "https://demo.trento-project.io"
@@ -91,10 +91,10 @@ func flagConfigs() []utils.FlagConfig {
 		{
 			Key:          configKeyOASPath,
 			DefaultValue: defaultOASPath,
-			FlagType:     utils.FlagTypeString,
+			FlagType:     utils.FlagTypeStringSlice,
 			FlagName:     "oas-path",
 			Short:        "P",
-			Description:  "Path to the OpenAPI spec file",
+			Description:  "Path to the OpenAPI spec file(s)",
 		},
 		{
 			Key:          configKeyTransport,
@@ -173,6 +173,10 @@ func configureCLI(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("failed read config file: %w", err)
 	}
+
+	// Normalize string slice flags/env vars
+	normalizeStringSlice(configKeyOASPath)
+	normalizeStringSlice(configKeyTagFilter)
 
 	// Set serveOpts from Viper after flags are parsed
 	err = viper.Unmarshal(&serveOpts)

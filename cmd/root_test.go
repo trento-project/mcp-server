@@ -40,7 +40,7 @@ func TestExecute(t *testing.T) {
 			},
 			expConf: server.ServeOptions{
 				Port:             9090,
-				OASPath:          "/tmp/api.json",
+				OASPath:          []string{"/tmp/api.json"},
 				Transport:        utils.TransportSSE,
 				TrentoURL:        "http://trento.example.com",
 				TrentoHeaderName: "X-My-Header",
@@ -53,7 +53,7 @@ func TestExecute(t *testing.T) {
 			args: []string{},
 			expConf: server.ServeOptions{
 				Port:             5000,
-				OASPath:          "./api/openapi.json",
+				OASPath:          []string{"./api/openapi.json"},
 				Transport:        utils.TransportStreamable,
 				TrentoURL:        "https://demo.trento-project.io",
 				TrentoHeaderName: "X-TRENTO-MCP-APIKEY",
@@ -65,7 +65,7 @@ func TestExecute(t *testing.T) {
 			args: []string{"--transport", "invalid-transport"},
 			expConf: server.ServeOptions{
 				Port:             5000,
-				OASPath:          "./api/openapi.json",
+				OASPath:          []string{"./api/openapi.json"},
 				Transport:        "invalid-transport",
 				TrentoURL:        "https://demo.trento-project.io",
 				TrentoHeaderName: "X-TRENTO-MCP-APIKEY",
@@ -148,7 +148,7 @@ func TestConfigureCLI(t *testing.T) {
 			name: "custom configuration values",
 			viperSettings: map[string]any{
 				"port":             1234,
-				"oasPath":          "/tmp/oas.json",
+				"oasPath":          []string{"/tmp/oas.json"},
 				"transport":        "sse",
 				"trentoURL":        "http://trento.test",
 				"trentoHeaderName": "X-Test-Header",
@@ -156,7 +156,7 @@ func TestConfigureCLI(t *testing.T) {
 			},
 			expected: server.ServeOptions{
 				Port:             1234,
-				OASPath:          "/tmp/oas.json",
+				OASPath:          []string{"/tmp/oas.json"},
 				Transport:        utils.TransportSSE,
 				TrentoURL:        "http://trento.test",
 				TrentoHeaderName: "X-Test-Header",
@@ -169,7 +169,7 @@ func TestConfigureCLI(t *testing.T) {
 			envVars:       map[string]string{},
 			expected: server.ServeOptions{
 				Port:             5000,
-				OASPath:          "./api/openapi.json",
+				OASPath:          []string{"./api/openapi.json"},
 				Transport:        utils.TransportStreamable,
 				TrentoURL:        "https://demo.trento-project.io",
 				TrentoHeaderName: "X-TRENTO-MCP-APIKEY",
@@ -180,7 +180,7 @@ func TestConfigureCLI(t *testing.T) {
 			name: "environment variables",
 			envVars: map[string]string{
 				"TRENTO_MCP_PORT":             "8888",
-				"TRENTO_MCP_OASPATH":          "/env/oas.json",
+				"TRENTO_MCP_OASPATH":          "/env/oas.json,/another/path.json",
 				"TRENTO_MCP_TRANSPORT":        "streamable",
 				"TRENTO_MCP_TRENTOURL":        "https://env.trento.io",
 				"TRENTO_MCP_TRENTOHEADERNAME": "X-Env-Header",
@@ -191,7 +191,7 @@ func TestConfigureCLI(t *testing.T) {
 			},
 			expected: server.ServeOptions{
 				Port:             8888,
-				OASPath:          "/env/oas.json",
+				OASPath:          []string{"/env/oas.json", "/another/path.json"},
 				Transport:        utils.TransportStreamable,
 				TrentoURL:        "https://env.trento.io",
 				TrentoHeaderName: "X-Env-Header",
@@ -206,7 +206,7 @@ func TestConfigureCLI(t *testing.T) {
 			},
 			expected: server.ServeOptions{
 				Port:             5000,
-				OASPath:          "./api/openapi.json",
+				OASPath:          []string{"./api/openapi.json"},
 				Transport:        "invalid-transport",
 				TrentoURL:        "https://demo.trento-project.io",
 				TrentoHeaderName: "X-TRENTO-MCP-APIKEY",
@@ -293,6 +293,7 @@ verbosity: info`,
 		},
 		{
 			name:          "non-existent config file",
+			configContent: "",
 			setConfigFile: true,
 			configFile:    "/non/existent/config.yaml",
 			expected:      map[string]any{},
@@ -327,7 +328,12 @@ verbosity: info`,
 			require.NoError(t, err)
 
 			for key, expected := range tt.expected {
-				assert.Equal(t, expected, viper.Get(key))
+				switch expected.(type) {
+				case []string:
+					assert.Equal(t, expected, viper.GetStringSlice(key))
+				default:
+					assert.Equal(t, expected, viper.Get(key))
+				}
 			}
 		})
 	}
@@ -358,7 +364,7 @@ func TestServeOpts(t *testing.T) {
 	// Verify default values
 	expected := server.ServeOptions{
 		Port:             5000,
-		OASPath:          "./api/openapi.json",
+		OASPath:          []string{"./api/openapi.json"},
 		Transport:        utils.TransportStreamable,
 		TrentoURL:        "https://demo.trento-project.io",
 		TrentoHeaderName: "X-TRENTO-MCP-APIKEY",
