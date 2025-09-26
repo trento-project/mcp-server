@@ -145,7 +145,7 @@ func handleToolsRegistration(
 	var allTools []string
 
 	if len(serveOpts.OASPath) == 0 {
-		return nil, nil, fmt.Errorf("no OpenAPI spec path provided")
+		return nil, nil, errors.New("no OpenAPI spec path provided")
 	}
 
 	for _, path := range serveOpts.OASPath {

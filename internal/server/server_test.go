@@ -686,6 +686,7 @@ func TestWaitForShutdown(t *testing.T) {
 
 func TestLoadOpenAPISpec_MultipleFiles(t *testing.T) {
 	t.Parallel()
+
 	oasContent1 := createSimpleOASContent()
 	oasContent2 := strings.Replace(oasContent1, "getTest", "getTest2", 1)
 
@@ -988,8 +989,10 @@ func TestLoadOpenAPISpec(t *testing.T) {
 				InsecureTLS: false,
 			}
 
-			var cleanup func()
-			var path string
+			var (
+				cleanup func()
+				path    string
+			)
 
 			if tt.isHTTPLoad {
 				testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
