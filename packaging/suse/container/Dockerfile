@@ -9,7 +9,7 @@
 #!UseOBSRepositories
 #!ExclusiveArch: x86_64
 
-ARG GO_VERSION=1.24
+ARG GO_VERSION=1.25
 ARG OS_VER=15.6
 
 ARG GOARCH
