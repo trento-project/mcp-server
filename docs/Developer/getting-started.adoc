@@ -56,7 +56,6 @@ mcp-server/
 │   └── root.go            # Main command definitions and flags
 ├── docs/                   # Documentation
 ├── hack/                   # Build scripts and linters
-├── helm/                   # Kubernetes/Helm deployment manifests
 ├── internal/               # Private application code
 │   ├── server/            # Server implementation
 │   │   ├── auth.go        # Authentication logic
