@@ -181,7 +181,6 @@ make lint
 make linter-asciidoc      # Documentation in AsciiDoc validation
 make linter-golangci      # Go code linting
 make linter-license       # License header verification
-make linter-manifests     # Kubernetes manifests validation
 make linter-shellcheck    # Shell script linting
 make linter-yamllint      # YAML file linting
 ----
