@@ -14,4 +14,5 @@ var (
 	GetConfigDescription = getConfigDescription
 	CreateAndBindFlags   = createAndBindFlags
 	FlagConfigs          = flagConfigs
+	ConfigKeyConfig      = configKeyConfig
 )

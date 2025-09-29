@@ -44,7 +44,6 @@ ARG VERSION
 ARG PORT
 
 COPY --from=builder /build/trento-mcp-server/bin/${GOOS}-${GOARCH}/trento-mcp-server /trento-mcp-server
-COPY --from=builder build/trento-mcp-server/api api
 
 LABEL org.opencontainers.image.title="Trento MCP Server"
 LABEL org.opencontainers.image.source="https://github.com/trento-project/mcp-server"
