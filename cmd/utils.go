@@ -100,6 +100,9 @@ func readConfigFile() error {
 		viper.SetConfigFile(configPath)
 	}
 
+	// Ensure we use the desired config parser
+	viper.SetConfigType(configFileType)
+
 	// Read config file after logger is initialized
 	err := viper.ReadInConfig()
 	if err != nil {

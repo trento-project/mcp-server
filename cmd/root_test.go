@@ -259,30 +259,30 @@ func TestReadConfigFile(t *testing.T) {
 	}{
 		{
 			name:          "single value",
-			configContent: "port: 1234",
+			configContent: "PORT=1234",
 			setConfigFile: true,
-			expected:      map[string]any{"port": 1234},
+			expected:      map[string]any{"PORT": "1234"},
 		},
 		{
 			name: "all keys set",
-			configContent: `port: 9999
-oasPath: /custom/api.json
-transport: streamable
-trentoURL: https://custom.trento.io
-headerName: X-Custom-Header
-tagFilter:
-  - tag1
-  - tag2
-verbosity: info`,
+			configContent: `PORT=9999
+OAS_PATH=/custom/api.json
+TRANSPORT=streamable
+TRENTO_URL=https://custom.trento.io
+HEADER_NAME=X-Custom-Header
+TAG_FILTER=tag1,tag2
+VERBOSITY=info
+INSECURE_TLS=true`,
 			setConfigFile: true,
 			expected: map[string]any{
-				"port":       9999,
-				"oasPath":    []string{"/custom/api.json"},
-				"transport":  "streamable",
-				"trentoURL":  "https://custom.trento.io",
-				"headerName": "X-Custom-Header",
-				"tagFilter":  []string{"tag1", "tag2"},
-				"verbosity":  "info",
+				"PORT":         "9999",
+				"OAS_PATH":     "/custom/api.json",
+				"TRANSPORT":    "streamable",
+				"TRENTO_URL":   "https://custom.trento.io",
+				"HEADER_NAME":  "X-Custom-Header",
+				"TAG_FILTER":   "tag1,tag2",
+				"VERBOSITY":    "info",
+				"INSECURE_TLS": "true",
 			},
 		},
 		{
@@ -295,7 +295,7 @@ verbosity: info`,
 			name:          "non-existent config file",
 			configContent: "",
 			setConfigFile: true,
-			configFile:    "/non/existent/config.yaml",
+			configFile:    "/non/existent/config",
 			expected:      map[string]any{},
 		},
 	}
@@ -309,7 +309,7 @@ verbosity: info`,
 				if tt.configFile != "" {
 					viper.SetConfigFile(tt.configFile)
 				} else {
-					tmpFile, err := os.CreateTemp(t.TempDir(), "config-*.yaml")
+					tmpFile, err := os.CreateTemp(t.TempDir(), "tmp-config-*")
 					require.NoError(t, err)
 
 					if tt.configContent != "" {
@@ -320,7 +320,8 @@ verbosity: info`,
 					err = tmpFile.Close()
 					require.NoError(t, err)
 
-					viper.SetConfigFile(tmpFile.Name())
+					// Set the file, like passing --config flag
+					viper.Set(cmd.ConfigKeyConfig, tmpFile.Name())
 				}
 			}
 
@@ -328,12 +329,7 @@ verbosity: info`,
 			require.NoError(t, err)
 
 			for key, expected := range tt.expected {
-				switch expected.(type) {
-				case []string:
-					assert.Equal(t, expected, viper.GetStringSlice(key))
-				default:
-					assert.Equal(t, expected, viper.Get(key))
-				}
+				assert.Equal(t, expected, viper.Get(key))
 			}
 		})
 	}
@@ -375,7 +371,6 @@ func TestServeOpts(t *testing.T) {
 	}
 
 	assert.EqualExportedValues(t, expected, opts)
-
 }
 
 //nolint:paralleltest
