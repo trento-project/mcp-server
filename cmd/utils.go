@@ -16,8 +16,8 @@ import (
 
 const (
 	// Configuration file settings.
-	configFileName = "trento-mcp-server.config"
-	configFileType = "yaml"
+	configFileName = "trento-mcp-server"
+	configFileType = "env"
 
 	// Environment variable prefix.
 	envPrefix = "TRENTO_MCP"
@@ -44,6 +44,7 @@ func setFlags(cmd *cobra.Command) {
 
 	// Enable environment variables with prefix
 	viper.SetEnvPrefix(envPrefix)
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	viper.AutomaticEnv()
 
 	// Define and bind the flags with viper
@@ -93,6 +94,9 @@ func readConfigFile() error {
 	// Handle custom config file path if specified
 	configPath := viper.GetString(configKeyConfig)
 	if configPath != "" {
+		slog.Debug("using custom configuration file",
+			"config.path", configPath,
+		)
 		viper.SetConfigFile(configPath)
 	}
 
@@ -112,6 +116,10 @@ func readConfigFile() error {
 				"error", err,
 			)
 		}
+	} else {
+		slog.Debug("configuration file read successfully",
+			"config.used", viper.ConfigFileUsed(),
+		)
 	}
 
 	return nil
@@ -170,9 +178,9 @@ func getConfigDescription() string {
 		// Trim trailing slashes to avoid double slashes
 		cleanPath := strings.TrimSuffix(path, "/")
 		if cleanPath == "." {
-			paths[i] = fmt.Sprintf("./%s.%s", configFileName, configFileType)
+			paths[i] = fmt.Sprintf("./%s", configFileName)
 		} else {
-			paths[i] = fmt.Sprintf("%s/%s.%s", cleanPath, configFileName, configFileType)
+			paths[i] = fmt.Sprintf("%s/%s", cleanPath, configFileName)
 		}
 	}
 

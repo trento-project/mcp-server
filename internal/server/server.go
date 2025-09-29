@@ -27,15 +27,15 @@ import (
 
 // ServeOptions encapsulates the available command-line options.
 type ServeOptions struct {
-	Name             string
-	OASPath          []string
-	Port             int
-	Transport        utils.TransportType
-	TrentoHeaderName string
-	TagFilter        []string
-	TrentoURL        string
-	Version          string
-	InsecureTLS      bool
+	HeaderName  string              `mapstructure:"HEADER_NAME"`
+	InsecureTLS bool                `mapstructure:"INSECURE_TLS"`
+	Name        string              `mapstructure:"-"`
+	OASPath     []string            `mapstructure:"OAS_PATH"`
+	Port        int                 `mapstructure:"PORT"`
+	TagFilter   []string            `mapstructure:"TAG_FILTER"`
+	Transport   utils.TransportType `mapstructure:"TRANSPORT"`
+	TrentoURL   string              `mapstructure:"TRENTO_URL"`
+	Version     string              `mapstructure:"-"`
 }
 
 // StoppableServer defines an interface for servers that can be started and shut down.
@@ -328,10 +328,10 @@ func handleServerRun(ctx context.Context, srv *mcp.Server, serveOpts *ServeOptio
 
 	switch serveOpts.Transport {
 	case utils.TransportSSE:
-		stoppableServer, err = startSSEServer(ctx, srv, listenAddr, serveOpts.TrentoHeaderName, serverErrChan)
+		stoppableServer, err = startSSEServer(ctx, srv, listenAddr, serveOpts.HeaderName, serverErrChan)
 
 	case utils.TransportStreamable:
-		stoppableServer, err = startStreamableHTTPServer(ctx, srv, listenAddr, serveOpts.TrentoHeaderName, serverErrChan)
+		stoppableServer, err = startStreamableHTTPServer(ctx, srv, listenAddr, serveOpts.HeaderName, serverErrChan)
 
 	default:
 		return fmt.Errorf("invalid transport type: %s", serveOpts.Transport)

@@ -26,33 +26,33 @@ var (
 	rootCmd *cobra.Command //nolint:gochecknoglobals
 
 	// Default values.
-	defaultTagFilter   = []string{}                        //nolint:gochecknoglobals
-	defaultTransport   = string(utils.TransportStreamable) //nolint:gochecknoglobals
-	defaultConfigPaths = []string{".", "/etc/trento/"}     //nolint:gochecknoglobals
-	defaultOASPath     = []string{"./api/openapi.json"}    //nolint:gochecknoglobals
+	defaultTagFilter   = []string{}                                   //nolint:gochecknoglobals
+	defaultTransport   = string(utils.TransportStreamable)            //nolint:gochecknoglobals
+	defaultConfigPaths = []string{"/etc/trento/", "/usr/etc/trento/"} //nolint:gochecknoglobals
+	defaultOASPath     = []string{"./openapi.json"}                   //nolint:gochecknoglobals
 )
 
 const (
 	name = "trento-mcp-server"
 
 	// Default values.
-	defaultVerbosity        = "info"
-	defaultPort             = 5000
-	defaultTrentoHeaderName = "X-TRENTO-MCP-APIKEY"
-	defaultTrentoURL        = "https://demo.trento-project.io"
-	defaultConfig           = ""
-	defaultInsecureTLS      = false
+	defaultVerbosity   = "info"
+	defaultPort        = 5000
+	defaultHeaderName  = "X-TRENTO-MCP-APIKEY"
+	defaultTrentoURL   = "https://demo.trento-project.io"
+	defaultConfig      = ""
+	defaultInsecureTLS = false
 
 	// Configuration keys.
-	configKeyPort             = "port"
-	configKeyOASPath          = "oasPath"
-	configKeyTransport        = "transport"
-	configKeyTrentoURL        = "trentoURL"
-	configKeyTrentoHeaderName = "trentoHeaderName"
-	configKeyTagFilter        = "tagFilter"
-	configKeyVerbosity        = "verbosity"
-	configKeyConfig           = "config"
-	configKeyInsecureTLS      = "insecureTLS"
+	configKeyPort        = "PORT"
+	configKeyOASPath     = "OAS_PATH"
+	configKeyTransport   = "TRANSPORT"
+	configKeyTrentoURL   = "TRENTO_URL"
+	configKeyHeaderName  = "HEADER_NAME"
+	configKeyTagFilter   = "TAG_FILTER"
+	configKeyVerbosity   = "VERBOSITY"
+	configKeyConfig      = "CONFIG"
+	configKeyInsecureTLS = "INSECURE_TLS"
 )
 
 // init creates a new command, append the runtime version and set flags.
@@ -113,12 +113,12 @@ func flagConfigs() []utils.FlagConfig {
 			Description:  "URL for the target Trento server",
 		},
 		{
-			Key:          configKeyTrentoHeaderName,
-			DefaultValue: defaultTrentoHeaderName,
+			Key:          configKeyHeaderName,
+			DefaultValue: defaultHeaderName,
 			FlagType:     utils.FlagTypeString,
 			FlagName:     "header-name",
 			Short:        "H",
-			Description:  "The header name to be used for the Trento API key",
+			Description:  "The header name to be used for the passing the Trento API key to the MCP server",
 		},
 		{
 			Key:          configKeyTagFilter,

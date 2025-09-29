@@ -39,37 +39,37 @@ func TestExecute(t *testing.T) {
 				"--insecure-tls",
 			},
 			expConf: server.ServeOptions{
-				Port:             9090,
-				OASPath:          []string{"/tmp/api.json"},
-				Transport:        utils.TransportSSE,
-				TrentoURL:        "http://trento.example.com",
-				TrentoHeaderName: "X-My-Header",
-				TagFilter:        []string{"A", "B"},
-				InsecureTLS:      true,
+				Port:        9090,
+				OASPath:     []string{"/tmp/api.json"},
+				Transport:   utils.TransportSSE,
+				TrentoURL:   "http://trento.example.com",
+				HeaderName:  "X-My-Header",
+				TagFilter:   []string{"A", "B"},
+				InsecureTLS: true,
 			},
 		},
 		{
 			name: "default values",
 			args: []string{},
 			expConf: server.ServeOptions{
-				Port:             5000,
-				OASPath:          []string{"./api/openapi.json"},
-				Transport:        utils.TransportStreamable,
-				TrentoURL:        "https://demo.trento-project.io",
-				TrentoHeaderName: "X-TRENTO-MCP-APIKEY",
-				TagFilter:        []string{},
+				Port:       5000,
+				OASPath:    []string{"./openapi.json"},
+				Transport:  utils.TransportStreamable,
+				TrentoURL:  "https://demo.trento-project.io",
+				HeaderName: "X-TRENTO-MCP-APIKEY",
+				TagFilter:  []string{},
 			},
 		},
 		{
 			name: "invalid transport",
 			args: []string{"--transport", "invalid-transport"},
 			expConf: server.ServeOptions{
-				Port:             5000,
-				OASPath:          []string{"./api/openapi.json"},
-				Transport:        "invalid-transport",
-				TrentoURL:        "https://demo.trento-project.io",
-				TrentoHeaderName: "X-TRENTO-MCP-APIKEY",
-				TagFilter:        []string{},
+				Port:       5000,
+				OASPath:    []string{"./openapi.json"},
+				Transport:  "invalid-transport",
+				TrentoURL:  "https://demo.trento-project.io",
+				HeaderName: "X-TRENTO-MCP-APIKEY",
+				TagFilter:  []string{},
 			},
 		},
 	}
@@ -147,20 +147,20 @@ func TestConfigureCLI(t *testing.T) {
 		{
 			name: "custom configuration values",
 			viperSettings: map[string]any{
-				"port":             1234,
-				"oasPath":          []string{"/tmp/oas.json"},
-				"transport":        "sse",
-				"trentoURL":        "http://trento.test",
-				"trentoHeaderName": "X-Test-Header",
-				"tagFilter":        []string{"C", "D"},
+				"PORT":        1234,
+				"OAS_PATH":    []string{"/tmp/oas.json"},
+				"TRANSPORT":   "sse",
+				"TRENTO_URL":  "http://trento.test",
+				"HEADER_NAME": "X-Test-Header",
+				"TAG_FILTER":  []string{"C", "D"},
 			},
 			expected: server.ServeOptions{
-				Port:             1234,
-				OASPath:          []string{"/tmp/oas.json"},
-				Transport:        utils.TransportSSE,
-				TrentoURL:        "http://trento.test",
-				TrentoHeaderName: "X-Test-Header",
-				TagFilter:        []string{"C", "D"},
+				Port:       1234,
+				OASPath:    []string{"/tmp/oas.json"},
+				Transport:  utils.TransportSSE,
+				TrentoURL:  "http://trento.test",
+				HeaderName: "X-Test-Header",
+				TagFilter:  []string{"C", "D"},
 			},
 		},
 		{
@@ -168,35 +168,35 @@ func TestConfigureCLI(t *testing.T) {
 			viperSettings: map[string]any{},
 			envVars:       map[string]string{},
 			expected: server.ServeOptions{
-				Port:             5000,
-				OASPath:          []string{"./api/openapi.json"},
-				Transport:        utils.TransportStreamable,
-				TrentoURL:        "https://demo.trento-project.io",
-				TrentoHeaderName: "X-TRENTO-MCP-APIKEY",
-				TagFilter:        []string{},
+				Port:       5000,
+				OASPath:    []string{"./openapi.json"},
+				Transport:  utils.TransportStreamable,
+				TrentoURL:  "https://demo.trento-project.io",
+				HeaderName: "X-TRENTO-MCP-APIKEY",
+				TagFilter:  []string{},
 			},
 		},
 		{
 			name: "environment variables",
 			envVars: map[string]string{
-				"TRENTO_MCP_PORT":             "8888",
-				"TRENTO_MCP_OASPATH":          "/env/oas.json,/another/path.json",
-				"TRENTO_MCP_TRANSPORT":        "streamable",
-				"TRENTO_MCP_TRENTOURL":        "https://env.trento.io",
-				"TRENTO_MCP_TRENTOHEADERNAME": "X-Env-Header",
-				"TRENTO_MCP_TAGFILTER":        "X,Y",
-				"TRENTO_MCP_VERBOSITY":        "info",
-				"TRENTO_MCP_CONFIG":           "/env/config.yaml",
-				"TRENTO_MCP_INSECURETLS":      "true",
+				"TRENTO_MCP_PORT":         "8888",
+				"TRENTO_MCP_OAS_PATH":     "/env/oas.json,/another/path.json",
+				"TRENTO_MCP_TRANSPORT":    "streamable",
+				"TRENTO_MCP_TRENTO_URL":   "https://env.trento.io",
+				"TRENTO_MCP_HEADER_NAME":  "X-Env-Header",
+				"TRENTO_MCP_TAG_FILTER":   "X,Y",
+				"TRENTO_MCP_VERBOSITY":    "info",
+				"TRENTO_MCP_CONFIG":       "/env/config.yaml",
+				"TRENTO_MCP_INSECURE_TLS": "true",
 			},
 			expected: server.ServeOptions{
-				Port:             8888,
-				OASPath:          []string{"/env/oas.json", "/another/path.json"},
-				Transport:        utils.TransportStreamable,
-				TrentoURL:        "https://env.trento.io",
-				TrentoHeaderName: "X-Env-Header",
-				TagFilter:        []string{"X", "Y"},
-				InsecureTLS:      true,
+				Port:        8888,
+				OASPath:     []string{"/env/oas.json", "/another/path.json"},
+				Transport:   utils.TransportStreamable,
+				TrentoURL:   "https://env.trento.io",
+				HeaderName:  "X-Env-Header",
+				TagFilter:   []string{"X", "Y"},
+				InsecureTLS: true,
 			},
 		},
 		{
@@ -205,12 +205,12 @@ func TestConfigureCLI(t *testing.T) {
 				"transport": "invalid-transport",
 			},
 			expected: server.ServeOptions{
-				Port:             5000,
-				OASPath:          []string{"./api/openapi.json"},
-				Transport:        "invalid-transport",
-				TrentoURL:        "https://demo.trento-project.io",
-				TrentoHeaderName: "X-TRENTO-MCP-APIKEY",
-				TagFilter:        []string{},
+				Port:       5000,
+				OASPath:    []string{"./openapi.json"},
+				Transport:  "invalid-transport",
+				TrentoURL:  "https://demo.trento-project.io",
+				HeaderName: "X-TRENTO-MCP-APIKEY",
+				TagFilter:  []string{},
 			},
 		},
 	}
@@ -363,28 +363,19 @@ func TestServeOpts(t *testing.T) {
 
 	// Verify default values
 	expected := server.ServeOptions{
-		Port:             5000,
-		OASPath:          []string{"./api/openapi.json"},
-		Transport:        utils.TransportStreamable,
-		TrentoURL:        "https://demo.trento-project.io",
-		TrentoHeaderName: "X-TRENTO-MCP-APIKEY",
-		TagFilter:        []string{},
-		InsecureTLS:      false,
+		Port:        5000,
+		OASPath:     []string{"./openapi.json"},
+		Transport:   utils.TransportStreamable,
+		TrentoURL:   "https://demo.trento-project.io",
+		HeaderName:  "X-TRENTO-MCP-APIKEY",
+		TagFilter:   []string{},
+		InsecureTLS: false,
+		Name:        "trento-mcp-server",
+		Version:     "devel",
 	}
 
-	// Name and Version are set automatically
-	assert.NotEmpty(t, opts.Name)
-	assert.NotEmpty(t, opts.Version)
-	assert.Contains(t, opts.Version, "devel")
+	assert.EqualExportedValues(t, expected, opts)
 
-	// Check all other fields match expected defaults
-	assert.Equal(t, expected.Port, opts.Port)
-	assert.Equal(t, expected.OASPath, opts.OASPath)
-	assert.Equal(t, expected.Transport, opts.Transport)
-	assert.Equal(t, expected.TrentoURL, opts.TrentoURL)
-	assert.Equal(t, expected.TrentoHeaderName, opts.TrentoHeaderName)
-	assert.Equal(t, expected.TagFilter, opts.TagFilter)
-	assert.Equal(t, expected.InsecureTLS, opts.InsecureTLS)
 }
 
 //nolint:paralleltest
@@ -454,15 +445,15 @@ func TestFlagConfigs(t *testing.T) {
 		flagName string
 		short    string
 	}{
-		{"port", "port", "p"},
-		{"oasPath", "oas-path", "P"},
-		{"transport", "transport", "t"},
-		{"trentoURL", "trento-url", "u"},
-		{"trentoHeaderName", "header-name", "H"},
-		{"tagFilter", "tag-filter", "f"},
-		{"insecureTLS", "insecure-tls", "i"},
-		{"verbosity", "verbosity", "v"},
-		{"config", "config", "c"},
+		{"PORT", "port", "p"},
+		{"OAS_PATH", "oas-path", "P"},
+		{"TRANSPORT", "transport", "t"},
+		{"TRENTO_URL", "trento-url", "u"},
+		{"HEADER_NAME", "header-name", "H"},
+		{"TAG_FILTER", "tag-filter", "f"},
+		{"INSECURE_TLS", "insecure-tls", "i"},
+		{"VERBOSITY", "verbosity", "v"},
+		{"CONFIG", "config", "c"},
 	}
 
 	for i, expected := range expectedFlags {
@@ -478,7 +469,7 @@ func TestGetConfigDescription(t *testing.T) {
 	description := cmd.GetConfigDescription()
 
 	// The description should contain the expected format
-	expectedPaths := "./trento-mcp-server.config.yaml or /etc/trento/trento-mcp-server.config.yaml"
+	expectedPaths := "/etc/trento/trento-mcp-server or /usr/etc/trento/trento-mcp-server"
 	expectedDescription := fmt.Sprintf("config file path (default search: %s)", expectedPaths)
 
 	assert.Equal(t, expectedDescription, description)

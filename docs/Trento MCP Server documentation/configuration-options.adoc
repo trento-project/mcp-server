@@ -16,47 +16,50 @@ The `trento-mcp-server` supports multiple configuration sources with the followi
 
 == Configuration File
 
-You can create a `trento-mcp-server.config.yaml` file in the working directory or specify a custom path using the `--config` flag.
+You can create a `trento-mcp-server` file in the working directory or specify a custom path using the `--config` flag.
 
-Viper searches for configuration files in the following order:
+The Trento MCP Server searches for configuration files in the following order:
 
-1. Current working directory (`./trento-mcp-server.config.yaml`)
-2. System-wide directory (`/etc/trento/trento-mcp-server.config.yaml`)
-3. Custom path specified with `--config` flag
+1. System-wide directory (`/etc/trento/trento-mcp-server` or `/usr/etc/trento/agent.yaml`)
+2. Custom path specified with `--config` flag
 
-[source,yaml]
+[source,env]
 ----
-## The port on which the MCP Server listens for incoming connections.
-port: 8080
-## The transport protocol to use for MCP communication. Options: 'streamable' (default) or 'sse'.
-transport: streamable
-## List of paths to the OpenAPI specification files (local or remote URLs).
-oasPath:
-  - https://demo.trento-project.io/api/v1/openapi
+## List of comma-separated paths to the OpenAPI specification files (local or remote URLs).
+OAS_PATH=<CHANGE_ME>
+
 ## Target Trento server to connect to for API operations and data retrieval.
-trentoURL: https://demo.trento-project.io
+TRENTO_URL=<CHANGE_ME>
+
+## The port on which the MCP Server listens for incoming connections.
+PORT=8080
+
+## The transport protocol to use for MCP communication. Options: 'streamable' (default) or 'sse'.
+TRANSPORT=streamable
+
 ## The HTTP header name used to pass the Trento API key for authentication with the Trento server.
-headerName: X-TRENTO-MCP-APIKEY
+HEADER_NAME=X-TRENTO-MCP-APIKEY
+
 ## List of OpenAPI tags to filter which operations are exposed as MCP tools. Only operations with at least one matching tag will be available.
-tagFilter:
-  - MCP
+TAG_FILTER=MCP
+
 ##  The logging verbosity level. Options: 'debug', 'info', 'warning', 'error'.
-verbosity: info
+VERBOSITY=info
+
 ## Skip TLS certificate verification when connecting to HTTPS URLs. Use only in development or trusted environments.
-insecureTLS: false
+INSECURE_TLS=false
 ----
 
 === System-Wide Configuration
 
-For system-wide configuration, place the config file in `/etc/trento/trento-mcp-server.config.yaml`:
+For system-wide configuration, place the config file in `/etc/trento/trento-mcp-server`:
 
 [source,console]
 ----
 sudo mkdir -p /etc/trento
-sudo tee /etc/trento/trento-mcp-server.config.yaml > /dev/null <<EOF
-port: 8080
-trentoURL: "https://prod.trento.io"
-verbosity: "info"
+sudo tee /etc/trento/trento-mcp-server > /dev/null <<EOF
+TRENTO_URL=https://prod.trento.io
+OASPATH=https://prod.trento.io/openapi.json
 EOF
 ----
 
@@ -69,38 +72,26 @@ trento-mcp-server
 
 == Environment Variables
 
-Environment variables use the `TRENTO_MCP_` prefix and follow the same naming convention as the configuration file keys.
+All command-line flags can also be set via environment variables. The environment variable name is constructed by adding the `TRENTO_MCP_` prefix to the configuration key (e.g., `TRENTO_MCP_PORT`).
 
-[width="100%",cols="25%,25%,50%",options="header",]
-|===
-|Environment Variable |Flag |Description
-|`TRENTO_MCP_PORT` |`port` |Server port number
-|`TRENTO_MCP_OASPATH` |`oas-path` |Comma-separated list of paths to OpenAPI specification files
-|`TRENTO_MCP_TRANSPORT` |`transport` |Transport protocol (`streamable` or `sse`)
-|`TRENTO_MCP_TRENTOURL` |`trento-url` |Trento server URL
-|`TRENTO_MCP_TRENTOHEADERNAME` |`trento-header-name` |HTTP header name for API key
-|`TRENTO_MCP_TAGFILTER` |`tag-filter` |Comma-separated list of OpenAPI tags
-|`TRENTO_MCP_VERBOSITY` |`verbosity` |Log level (`debug`, `info`, `warning`, `error`)
-|`TRENTO_MCP_CONFIG` |`config` |Path to configuration file
-|`TRENTO_MCP_INSECURETLS` |`insecure-tls` |Skip TLS certificate verification for HTTPS URLs
-|===
+For slice values like `OAS_PATH` and `TAG_FILTER`, provide a comma-separated string.
 
 == Command-Line Parameters
 
-The `trento-mcp-server` binary accepts several command-line flags to configure its behavior.
+The `trento-mcp-server` binary accepts several command-line flags to configure its behavior. The following table lists all available configuration options, their corresponding flags, environment variables, and default values.
 
-[width="100%",cols="19%,31%,50%",options="header",]
+[width="100%",cols="20%,25%,25%,30%",options="header"]
 |===
-|Flag |Default |Description
-|`--port`, `-p` |`5000` |The port on which to run the server.
-|`--oas-path`, `-P` |`./api/openapi.json` |Path to the OpenAPI spec file(s). Can be specified multiple times.
-|`--transport`, `-t` |`streamable` |The protocol to use, choose "streamable" or "sse".
-|`--trento-url`, `-u` |`https://demo.trento-project.io` |URL for the target Trento server.
-|`--header-name`, `-H` |`X-TRENTO-MCP-APIKEY` |The header name to be used for the Trento API key.
-|`--tag-filter`, `-f` |`MCP` |A comma-separated list of OpenAPI tags. Only operations with at least one of these tags will be exposed as tools.
-|`--insecure-tls`, `-i` |`false` |Skip TLS certificate verification when fetching OpenAPI spec from HTTPS URLs.
-|`--verbosity`, `-v` |`info` |log level verbosity (debug, info, warning, error).
-|`--config`, `-c` | |config file path (default search: ./trento-mcp-server.config.yaml or /etc/trento/trento-mcp-server.config.yaml).
+|Flag & Config Key |Environment Variable |Default Value |Description
+|`--port, -p` |`TRENTO_MCP_PORT` |`5000` |The port on which to run the server.
+|`--oas-path, -P` |`TRENTO_MCP_OAS_PATH` |`./openapi.json` |Path to the OpenAPI spec file(s). Can be specified multiple times.
+|`--transport, -t` |`TRENTO_MCP_TRANSPORT` |`streamable` |The protocol to use, choose "streamable" or "sse".
+|`--trento-url, -u` |`TRENTO_MCP_TRENTO_URL` |`https://demo.trento-project.io` |URL for the target Trento server.
+|`--header-name, -H` |`TRENTO_MCP_HEADER_NAME` |`X-TRENTO-MCP-APIKEY` |The header name for passing the Trento API key.
+|`--tag-filter, -f` |`TRENTO_MCP_TAG_FILTER` |(empty) |A comma-separated list of OpenAPI tags. Only operations with at least one of these tags will be exposed as tools.
+|`--insecure-tls, -i` |`TRENTO_MCP_INSECURE_TLS` |`false` |Skip TLS certificate verification when fetching OpenAPI spec from HTTPS URLs.
+|`--verbosity, -v` |`TRENTO_MCP_VERBOSITY` |`info` |Log level verbosity (debug, info, warning, error).
+|`--config, -c` |`TRENTO_MCP_CONFIG` |(empty) |Config file path.
 |===
 
 == Configuration Examples
@@ -109,7 +100,7 @@ The `trento-mcp-server` binary accepts several command-line flags to configure i
 
 [source,console]
 ----
-# Create trento-mcp-server.config.yaml with your settings
+# Create trento-mcp-server with your settings
 trento-mcp-server
 ----
 
@@ -118,7 +109,7 @@ trento-mcp-server
 [source,console]
 ----
 export TRENTO_MCP_PORT=8080
-export TRENTO_MCP_TRENTOURL=https://prod.trento.io
+export TRENTO_MCP_TRENTO_URL=https://prod.trento.io
 export TRENTO_MCP_VERBOSITY=debug
 trento-mcp-server
 ----
@@ -139,7 +130,7 @@ export TRENTO_MCP_PORT=8080
 export TRENTO_MCP_VERBOSITY=info
 
 # Override specific values via flags
-trento-mcp-server --port 9000 --config /etc/trento/trento-mcp-server.config.yaml
+trento-mcp-server --port 9000 --config /etc/trento/trento-mcp-server
 # Result: port=9000 (from flag), verbosity=info (from env), other settings from config file
 ----
 
@@ -149,8 +140,8 @@ trento-mcp-server --port 9000 --config /etc/trento/trento-mcp-server.config.yaml
 ----
 docker run -p 8080:8080 \
   -e TRENTO_MCP_PORT=8080 \
-  -e TRENTO_MCP_TRENTOURL=https://prod.trento.io \
-  -v /host/config:/app/trento-mcp-server.config.yaml \
+  -e TRENTO_MCP_TRENTO_URL=https://prod.trento.io \
+  -v /host/config:/app/trento-mcp-server \
   trento-mcp-server
 ----
 
@@ -171,7 +162,7 @@ spec:
         env:
         - name: TRENTO_MCP_PORT
           value: "8080"
-        - name: TRENTO_MCP_TRENTOURL
+        - name: TRENTO_MCP_TRENTO_URL
           value: "https://prod.trento.io"
         - name: TRENTO_MCP_VERBOSITY
           value: "info"
