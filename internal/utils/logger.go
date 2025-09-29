@@ -72,11 +72,7 @@ func CaptureLibraryLogs(ctx context.Context, action func() error) error {
 	// Goroutine to read from the pipe and log
 	var wg sync.WaitGroup
 
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-
+	wg.Go(func() {
 		scanner := bufio.NewScanner(r)
 		for scanner.Scan() {
 			line := scanner.Text()
@@ -93,7 +89,7 @@ func CaptureLibraryLogs(ctx context.Context, action func() error) error {
 				slog.DebugContext(ctx, "unstructured output from library", "output", line, "source", "openapi-mcp")
 			}
 		}
-	}()
+	})
 
 	// Wait for the action to complete
 	actionErr := <-actionErrChan
