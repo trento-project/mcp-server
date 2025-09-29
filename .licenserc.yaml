@@ -18,7 +18,8 @@ header:
     - CHANGELOG.md
     - LICENSE
     - VERSION
-    - api/openapi.json
+    - api/wanda.openapi.json
+    - api/web.openapi.json
     - go.sum
     - helm/trento-mcp-server/.helmignore
     - helm/trento-mcp-server/templates/NOTES.txt
