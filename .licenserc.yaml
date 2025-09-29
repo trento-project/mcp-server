@@ -20,7 +20,4 @@ header:
     - VERSION
     - api/openapi.json
     - go.sum
-    - helm/trento-mcp-server/.helmignore
-    - helm/trento-mcp-server/templates/NOTES.txt
-    - helm/trento-mcp-server/values.schema.json
     - packaging/suse/rpm/systemd/trento-mcp-server.service

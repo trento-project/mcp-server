@@ -66,7 +66,7 @@ kubectl create -n suse-ai secret docker-registry application-collection --docker
 This section describes how to install the Open Web UI, which provides a user-friendly interface for interacting with AI models.
 
 [arabic]
-. Create a link:https://github.com/trento-project/mcp-server/blob/main/examples/values.openwebui.yaml[values.openwebui.yaml] file with the values for Open Web UI.
+. Create a link:https://github.com/trento-project/mcp-server/blob/main/docs/examples/values.openwebui.yaml[values.openwebui.yaml] file with the values for Open Web UI.
 
 [arabic]
 . Install the Open Web UI using Helm and the values file (`values.openwebui.yaml`) created above. Note that you need to have `cert-manager` properly installed. Besides, an ingress controller is required. If you don't have any, you might need to tweak up the Kubernetes services.
@@ -87,7 +87,7 @@ NOTE: Always refer to the https://cloud.google.com/run/docs/tutorials/gpu-gemma-
 ____
 
 [arabic]
-. Create a link:https://github.com/trento-project/mcp-server/blob/main/Dockerfile[Dockerfile] for the Ollama model.
+. Create a link:https://github.com/trento-project/mcp-server/blob/main/docs/examples/Dockerfile[Dockerfile] for the Ollama model.
 
 [arabic]
 . In the same directory as the `Dockerfile`, run the following command to build the Docker image:
@@ -114,18 +114,9 @@ Once you have the Ollama model running on Google Cloud Run, you can add it to th
 
 === Deploying the MCP Server Trento
 
-To deploy the `Trento MCP Server` using SUSE AI, you can use the provided Helm chart. This section describes how to deploy the MCP Server Trento with the necessary configurations.
+To deploy the `Trento MCP Server` using SUSE AI, you can use the provided Helm chart in the link:https://github.com/trento-project/helm-charts[Trento helm-charts repository]. This section describes how to deploy the MCP Server Trento with the necessary configurations.
 
-[arabic]
-. Create a link:https://github.com/trento-project/mcp-server/blob/main/examples/values.mcpo.yaml[values.mcpo.yaml] file with the values for the MCP Server Trento:
-
-[arabic]
-. Install the MCP Server Trento using Helm and the values file (`values.mcpo.yaml`) created above:
-
-[source,console]
-----
-helm -n suse-ai upgrade --install trento-for-suse-ai ./helm/trento-mcp-server --values values.mcpo.yaml
-----
+NOTE: This section will be improved in the future. For now, please refer to the link:https://docs.openwebui.com/openapi-servers/mcp/[official guide on how to use MCPO and OpenWebUI].
 
 === Adding the MCP Server Trento to Open Web UI
 

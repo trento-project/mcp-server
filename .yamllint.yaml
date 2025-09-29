@@ -3,7 +3,6 @@
 ---
 extends: default
 ignore:
-  - helm/
 rules:
   line-length: disable
   comments-indentation: disable
