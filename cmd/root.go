@@ -162,16 +162,22 @@ func flagConfigs() []utils.FlagConfig {
 // reads the config file if any. Finally, it unmarshal the
 // configuration into the server options passed through.
 func configureCLI(_ *cobra.Command, _ []string) error {
-	// Set the global logger
+	// Set the logger temporarily, it can change once the config file is read
 	err := initLogger()
 	if err != nil {
-		return fmt.Errorf("failed init logger: %w", err)
+		return fmt.Errorf("failed init logger before reading config file: %w", err)
 	}
 
-	// try reading a file with the configuration
+	// Try reading a file with the configuration
 	err = readConfigFile()
 	if err != nil {
 		return fmt.Errorf("failed read config file: %w", err)
+	}
+
+	// Set the global logger, with the proper level
+	err = initLogger()
+	if err != nil {
+		return fmt.Errorf("failed init logger: %w", err)
 	}
 
 	// Normalize string slice flags/env vars
