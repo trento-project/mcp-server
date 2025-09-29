@@ -9,21 +9,26 @@
 # Configuration can be provided via this file, environment variables, or command-line flags.
 # Command-line flags take precedence over environment variables, which take precedence over this file.
 
-## The port on which the MCP Server listens for incoming connections.
-port: 8080
-## The transport protocol to use for MCP communication. Options: 'streamable' (default) or 'sse'.
-transport: streamable
-## List of paths to the OpenAPI specification files (local or remote URLs).
-oasPath:
-  - https://demo.trento-project.io/api/v1/openapi
+## List of comma-separated paths to the OpenAPI specification files (local or remote URLs).
+# OAS_PATH=<CHANGE_ME>
+
 ## Target Trento server to connect to for API operations and data retrieval.
-trentoURL: https://demo.trento-project.io
+# TRENTO_URL=<CHANGE_ME>
+
+## The port on which the MCP Server listens for incoming connections.
+PORT=8080
+
+## The transport protocol to use for MCP communication. Options: 'streamable' (default) or 'sse'.
+TRANSPORT=streamable
+
 ## The HTTP header name used to pass the Trento API key for authentication with the Trento server.
-headerName: X-TRENTO-MCP-APIKEY
+HEADER_NAME=X-TRENTO-MCP-APIKEY
+
 ## List of OpenAPI tags to filter which operations are exposed as MCP tools. Only operations with at least one matching tag will be available.
-tagFilter:
-  - MCP
+TAG_FILTER=MCP
+
 ##  The logging verbosity level. Options: 'debug', 'info', 'warning', 'error'.
-verbosity: info
+VERBOSITY=info
+
 ## Skip TLS certificate verification when connecting to HTTPS URLs. Use only in development or trusted environments.
-insecureTLS: false
+INSECURE_TLS=false
