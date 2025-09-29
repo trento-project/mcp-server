@@ -59,7 +59,7 @@ For system-wide configuration, place the config file in `/etc/trento/trento-mcp-
 sudo mkdir -p /etc/trento
 sudo tee /etc/trento/trento-mcp-server > /dev/null <<EOF
 TRENTO_URL=https://prod.trento.io
-OASPATH=https://prod.trento.io/openapi.json
+OAS_PATH=https://prod.trento.io/openapi.json
 EOF
 ----
 
