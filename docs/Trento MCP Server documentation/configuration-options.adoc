@@ -19,27 +19,31 @@ The `trento-mcp-server` supports multiple configuration sources with the followi
 You can create a `trento-mcp-server.config.yaml` file in the working directory or specify a custom path using the `--config` flag.
 
 Viper searches for configuration files in the following order:
+
 1. Current working directory (`./trento-mcp-server.config.yaml`)
 2. System-wide directory (`/etc/trento/trento-mcp-server.config.yaml`)
 3. Custom path specified with `--config` flag
 
 [source,yaml]
 ----
-# Trento MCP Server Configuration
-# Server configuration
-port: 5000
-oas-path: "./api/openapi.json"
-transport: "streamable"  # or "sse"
-insecureTLS: false
-
-# Trento server configuration
-trentoURL: "https://demo.trento-project.io"
-trentoHeaderName: "X-TRENTO-MCP-APIKEY"
+## The port on which the MCP Server listens for incoming connections.
+port: 8080
+## The transport protocol to use for MCP communication. Options: 'streamable' (default) or 'sse'.
+transport: streamable
+## List of paths to the OpenAPI specification files (local or remote URLs).
+oasPath:
+  - https://demo.trento-project.io/api/v1/openapi
+## Target Trento server to connect to for API operations and data retrieval.
+trentoURL: https://demo.trento-project.io
+## The HTTP header name used to pass the Trento API key for authentication with the Trento server.
+headerName: X-TRENTO-MCP-APIKEY
+## List of OpenAPI tags to filter which operations are exposed as MCP tools. Only operations with at least one matching tag will be available.
 tagFilter:
-  - "MCP"
-
-# Logging
-verbosity: "info"  # debug, info, warning, error
+  - MCP
+##  The logging verbosity level. Options: 'debug', 'info', 'warning', 'error'.
+verbosity: info
+## Skip TLS certificate verification when connecting to HTTPS URLs. Use only in development or trusted environments.
+insecureTLS: false
 ----
 
 === System-Wide Configuration
@@ -71,7 +75,7 @@ Environment variables use the `TRENTO_MCP_` prefix and follow the same naming co
 |===
 |Environment Variable |Flag |Description
 |`TRENTO_MCP_PORT` |`port` |Server port number
-|`TRENTO_MCP_OASPATH` |`oas-path` |Path to OpenAPI specification file
+|`TRENTO_MCP_OASPATH` |`oas-path` |Comma-separated list of paths to OpenAPI specification files
 |`TRENTO_MCP_TRANSPORT` |`transport` |Transport protocol (`streamable` or `sse`)
 |`TRENTO_MCP_TRENTOURL` |`trento-url` |Trento server URL
 |`TRENTO_MCP_TRENTOHEADERNAME` |`trento-header-name` |HTTP header name for API key
@@ -89,7 +93,7 @@ The `trento-mcp-server` binary accepts several command-line flags to configure i
 |===
 |Flag |Default |Description
 |`--port`, `-p` |`5000` |The port on which to run the server.
-|`--oas-path`, `-P` |`./api/openapi.json` |Path to the OpenAPI spec file.
+|`--oas-path`, `-P` |`./api/openapi.json` |Path to the OpenAPI spec file(s). Can be specified multiple times.
 |`--transport`, `-t` |`streamable` |The protocol to use, choose "streamable" or "sse".
 |`--trento-url`, `-u` |`https://demo.trento-project.io` |URL for the target Trento server.
 |`--header-name`, `-H` |`X-TRENTO-MCP-APIKEY` |The header name to be used for the Trento API key.
