@@ -14,4 +14,5 @@ var (
 	HandleAPIKeyAuth          = handleAPIKeyAuth
 	LoadOpenAPISpec           = loadOpenAPISpec
 	LoadOpenAPISpecFromURL    = loadOpenAPISpecFromURL
+	RegisterToolsFromSpec     = registerToolsFromSpec
 )
