@@ -36,23 +36,23 @@ const (
 	name = "trento-mcp-server"
 
 	// Default values.
-	defaultVerbosity   = "info"
-	defaultPort        = 5000
-	defaultHeaderName  = "X-TRENTO-MCP-APIKEY"
-	defaultTrentoURL   = "https://demo.trento-project.io"
-	defaultConfig      = ""
-	defaultInsecureTLS = false
+	defaultVerbosity             = "info"
+	defaultPort                  = 5000
+	defaultHeaderName            = "X-TRENTO-MCP-APIKEY"
+	defaultTrentoURL             = "https://demo.trento-project.io"
+	defaultConfig                = ""
+	defaultInsecureSkipTLSVerify = false
 
 	// Configuration keys.
-	configKeyPort        = "PORT"
-	configKeyOASPath     = "OAS_PATH"
-	configKeyTransport   = "TRANSPORT"
-	configKeyTrentoURL   = "TRENTO_URL"
-	configKeyHeaderName  = "HEADER_NAME"
-	configKeyTagFilter   = "TAG_FILTER"
-	configKeyVerbosity   = "VERBOSITY"
-	configKeyConfig      = "CONFIG"
-	configKeyInsecureTLS = "INSECURE_TLS"
+	configKeyPort                  = "PORT"
+	configKeyOASPath               = "OAS_PATH"
+	configKeyTransport             = "TRANSPORT"
+	configKeyTrentoURL             = "TRENTO_URL"
+	configKeyHeaderName            = "HEADER_NAME"
+	configKeyTagFilter             = "TAG_FILTER"
+	configKeyVerbosity             = "VERBOSITY"
+	configKeyConfig                = "CONFIG"
+	configKeyInsecureSkipTLSVerify = "INSECURE_SKIP_TLS_VERIFY"
 )
 
 // init creates a new command, append the runtime version and set flags.
@@ -129,10 +129,10 @@ func flagConfigs() []utils.FlagConfig {
 			Description:  "Only include operations with at least one of these tags",
 		},
 		{
-			Key:          configKeyInsecureTLS,
-			DefaultValue: defaultInsecureTLS,
+			Key:          configKeyInsecureSkipTLSVerify,
+			DefaultValue: defaultInsecureSkipTLSVerify,
 			FlagType:     utils.FlagTypeBool,
-			FlagName:     "insecure-tls",
+			FlagName:     "insecure-skip-tls-verify",
 			IsPersistent: false,
 			Short:        "i",
 			Description:  "Skip TLS certificate verification when fetching OpenAPI spec from HTTPS URLs",

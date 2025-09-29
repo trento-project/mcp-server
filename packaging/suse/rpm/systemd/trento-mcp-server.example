@@ -31,4 +31,4 @@ TAG_FILTER=MCP
 VERBOSITY=info
 
 ## Skip TLS certificate verification when connecting to HTTPS URLs. Use only in development or trusted environments.
-INSECURE_TLS=false
+INSECURE_SKIP_TLS_VERIFY=false
