@@ -266,23 +266,23 @@ func TestReadConfigFile(t *testing.T) {
 		{
 			name: "all keys set",
 			configContent: `port: 9999
-oas-path: /custom/api.json
+oasPath: /custom/api.json
 transport: streamable
-trento-url: https://custom.trento.io
-header-name: X-Custom-Header
-tag-filter:
+trentoURL: https://custom.trento.io
+headerName: X-Custom-Header
+tagFilter:
   - tag1
   - tag2
 verbosity: info`,
 			setConfigFile: true,
 			expected: map[string]any{
-				"port":        9999,
-				"oas-path":    "/custom/api.json",
-				"transport":   "streamable",
-				"trento-url":  "https://custom.trento.io",
-				"header-name": "X-Custom-Header",
-				"tag-filter":  []any{"tag1", "tag2"},
-				"verbosity":   "info",
+				"port":       9999,
+				"oasPath":    []string{"/custom/api.json"},
+				"transport":  "streamable",
+				"trentoURL":  "https://custom.trento.io",
+				"headerName": "X-Custom-Header",
+				"tagFilter":  []string{"tag1", "tag2"},
+				"verbosity":  "info",
 			},
 		},
 		{
