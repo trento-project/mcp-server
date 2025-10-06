@@ -116,7 +116,7 @@ fix-ending: ## Fix the line endings, converting them back to unix.
 	find . -path "./.git" -prune -o -type f -exec dos2unix {} \+;
 
 .PHONY: lint
-lint: linter-golangci linter-license linter-shellcheck linter-yamllint linter-asciidoc linter-manifests ## Run all the linters.
+lint: linter-golangci linter-license linter-shellcheck linter-yamllint linter-asciidoc ## Run all the linters.
 
 .PHONY: linter-golangci
 linter-golangci: golangci-lint ## Run golangci-lint linter.
@@ -138,10 +138,6 @@ linter-yamllint: ## Run yamllint script.
 linter-asciidoc: ## Run asciidoc linter script.
 	./hack/linters/asciidoc-linter.sh
 
-.PHONY: linter-manifests
-linter-manifests: helm kube-score ## Analyze the manifests with kube-score.
-	$(HELM) template ./helm/trento-mcp-server | $(KUBE_SCORE) score -
-
 ##@ Dependencies
 
 # Location to install dependencies to
@@ -151,36 +147,20 @@ $(LOCALBIN):
 
 ## Tool Binaries
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
-HELM ?= $(LOCALBIN)/helm-$(HELM_VERSION)
-KUBE_SCORE ?= $(LOCALBIN)/kube-score-$(KUBE_SCORE_VERSION)
 
 ## Tool Versions
 TOOL_VERSIONS_FILE := ${CURDIR}/.tool-versions
 
 GOLANGCI_LINT_VERSION ?= v$(shell grep '^golangci-lint' $(TOOL_VERSIONS_FILE) | cut -d' ' -f2) # See https://github.com/golangci/golangci-lint/releases
-HELM_VERSION ?= v$(shell grep '^helm' $(TOOL_VERSIONS_FILE) | cut -d' ' -f2) # See https://github.com/helm/helm/releases
-KUBE_SCORE_VERSION ?= v$(shell grep '^kube-score' $(TOOL_VERSIONS_FILE) | cut -d' ' -f2) # See https://github.com/zegl/kube-score/releases
 
 .PHONY: install-tools
-install-tools: golangci-lint helm kube-score ## Download all the required tools.
+install-tools: golangci-lint ## Download all the required tools.
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,${GOLANGCI_LINT_VERSION})
 	$(call check-gh-version,golangci/golangci-lint,${GOLANGCI_LINT_VERSION})
-
-.PHONY: helm
-helm: $(HELM) ## Download helm locally if necessary.
-$(HELM): $(LOCALBIN)
-	$(call go-install-tool,$(HELM),helm.sh/helm/v3/cmd/helm,${HELM_VERSION})
-	$(call check-gh-version,helm/helm,${HELM_VERSION})
-
-.PHONY: kube-score
-kube-score: $(KUBE_SCORE) ## Download the tool locally if necessary.
-$(KUBE_SCORE): $(LOCALBIN)
-	$(call go-install-tool,$(KUBE_SCORE),github.com/zegl/kube-score/cmd/kube-score,${KUBE_SCORE_VERSION})
-	$(call check-gh-version,zegl/kube-score,${KUBE_SCORE_VERSION})
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary (ideally with version)
