@@ -3,13 +3,13 @@
 
 module github.com/trento-project/mcp-server
 
-go 1.24.4
+go 1.25
 
 require (
 	github.com/carlmjohnson/versioninfo v0.22.5
 	github.com/evcc-io/openapi-mcp v0.6.0
 	github.com/getkin/kin-openapi v0.133.0
-	github.com/modelcontextprotocol/go-sdk v0.6.0
+	github.com/modelcontextprotocol/go-sdk v1.0.0
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
@@ -33,7 +33,6 @@ require (
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
-	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect

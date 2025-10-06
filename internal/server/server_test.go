@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	openapi2mcp "github.com/evcc-io/openapi-mcp"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -74,7 +75,7 @@ func TestServe(t *testing.T) {
 			port := getAvailablePort(t)
 			serveOpts := &server.ServeOptions{
 				Port:      port,
-				OASPath:   tmpFile,
+				OASPath:   []string{tmpFile},
 				Transport: tt.transport,
 				TrentoURL: "http://trento.test",
 			}
@@ -254,7 +255,7 @@ func TestHandleToolsRegistration(t *testing.T) {
 			tmpFile := createTempOASFile(t, tt.oasContent)
 
 			serveOpts := &server.ServeOptions{
-				OASPath:   tmpFile,
+				OASPath:   []string{tmpFile},
 				TrentoURL: "http://trento.test",
 				TagFilter: tt.tagFilter,
 			}
@@ -280,6 +281,99 @@ func TestHandleToolsRegistration(t *testing.T) {
 				for _, notExpectedTool := range tt.notExpectedTools {
 					assert.NotContains(t, tools, notExpectedTool)
 				}
+			}
+		})
+	}
+}
+
+func TestRegisterToolsFromSpec(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name             string
+		oasContent       string
+		tagFilter        []string
+		expectedTools    []string
+		notExpectedTools []string
+	}{
+		{
+			name: "should register tools with no tag filter",
+			oasContent: `{
+				"openapi": "3.0.0", "info": {"title": "API", "version": "1.0"},
+				"paths": {
+					"/test1": {"get": {"operationId": "getTest1", "tags": ["A"], "responses": {"200": {"description": "OK"}}}},
+					"/test2": {"get": {"operationId": "getTest2", "tags": ["B"], "responses": {"200": {"description": "OK"}}}}
+				}
+			}`,
+			tagFilter:     []string{},
+			expectedTools: []string{"getTest1", "getTest2", "info"},
+		},
+		{
+			name: "should register only tools matching the tag filter",
+			oasContent: `{
+				"openapi": "3.0.0", "info": {"title": "API", "version": "1.0"},
+				"paths": {
+					"/test1": {"get": {"operationId": "getTest1", "tags": ["A"], "responses": {"200": {"description": "OK"}}}},
+					"/test2": {"get": {"operationId": "getTest2", "tags": ["B"], "responses": {"200": {"description": "OK"}}}}
+				}
+			}`,
+			tagFilter:        []string{"A"},
+			expectedTools:    []string{"getTest1", "info"},
+			notExpectedTools: []string{"getTest2"},
+		},
+		{
+			name: "should register tools if any of their tags match the filter",
+			oasContent: `{
+				"openapi": "3.0.0", "info": {"title": "API", "version": "1.0"},
+				"paths": {
+					"/test1": {"get": {"operationId": "getTest1", "tags": ["A", "C"], "responses": {"200": {"description": "OK"}}}},
+					"/test2": {"get": {"operationId": "getTest2", "tags": ["B"], "responses": {"200": {"description": "OK"}}}}
+				}
+			}`,
+			tagFilter:        []string{"A", "B"},
+			expectedTools:    []string{"getTest1", "getTest2", "info"},
+			notExpectedTools: []string{},
+		},
+		{
+			name: "should correctly format operation names",
+			oasContent: `{
+				"openapi": "3.0.0", "info": {"title": "API", "version": "1.0"},
+				"paths": {
+					"/test1": {"get": {"operationId": "TrentoWeb_V1_SomeController.action", "tags": ["A"], "responses": {"200": {"description": "OK"}}}},
+					"/test2": {"get": {"operationId": "WandaWeb_V2_Another.action", "tags": ["A"], "responses": {"200": {"description": "OK"}}}},
+					"/test3": {"get": {"operationId": "NoPrefixControllerAction", "tags": ["A"], "responses": {"200": {"description": "OK"}}}}
+				}
+			}`,
+			tagFilter:     []string{"A"},
+			expectedTools: []string{"Some_action", "Another_action", "NoPrefixAction", "info"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := context.Background()
+			srv := server.CreateMCPServer(ctx, &server.ServeOptions{Name: "test", Version: "v1"})
+			serveOpts := &server.ServeOptions{
+				TagFilter: tt.tagFilter,
+			}
+
+			tmpFile := createTempOASFile(t, tt.oasContent)
+
+			oasDoc, err := openapi2mcp.LoadOpenAPISpec(tmpFile)
+			require.NoError(t, err)
+
+			tools := server.RegisterToolsFromSpec(srv, oasDoc, serveOpts)
+
+			require.NotNil(t, tools)
+
+			for _, expectedTool := range tt.expectedTools {
+				assert.Contains(t, tools, expectedTool, "expected tool not found")
+			}
+
+			for _, notExpectedTool := range tt.notExpectedTools {
+				assert.NotContains(t, tools, notExpectedTool, "unexpected tool found")
 			}
 		})
 	}
@@ -328,12 +422,12 @@ func TestHandleToolsRegistrationWithURL(t *testing.T) {
 			defer testServer.Close()
 
 			serveOpts := &server.ServeOptions{
-				Name:        "trento-mcp-server",
-				Version:     "1.0.0",
-				OASPath:     testServer.URL + "/openapi.json",
-				TrentoURL:   tt.trentoURL,
-				TagFilter:   tt.tagFilter,
-				InsecureTLS: false,
+				Name:                  "trento-mcp-server",
+				Version:               "1.0.0",
+				OASPath:               []string{testServer.URL + "/openapi.json"},
+				TrentoURL:             tt.trentoURL,
+				TagFilter:             tt.tagFilter,
+				InsecureSkipTLSVerify: false,
 			}
 
 			srv := server.CreateMCPServer(ctx, serveOpts)
@@ -353,6 +447,7 @@ func TestHandleToolsRegistrationWithURL(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
 func TestHandleServerRun(t *testing.T) {
 	t.Parallel()
 
@@ -435,6 +530,7 @@ func TestHandleServerRun(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
 func TestWaitForShutdown(t *testing.T) {
 	t.Parallel()
 
@@ -586,6 +682,23 @@ func TestWaitForShutdown(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestLoadOpenAPISpec_MultipleFiles(t *testing.T) {
+	t.Parallel()
+
+	oasContent1 := createSimpleOASContent()
+	oasContent2 := strings.Replace(oasContent1, "getTest", "getTest2", 1)
+
+	tmpFile1 := createTempOASFile(t, oasContent1)
+	tmpFile2 := createTempOASFile(t, oasContent2)
+
+	srv := server.CreateMCPServer(context.Background(), &server.ServeOptions{Name: "test", Version: "v1"})
+	serveOpts := &server.ServeOptions{OASPath: []string{tmpFile1, tmpFile2}}
+	_, tools, err := server.HandleToolsRegistration(context.Background(), srv, serveOpts)
+	require.NoError(t, err)
+	assert.Contains(t, tools, "getTest")
+	assert.Contains(t, tools, "getTest2")
 }
 
 func waitForServerReady(t *testing.T, url string, timeout time.Duration) {
@@ -870,30 +983,33 @@ func TestLoadOpenAPISpec(t *testing.T) {
 
 			ctx := context.Background()
 			serveOpts := &server.ServeOptions{
-				Name:        "trento-mcp-server",
-				Version:     "1.0.0",
-				OASPath:     tt.oasPath,
-				InsecureTLS: false,
+				Name:                  "trento-mcp-server",
+				Version:               "1.0.0",
+				OASPath:               []string{tt.oasPath},
+				InsecureSkipTLSVerify: false,
 			}
 
-			var cleanup func()
+			var (
+				cleanup func()
+				path    string
+			)
 
 			if tt.isHTTPLoad {
 				testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 					w.WriteHeader(http.StatusOK)
 					_, _ = w.Write([]byte(tt.oasContent))
 				}))
-				serveOpts.OASPath = testServer.URL + "/openapi.json"
+				path = testServer.URL + "/openapi.json"
 				cleanup = testServer.Close
 			} else {
 				tmpFile := createTempOASFile(t, tt.oasContent)
-				serveOpts.OASPath = tmpFile
+				path = tmpFile
 				cleanup = func() {}
 			}
 
 			defer cleanup()
 
-			oasDoc, err := server.LoadOpenAPISpec(ctx, serveOpts)
+			oasDoc, err := server.LoadOpenAPISpec(ctx, path, serveOpts)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -912,59 +1028,59 @@ func TestLoadOpenAPISpecFromURL(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name          string
-		oasContent    string
-		statusCode    int
-		insecureTLS   bool
-		expectErr     bool
-		oasPath       string
-		errContains   string
-		expectedTitle string
+		name                  string
+		oasContent            string
+		statusCode            int
+		InsecureSkipTLSVerify bool
+		expectErr             bool
+		oasPath               string
+		errContains           string
+		expectedTitle         string
 	}{
 		{
-			name:          "valid OAS from HTTP URL",
-			oasContent:    createSimpleOASContent(),
-			statusCode:    http.StatusOK,
-			insecureTLS:   false,
-			expectErr:     false,
-			oasPath:       "",
-			expectedTitle: "Simple API",
+			name:                  "valid OAS from HTTP URL",
+			oasContent:            createSimpleOASContent(),
+			statusCode:            http.StatusOK,
+			InsecureSkipTLSVerify: false,
+			expectErr:             false,
+			oasPath:               "",
+			expectedTitle:         "Simple API",
 		},
 		{
-			name:          "valid OAS from HTTPS URL with insecure TLS",
-			oasContent:    createSimpleOASContent(),
-			statusCode:    http.StatusOK,
-			insecureTLS:   true,
-			expectErr:     false,
-			oasPath:       "",
-			expectedTitle: "Simple API",
+			name:                  "valid OAS from HTTPS URL with insecure TLS",
+			oasContent:            createSimpleOASContent(),
+			statusCode:            http.StatusOK,
+			InsecureSkipTLSVerify: true,
+			expectErr:             false,
+			oasPath:               "",
+			expectedTitle:         "Simple API",
 		},
 		{
-			name:        "404 status code",
-			oasContent:  createSimpleOASContent(),
-			statusCode:  http.StatusNotFound,
-			insecureTLS: false,
-			expectErr:   true,
-			oasPath:     "",
-			errContains: "status code: 404",
+			name:                  "404 status code",
+			oasContent:            createSimpleOASContent(),
+			statusCode:            http.StatusNotFound,
+			InsecureSkipTLSVerify: false,
+			expectErr:             true,
+			oasPath:               "",
+			errContains:           "status code: 404",
 		},
 		{
-			name:        "invalid JSON",
-			oasContent:  `{ "invalid": "json"`,
-			statusCode:  http.StatusOK,
-			insecureTLS: false,
-			expectErr:   true,
-			oasPath:     "",
-			errContains: "failed to parse OpenAPI spec",
+			name:                  "invalid JSON",
+			oasContent:            `{ "invalid": "json"`,
+			statusCode:            http.StatusOK,
+			InsecureSkipTLSVerify: false,
+			expectErr:             true,
+			oasPath:               "",
+			errContains:           "failed to parse OpenAPI spec",
 		},
 		{
-			name:        "network error",
-			oasContent:  createSimpleOASContent(),
-			statusCode:  http.StatusOK,
-			insecureTLS: false,
-			expectErr:   true,
-			oasPath:     "http://non-existent-server.com/openapi.json",
-			errContains: "failed to fetch OpenAPI spec",
+			name:                  "network error",
+			oasContent:            createSimpleOASContent(),
+			statusCode:            http.StatusOK,
+			InsecureSkipTLSVerify: false,
+			expectErr:             true,
+			oasPath:               "http://non-existent-server.com/openapi.json",
+			errContains:           "failed to fetch OpenAPI spec",
 		},
 	}
 
@@ -984,20 +1100,20 @@ func TestLoadOpenAPISpecFromURL(t *testing.T) {
 
 			ctx := context.Background()
 			serveOpts := &server.ServeOptions{
-				Name:        "trento-mcp-server",
-				Version:     "1.0.0",
-				OASPath:     "",
-				InsecureTLS: tt.insecureTLS,
+				Name:                  "trento-mcp-server",
+				Version:               "1.0.0",
+				OASPath:               []string{""},
+				InsecureSkipTLSVerify: tt.InsecureSkipTLSVerify,
 			}
 
 			// If oasPath is unset, use the test server url.
 			if tt.oasPath == "" {
-				serveOpts.OASPath = testServer.URL + "/openapi.json"
+				serveOpts.OASPath[0] = testServer.URL + "/openapi.json"
 			} else {
-				serveOpts.OASPath = tt.oasPath
+				serveOpts.OASPath[0] = tt.oasPath
 			}
 
-			oasDoc, err := server.LoadOpenAPISpecFromURL(ctx, serveOpts)
+			oasDoc, err := server.LoadOpenAPISpecFromURL(ctx, serveOpts.OASPath[0], serveOpts)
 
 			if tt.expectErr {
 				require.Error(t, err)

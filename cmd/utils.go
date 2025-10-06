@@ -16,8 +16,8 @@ import (
 
 const (
 	// Configuration file settings.
-	configFileName = "trento-mcp-server.config"
-	configFileType = "yaml"
+	configFileName = "trento-mcp-server"
+	configFileType = "env"
 
 	// Environment variable prefix.
 	envPrefix = "TRENTO_MCP"
@@ -44,6 +44,7 @@ func setFlags(cmd *cobra.Command) {
 
 	// Enable environment variables with prefix
 	viper.SetEnvPrefix(envPrefix)
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	viper.AutomaticEnv()
 
 	// Define and bind the flags with viper
@@ -93,8 +94,14 @@ func readConfigFile() error {
 	// Handle custom config file path if specified
 	configPath := viper.GetString(configKeyConfig)
 	if configPath != "" {
+		slog.Debug("using custom configuration file",
+			"config.path", configPath,
+		)
 		viper.SetConfigFile(configPath)
 	}
+
+	// Ensure we use the desired config parser
+	viper.SetConfigType(configFileType)
 
 	// Read config file after logger is initialized
 	err := viper.ReadInConfig()
@@ -112,6 +119,10 @@ func readConfigFile() error {
 				"error", err,
 			)
 		}
+	} else {
+		slog.Debug("configuration file read successfully",
+			"config.used", viper.ConfigFileUsed(),
+		)
 	}
 
 	return nil
@@ -170,11 +181,26 @@ func getConfigDescription() string {
 		// Trim trailing slashes to avoid double slashes
 		cleanPath := strings.TrimSuffix(path, "/")
 		if cleanPath == "." {
-			paths[i] = fmt.Sprintf("./%s.%s", configFileName, configFileType)
+			paths[i] = fmt.Sprintf("./%s", configFileName)
 		} else {
-			paths[i] = fmt.Sprintf("%s/%s.%s", cleanPath, configFileName, configFileType)
+			paths[i] = fmt.Sprintf("%s/%s", cleanPath, configFileName)
 		}
 	}
 
 	return fmt.Sprintf("config file path (default search: %s)", strings.Join(paths, " or "))
+}
+
+// normalizeStringSlice handles the case where Viper reads a comma-separated string
+// from an environment variable instead of a string slice.
+func normalizeStringSlice(key string) {
+	if !viper.IsSet(key) {
+		return
+	}
+
+	value := viper.Get(key)
+	if str, ok := value.(string); ok {
+		if str != "" {
+			viper.Set(key, strings.Split(str, ","))
+		}
+	}
 }
