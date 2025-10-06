@@ -422,12 +422,12 @@ func TestHandleToolsRegistrationWithURL(t *testing.T) {
 			defer testServer.Close()
 
 			serveOpts := &server.ServeOptions{
-				Name:        "trento-mcp-server",
-				Version:     "1.0.0",
-				OASPath:     []string{testServer.URL + "/openapi.json"},
-				TrentoURL:   tt.trentoURL,
-				TagFilter:   tt.tagFilter,
-				InsecureTLS: false,
+				Name:                  "trento-mcp-server",
+				Version:               "1.0.0",
+				OASPath:               []string{testServer.URL + "/openapi.json"},
+				TrentoURL:             tt.trentoURL,
+				TagFilter:             tt.tagFilter,
+				InsecureSkipTLSVerify: false,
 			}
 
 			srv := server.CreateMCPServer(ctx, serveOpts)
@@ -983,10 +983,10 @@ func TestLoadOpenAPISpec(t *testing.T) {
 
 			ctx := context.Background()
 			serveOpts := &server.ServeOptions{
-				Name:        "trento-mcp-server",
-				Version:     "1.0.0",
-				OASPath:     []string{tt.oasPath},
-				InsecureTLS: false,
+				Name:                  "trento-mcp-server",
+				Version:               "1.0.0",
+				OASPath:               []string{tt.oasPath},
+				InsecureSkipTLSVerify: false,
 			}
 
 			var (
@@ -1028,59 +1028,59 @@ func TestLoadOpenAPISpecFromURL(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name          string
-		oasContent    string
-		statusCode    int
-		insecureTLS   bool
-		expectErr     bool
-		oasPath       string
-		errContains   string
-		expectedTitle string
+		name                  string
+		oasContent            string
+		statusCode            int
+		InsecureSkipTLSVerify bool
+		expectErr             bool
+		oasPath               string
+		errContains           string
+		expectedTitle         string
 	}{
 		{
-			name:          "valid OAS from HTTP URL",
-			oasContent:    createSimpleOASContent(),
-			statusCode:    http.StatusOK,
-			insecureTLS:   false,
-			expectErr:     false,
-			oasPath:       "",
-			expectedTitle: "Simple API",
+			name:                  "valid OAS from HTTP URL",
+			oasContent:            createSimpleOASContent(),
+			statusCode:            http.StatusOK,
+			InsecureSkipTLSVerify: false,
+			expectErr:             false,
+			oasPath:               "",
+			expectedTitle:         "Simple API",
 		},
 		{
-			name:          "valid OAS from HTTPS URL with insecure TLS",
-			oasContent:    createSimpleOASContent(),
-			statusCode:    http.StatusOK,
-			insecureTLS:   true,
-			expectErr:     false,
-			oasPath:       "",
-			expectedTitle: "Simple API",
+			name:                  "valid OAS from HTTPS URL with insecure TLS",
+			oasContent:            createSimpleOASContent(),
+			statusCode:            http.StatusOK,
+			InsecureSkipTLSVerify: true,
+			expectErr:             false,
+			oasPath:               "",
+			expectedTitle:         "Simple API",
 		},
 		{
-			name:        "404 status code",
-			oasContent:  createSimpleOASContent(),
-			statusCode:  http.StatusNotFound,
-			insecureTLS: false,
-			expectErr:   true,
-			oasPath:     "",
-			errContains: "status code: 404",
+			name:                  "404 status code",
+			oasContent:            createSimpleOASContent(),
+			statusCode:            http.StatusNotFound,
+			InsecureSkipTLSVerify: false,
+			expectErr:             true,
+			oasPath:               "",
+			errContains:           "status code: 404",
 		},
 		{
-			name:        "invalid JSON",
-			oasContent:  `{ "invalid": "json"`,
-			statusCode:  http.StatusOK,
-			insecureTLS: false,
-			expectErr:   true,
-			oasPath:     "",
-			errContains: "failed to parse OpenAPI spec",
+			name:                  "invalid JSON",
+			oasContent:            `{ "invalid": "json"`,
+			statusCode:            http.StatusOK,
+			InsecureSkipTLSVerify: false,
+			expectErr:             true,
+			oasPath:               "",
+			errContains:           "failed to parse OpenAPI spec",
 		},
 		{
-			name:        "network error",
-			oasContent:  createSimpleOASContent(),
-			statusCode:  http.StatusOK,
-			insecureTLS: false,
-			expectErr:   true,
-			oasPath:     "http://non-existent-server.com/openapi.json",
-			errContains: "failed to fetch OpenAPI spec",
+			name:                  "network error",
+			oasContent:            createSimpleOASContent(),
+			statusCode:            http.StatusOK,
+			InsecureSkipTLSVerify: false,
+			expectErr:             true,
+			oasPath:               "http://non-existent-server.com/openapi.json",
+			errContains:           "failed to fetch OpenAPI spec",
 		},
 	}
 
@@ -1100,10 +1100,10 @@ func TestLoadOpenAPISpecFromURL(t *testing.T) {
 
 			ctx := context.Background()
 			serveOpts := &server.ServeOptions{
-				Name:        "trento-mcp-server",
-				Version:     "1.0.0",
-				OASPath:     []string{""},
-				InsecureTLS: tt.insecureTLS,
+				Name:                  "trento-mcp-server",
+				Version:               "1.0.0",
+				OASPath:               []string{""},
+				InsecureSkipTLSVerify: tt.InsecureSkipTLSVerify,
 			}
 
 			// If oasPath is unset, use the test server url.

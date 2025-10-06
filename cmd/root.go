@@ -26,33 +26,33 @@ var (
 	rootCmd *cobra.Command //nolint:gochecknoglobals
 
 	// Default values.
-	defaultTagFilter   = []string{}                        //nolint:gochecknoglobals
-	defaultTransport   = string(utils.TransportStreamable) //nolint:gochecknoglobals
-	defaultConfigPaths = []string{".", "/etc/trento/"}     //nolint:gochecknoglobals
-	defaultOASPath     = []string{"./api/openapi.json"}    //nolint:gochecknoglobals
+	defaultTagFilter   = []string{}                                   //nolint:gochecknoglobals
+	defaultTransport   = string(utils.TransportStreamable)            //nolint:gochecknoglobals
+	defaultConfigPaths = []string{"/etc/trento/", "/usr/etc/trento/"} //nolint:gochecknoglobals
+	defaultOASPath     = []string{"./openapi.json"}                   //nolint:gochecknoglobals
 )
 
 const (
 	name = "trento-mcp-server"
 
 	// Default values.
-	defaultVerbosity        = "info"
-	defaultPort             = 5000
-	defaultTrentoHeaderName = "X-TRENTO-MCP-APIKEY"
-	defaultTrentoURL        = "https://demo.trento-project.io"
-	defaultConfig           = ""
-	defaultInsecureTLS      = false
+	defaultVerbosity             = "info"
+	defaultPort                  = 5000
+	defaultHeaderName            = "X-TRENTO-MCP-APIKEY"
+	defaultTrentoURL             = "https://demo.trento-project.io"
+	defaultConfig                = ""
+	defaultInsecureSkipTLSVerify = false
 
 	// Configuration keys.
-	configKeyPort             = "port"
-	configKeyOASPath          = "oasPath"
-	configKeyTransport        = "transport"
-	configKeyTrentoURL        = "trentoURL"
-	configKeyTrentoHeaderName = "trentoHeaderName"
-	configKeyTagFilter        = "tagFilter"
-	configKeyVerbosity        = "verbosity"
-	configKeyConfig           = "config"
-	configKeyInsecureTLS      = "insecureTLS"
+	configKeyPort                  = "PORT"
+	configKeyOASPath               = "OAS_PATH"
+	configKeyTransport             = "TRANSPORT"
+	configKeyTrentoURL             = "TRENTO_URL"
+	configKeyHeaderName            = "HEADER_NAME"
+	configKeyTagFilter             = "TAG_FILTER"
+	configKeyVerbosity             = "VERBOSITY"
+	configKeyConfig                = "CONFIG"
+	configKeyInsecureSkipTLSVerify = "INSECURE_SKIP_TLS_VERIFY"
 )
 
 // init creates a new command, append the runtime version and set flags.
@@ -113,12 +113,12 @@ func flagConfigs() []utils.FlagConfig {
 			Description:  "URL for the target Trento server",
 		},
 		{
-			Key:          configKeyTrentoHeaderName,
-			DefaultValue: defaultTrentoHeaderName,
+			Key:          configKeyHeaderName,
+			DefaultValue: defaultHeaderName,
 			FlagType:     utils.FlagTypeString,
 			FlagName:     "header-name",
 			Short:        "H",
-			Description:  "The header name to be used for the Trento API key",
+			Description:  "The header name to be used for the passing the Trento API key to the MCP server",
 		},
 		{
 			Key:          configKeyTagFilter,
@@ -129,10 +129,10 @@ func flagConfigs() []utils.FlagConfig {
 			Description:  "Only include operations with at least one of these tags",
 		},
 		{
-			Key:          configKeyInsecureTLS,
-			DefaultValue: defaultInsecureTLS,
+			Key:          configKeyInsecureSkipTLSVerify,
+			DefaultValue: defaultInsecureSkipTLSVerify,
 			FlagType:     utils.FlagTypeBool,
-			FlagName:     "insecure-tls",
+			FlagName:     "insecure-skip-tls-verify",
 			IsPersistent: false,
 			Short:        "i",
 			Description:  "Skip TLS certificate verification when fetching OpenAPI spec from HTTPS URLs",
@@ -162,16 +162,22 @@ func flagConfigs() []utils.FlagConfig {
 // reads the config file if any. Finally, it unmarshal the
 // configuration into the server options passed through.
 func configureCLI(_ *cobra.Command, _ []string) error {
-	// Set the global logger
+	// Set the logger temporarily, it can change once the config file is read
 	err := initLogger()
 	if err != nil {
-		return fmt.Errorf("failed init logger: %w", err)
+		return fmt.Errorf("failed init logger before reading config file: %w", err)
 	}
 
-	// try reading a file with the configuration
+	// Try reading a file with the configuration
 	err = readConfigFile()
 	if err != nil {
 		return fmt.Errorf("failed read config file: %w", err)
+	}
+
+	// Set the global logger, with the proper level
+	err = initLogger()
+	if err != nil {
+		return fmt.Errorf("failed init logger: %w", err)
 	}
 
 	// Normalize string slice flags/env vars

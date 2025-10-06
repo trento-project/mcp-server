@@ -148,42 +148,6 @@ jobs:
       - name: Run go unit tests
         run: make test
 
-  # Ensure the Helm chart is valid.
-  test-chart-render:
-    name: Check Helm chart
-    needs:
-      - setup
-    runs-on: ubuntu-24.04
-    steps:
-      # Checkout the repository.
-      - uses: actions/checkout@v5
-        name: Checkout
-      # Read tool versions for environment setup.
-      - uses: endorama/asdf-parse-tool-versions@v1
-        name: Read .tool-versions
-        id: tool-versions
-      # Install Helm binary for chart validation.
-      - name: Install Helm binary
-        run: |
-          set -euo pipefail
-          HELM_VERSION="${{ env.HELM_VERSION }}"
-          echo "Installing Helm ${HELM_VERSION}"
-          pushd /tmp
-          wget "https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz"
-          tar zxf "helm-v${HELM_VERSION}-linux-amd64.tar.gz"
-          sudo mv linux-amd64/helm "/usr/local/bin/helm"
-          popd
-          echo "Done. Helm has been installed"
-      # Run chart template test to ensure chart renders correctly.
-      - name: Run chart template test
-        run: |
-          set -euo pipefail
-          # Remove the kubeVersion field as it would fail otherwise as there isn't any k8s cluster.
-          CHART_DIR=./helm/trento-mcp-server
-          sed -i.bk -e "s/kubeVersion.*//g" "${CHART_DIR}/Chart.yaml"
-          helm dep up "${CHART_DIR}"
-          helm template "${CHART_DIR}" --debug
-
   # Build the container images.
   build-container-images:
     name: "Build ${{matrix.image}} image"
@@ -249,9 +213,7 @@ jobs:
     needs:
       - setup
       - build-container-images
-      - test-chart-render
       - test-with-go
-      - test-chart-render
       - linters-result
     steps:
       # Trigger docs update in Go registries.
@@ -269,9 +231,7 @@ jobs:
     needs:
       - setup
       - build-container-images
-      - test-chart-render
       - test-with-go
-      - test-chart-render
       - linters-result
     env:
       IMG_PROD_TAG: ${{ needs.setup.outputs.img_prod_tag }}
@@ -332,9 +292,7 @@ jobs:
     needs:
       - setup
       - build-container-images
-      - test-chart-render
       - test-with-go
-      - test-chart-render
       - linters-result
     secrets: inherit
     with:
