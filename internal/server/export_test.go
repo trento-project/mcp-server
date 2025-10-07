@@ -5,14 +5,22 @@
 package server
 
 var (
-	CreateMCPServer           = createMCPServer
-	HandleServerRun           = handleServerRun
-	HandleToolsRegistration   = handleToolsRegistration
-	StartSSEServer            = startSSEServer
-	StartStreamableHTTPServer = startStreamableHTTPServer
-	WaitForShutdown           = waitForShutdown
-	HandleAPIKeyAuth          = handleAPIKeyAuth
-	LoadOpenAPISpec           = loadOpenAPISpec
-	LoadOpenAPISpecFromURL    = loadOpenAPISpecFromURL
-	RegisterToolsFromSpec     = registerToolsFromSpec
+	CheckAPIServerConnectivity = checkAPIServerConnectivity
+	CheckOASDocsConnectivity   = checkOASDocsConnectivity
+	CheckSingleAPIServer       = checkSingleAPIServer
+	CreateLivenessChecker      = createLivenessChecker
+	CreateMCPServer            = createMCPServer
+	CreateReadinessChecker     = createReadinessChecker
+	HandleAPIKeyAuth           = handleAPIKeyAuth
+	HandleMCPServerRun         = handleMCPServerRun
+	HandleToolsRegistration    = handleToolsRegistration
+	LoadOpenAPISpec            = loadOpenAPISpec
+	LoadOpenAPISpecFromURL     = loadOpenAPISpecFromURL
+	RegisterToolsFromSpec      = registerToolsFromSpec
+	StartHealthServer          = startHealthServer
+	StartSSEServer             = startSSEServer
+	StartServer                = startServer
+	StartStreamableHTTPServer  = startStreamableHTTPServer
+	WaitForShutdown            = waitForShutdown
+	WithLogger                 = withLogger
 )
