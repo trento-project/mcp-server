@@ -32,8 +32,11 @@ var (
 	defaultTransport = string(utils.TransportStreamable)
 	//nolint:gochecknoglobals
 	defaultConfigPaths = []string{"/etc/trento/", "/usr/etc/trento/"}
-	//nolint:gochecknoglobals,lll
-	defaultOASPath = []string{"https://www.trento-project.io/web/swaggerui/openapi.json", "https://www.trento-project.io/wanda/swaggerui/openapi.json"}
+	//nolint:gochecknoglobals
+	defaultOASPath = []string{
+		"https://www.trento-project.io/web/swaggerui/openapi.json",
+		"https://www.trento-project.io/wanda/swaggerui/openapi.json",
+	}
 )
 
 const (
