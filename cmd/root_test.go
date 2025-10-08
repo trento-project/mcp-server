@@ -53,7 +53,7 @@ func TestExecute(t *testing.T) {
 			args: []string{},
 			expConf: server.ServeOptions{
 				Port:       5000,
-				OASPath:    []string{"./openapi.json"},
+				OASPath:    []string{"https://www.trento-project.io/web/swaggerui/openapi.json", "https://www.trento-project.io/wanda/swaggerui/openapi.json"},
 				Transport:  utils.TransportStreamable,
 				TrentoURL:  "https://demo.trento-project.io",
 				HeaderName: "X-TRENTO-MCP-APIKEY",
@@ -65,7 +65,7 @@ func TestExecute(t *testing.T) {
 			args: []string{"--transport", "invalid-transport"},
 			expConf: server.ServeOptions{
 				Port:       5000,
-				OASPath:    []string{"./openapi.json"},
+				OASPath:    []string{"https://www.trento-project.io/web/swaggerui/openapi.json", "https://www.trento-project.io/wanda/swaggerui/openapi.json"},
 				Transport:  "invalid-transport",
 				TrentoURL:  "https://demo.trento-project.io",
 				HeaderName: "X-TRENTO-MCP-APIKEY",
@@ -169,7 +169,7 @@ func TestConfigureCLI(t *testing.T) {
 			envVars:       map[string]string{},
 			expected: server.ServeOptions{
 				Port:       5000,
-				OASPath:    []string{"./openapi.json"},
+				OASPath:    []string{"https://www.trento-project.io/web/swaggerui/openapi.json", "https://www.trento-project.io/wanda/swaggerui/openapi.json"},
 				Transport:  utils.TransportStreamable,
 				TrentoURL:  "https://demo.trento-project.io",
 				HeaderName: "X-TRENTO-MCP-APIKEY",
@@ -206,7 +206,7 @@ func TestConfigureCLI(t *testing.T) {
 			},
 			expected: server.ServeOptions{
 				Port:       5000,
-				OASPath:    []string{"./openapi.json"},
+				OASPath:    []string{"https://www.trento-project.io/web/swaggerui/openapi.json", "https://www.trento-project.io/wanda/swaggerui/openapi.json"},
 				Transport:  "invalid-transport",
 				TrentoURL:  "https://demo.trento-project.io",
 				HeaderName: "X-TRENTO-MCP-APIKEY",
@@ -360,7 +360,7 @@ func TestServeOpts(t *testing.T) {
 	// Verify default values
 	expected := server.ServeOptions{
 		Port:                  5000,
-		OASPath:               []string{"./openapi.json"},
+		OASPath:               []string{"https://www.trento-project.io/web/swaggerui/openapi.json", "https://www.trento-project.io/wanda/swaggerui/openapi.json"},
 		Transport:             utils.TransportStreamable,
 		TrentoURL:             "https://demo.trento-project.io",
 		HeaderName:            "X-TRENTO-MCP-APIKEY",
