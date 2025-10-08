@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/alexliesenfeld/health"
@@ -50,13 +49,6 @@ func createReadinessChecker(serveOpts *ServeOptions) http.Handler {
 			Check: func(ctx context.Context) error {
 				// Check HTTP connectivity to the API server.
 				return checkAPIServerConnectivity(ctx, serveOpts)
-			},
-		}),
-		health.WithCheck(health.Check{
-			Name: "api-documentation",
-			Check: func(ctx context.Context) error {
-				// Check HTTP connectivity to API documentation files.
-				return checkOASDocsConnectivity(ctx, serveOpts)
 			},
 		}),
 	)
@@ -120,49 +112,13 @@ func checkMCPServer(ctx context.Context, serveOpts *ServeOptions) error {
 	return nil
 }
 
-// checkAPIServerConnectivity verifies that all configured API server is reachable.
-func checkAPIServerConnectivity(ctx context.Context, serveOpts *ServeOptions) error {
-	// Check the main Trento URL
-	err := checkSingleAPIServer(ctx, serveOpts.TrentoURL, "trento-api", serveOpts)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// checkOASDocsConnectivity verifies that the API docs are reachable.
-func checkOASDocsConnectivity(ctx context.Context, serveOpts *ServeOptions) error {
-	var allErrors []error
-
-	// Check all the OpenAPI specs
-	for _, oasPath := range serveOpts.OASPath {
-		// Only check remote URLs, not local files
-		if strings.HasPrefix(oasPath, "http://") || strings.HasPrefix(oasPath, "https://") {
-			err := checkSingleAPIServer(ctx, oasPath, fmt.Sprintf("oas-server-%s", oasPath), serveOpts)
-			if err != nil {
-				allErrors = append(allErrors, err)
-			}
-		}
-	}
-
-	// If we have any errors, join them and return
-	if len(allErrors) > 0 {
-		return errors.Join(allErrors...)
-	}
-
-	return nil
-}
-
-// checkSingleAPIServer checks if a single API server is reachable.
-func checkSingleAPIServer(
+// checkAPIServerConnectivity checks if a single API server is reachable.
+func checkAPIServerConnectivity(
 	ctx context.Context,
-	serverURL,
-	serverName string,
 	serveOpts *ServeOptions,
 ) error {
-	if serverURL == "" {
-		return fmt.Errorf("%s: server URL is empty", serverName)
+	if serveOpts.TrentoURL == "" {
+		return fmt.Errorf("the Trento server URL is empty")
 	}
 
 	// Create HTTP client with appropriate settings
@@ -177,9 +133,9 @@ func checkSingleAPIServer(
 	}
 
 	// Create a health check request with timeout
-	req, err := http.NewRequestWithContext(ctx, http.MethodHead, serverURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, serveOpts.TrentoURL, nil)
 	if err != nil {
-		return fmt.Errorf("%s: failed to create request to %s: %w", serverName, serverURL, err)
+		return fmt.Errorf("failed to create request to the Trento server (%s): %w", serveOpts.TrentoURL, err)
 	}
 
 	// Set the UA to track the version.
@@ -188,7 +144,7 @@ func checkSingleAPIServer(
 	// Perform the request
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("%s: server %s is unreachable: %w", serverName, serverURL, err)
+		return fmt.Errorf("the Trento server (%s) is unreachable: %w", serveOpts.TrentoURL, err)
 	}
 
 	defer func() {
@@ -196,15 +152,14 @@ func checkSingleAPIServer(
 		if err != nil {
 			slog.WarnContext(ctx, "failed to close response body",
 				"error", err,
-				"server.name", serverName,
-				"server.url", serverURL,
+				"trento.url", serveOpts.TrentoURL,
 			)
 		}
 	}()
 
 	// Accept 1xx, 2xx and 3xx status code.
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("%s: server %s returned server error: %d %s", serverName, serverURL, resp.StatusCode, resp.Status)
+		return fmt.Errorf("the Trento server (%s) returned server error (code: %d): %s", serveOpts.TrentoURL, resp.StatusCode, resp.Status)
 	}
 
 	return nil

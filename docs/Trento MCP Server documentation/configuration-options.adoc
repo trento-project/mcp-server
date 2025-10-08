@@ -230,7 +230,6 @@ The readiness endpoint performs comprehensive health checks including:
 
 * `mcp-server` - Validates MCP server connectivity using an MCP client
 * `api-server` - Verifies connectivity to the configured Trento API server
-* `api-documentation` - Checks accessibility of OpenAPI specification files (remote URLs only)
 
 === Enabling Health Checks
 

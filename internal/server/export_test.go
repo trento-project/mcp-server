@@ -6,8 +6,6 @@ package server
 
 var (
 	CheckAPIServerConnectivity = checkAPIServerConnectivity
-	CheckOASDocsConnectivity   = checkOASDocsConnectivity
-	CheckSingleAPIServer       = checkSingleAPIServer
 	CreateLivenessChecker      = createLivenessChecker
 	CreateMCPServer            = createMCPServer
 	CreateReadinessChecker     = createReadinessChecker
