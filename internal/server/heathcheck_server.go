@@ -135,7 +135,9 @@ func checkAPIServerConnectivity(
 	// Create a health check request with timeout
 	req, err := http.NewRequestWithContext(ctx, http.MethodHead, serveOpts.TrentoURL, nil)
 	if err != nil {
-		return fmt.Errorf("failed to create request to the Trento server (%s): %w", serveOpts.TrentoURL, err)
+		return fmt.Errorf("failed to create request to the Trento server (%s): %w",
+			serveOpts.TrentoURL, err,
+		)
 	}
 
 	// Set the UA to track the version.
@@ -144,7 +146,9 @@ func checkAPIServerConnectivity(
 	// Perform the request
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("the Trento server (%s) is unreachable: %w", serveOpts.TrentoURL, err)
+		return fmt.Errorf("the Trento server (%s) is unreachable: %w",
+			serveOpts.TrentoURL, err,
+		)
 	}
 
 	defer func() {
@@ -159,7 +163,9 @@ func checkAPIServerConnectivity(
 
 	// Accept 1xx, 2xx and 3xx status code.
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("the Trento server (%s) returned server error (code: %d): %s", serveOpts.TrentoURL, resp.StatusCode, resp.Status)
+		return fmt.Errorf("the Trento server (%s) returned server error (code: %d): %s",
+			serveOpts.TrentoURL, resp.StatusCode, resp.Status,
+		)
 	}
 
 	return nil
