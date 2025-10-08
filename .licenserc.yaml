@@ -18,7 +18,5 @@ header:
     - CHANGELOG.md
     - LICENSE
     - VERSION
-    - api/wanda.openapi.json
-    - api/web.openapi.json
     - go.sum
     - packaging/suse/rpm/systemd/trento-mcp-server.service

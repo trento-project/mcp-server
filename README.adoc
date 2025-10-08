@@ -18,7 +18,7 @@ Instead of interacting with the Trento server solely through the web UI, you can
 == Features
 
 * *OpenAPI-Driven Tool Generation:*
-** The server uses the OpenAPI specification in `api/openapi.json` to automatically generate tools and endpoints, ensuring strong alignment between the API contract and implementation.
+** The server uses the provided OpenAPI specifications (`oas-path` flag) to automatically generate tools and endpoints, ensuring strong alignment between the API contract and implementation.
 * *Security & Authentication:*
 ** Acts as a resource server, enforcing access control and protecting resources.
 ** Requires a valid Trento API key token for authentication - users must generate this token from their Trento instance.
