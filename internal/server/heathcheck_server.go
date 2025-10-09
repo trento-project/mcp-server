@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/alexliesenfeld/health"
@@ -36,6 +37,17 @@ func createLivenessChecker(serveOpts *ServeOptions) http.Handler {
 
 // createReadinessChecker creates and returns a readiness health check handler.
 func createReadinessChecker(serveOpts *ServeOptions) http.Handler {
+	// Create HTTP client with appropriate settings
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: serveOpts.InsecureSkipTLSVerify, //nolint:gosec
+			},
+		},
+		Timeout: 5 * time.Second,
+	}
+
 	readinessChecker := health.NewChecker(
 		health.WithCheck(health.Check{
 			Name: "mcp-server",
@@ -48,7 +60,7 @@ func createReadinessChecker(serveOpts *ServeOptions) http.Handler {
 			Name: "api-server",
 			Check: func(ctx context.Context) error {
 				// Check HTTP connectivity to the API server.
-				return checkAPIServerConnectivity(ctx, serveOpts)
+				return checkAPIServerConnectivity(ctx, serveOpts, httpClient)
 			},
 		}),
 	)
@@ -116,27 +128,20 @@ func checkMCPServer(ctx context.Context, serveOpts *ServeOptions) error {
 func checkAPIServerConnectivity(
 	ctx context.Context,
 	serveOpts *ServeOptions,
+	client *http.Client,
 ) error {
 	if serveOpts.TrentoURL == "" {
-		return fmt.Errorf("the Trento server URL is empty")
+		return errors.New("the Trento server URL is empty")
 	}
 
-	// Create HTTP client with appropriate settings
-	client := &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: serveOpts.InsecureSkipTLSVerify, //nolint:gosec
-			},
-		},
-		Timeout: 5 * time.Second,
-	}
+	// Sanitize the URL and create the health check URL
+	healthzURL := fmt.Sprintf("%s/api/healthz", strings.TrimSuffix(serveOpts.TrentoURL, "/"))
 
 	// Create a health check request with timeout
-	req, err := http.NewRequestWithContext(ctx, http.MethodHead, serveOpts.TrentoURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthzURL, nil)
 	if err != nil {
-		return fmt.Errorf("failed to create request to the Trento server (%s): %w",
-			serveOpts.TrentoURL, err,
+		return fmt.Errorf("failed to create request to the Trento server health endpoint (%s): %w",
+			healthzURL, err,
 		)
 	}
 
@@ -146,8 +151,8 @@ func checkAPIServerConnectivity(
 	// Perform the request
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("the Trento server (%s) is unreachable: %w",
-			serveOpts.TrentoURL, err,
+		return fmt.Errorf("the Trento server health endpoint (%s) is unreachable: %w",
+			healthzURL, err,
 		)
 	}
 
@@ -156,15 +161,16 @@ func checkAPIServerConnectivity(
 		if err != nil {
 			slog.WarnContext(ctx, "failed to close response body",
 				"error", err,
-				"trento.url", serveOpts.TrentoURL,
+				"trento.url", healthzURL,
 			)
 		}
 	}()
 
-	// Accept 1xx, 2xx and 3xx status code.
-	if resp.StatusCode >= 400 {
-		return fmt.Errorf("the Trento server (%s) returned server error (code: %d): %s",
-			serveOpts.TrentoURL, resp.StatusCode, resp.Status,
+	// The health check must return 200 OK.
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf(
+			"the Trento server health endpoint (%s) returned a non-200 status code (%d) %s",
+			healthzURL, resp.StatusCode, resp.Status,
 		)
 	}
 

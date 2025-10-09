@@ -8,6 +8,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -101,7 +102,8 @@ func TestCheckAPIServerConnectivity(t *testing.T) {
 	tests := []struct {
 		name           string
 		trentoStatus   int
-		emptyTrentoURL bool
+		trentoURL      string
+		skipFakeServer bool
 		expectError    bool
 		errorContains  string
 	}{
@@ -114,19 +116,34 @@ func TestCheckAPIServerConnectivity(t *testing.T) {
 			name:          "trento server returns 404",
 			trentoStatus:  http.StatusNotFound,
 			expectError:   true,
-			errorContains: "404 Not Found",
+			errorContains: "returned a non-200 status code (404)",
 		},
 		{
 			name:          "trento server error",
 			trentoStatus:  http.StatusInternalServerError,
 			expectError:   true,
-			errorContains: "500 Internal Server Error",
+			errorContains: "returned a non-200 status code (500)",
 		},
 		{
 			name:           "empty trento URL",
-			emptyTrentoURL: true,
+			trentoURL:      "",
+			skipFakeServer: true,
 			expectError:    true,
-			errorContains:  "server URL is empty",
+			errorContains:  "the Trento server URL is empty",
+		},
+		{
+			name:           "trento URL with trailing slashes",
+			trentoURL:      "http://trento.example.com/",
+			skipFakeServer: true,
+			expectError:    true,
+			errorContains:  `http://trento.example.com/api/healthz`,
+		},
+		{
+			name:           "trento URL without trailing slashes",
+			trentoURL:      "http://trento.example.com",
+			skipFakeServer: true,
+			expectError:    true,
+			errorContains:  `Get "http://trento.example.com/api/healthz`,
 		},
 	}
 
@@ -139,13 +156,16 @@ func TestCheckAPIServerConnectivity(t *testing.T) {
 				Name:                  "test-server",
 				Version:               "1.0.0",
 				InsecureSkipTLSVerify: true,
+				TrentoURL:             tt.trentoURL,
 			}
 
 			var trentoServer *httptest.Server
 
-			// Set up Trento server
-			if !tt.emptyTrentoURL {
-				trentoServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			// Set up the fake Trento server, unless the test skips it.
+			if !tt.skipFakeServer {
+				trentoServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+					assert.Equal(t, "/api/healthz", req.URL.Path)
+					assert.True(t, strings.HasPrefix(req.Header.Get("User-Agent"), "test-server/1.0.0"))
 					w.WriteHeader(tt.trentoStatus)
 				}))
 				defer trentoServer.Close()
@@ -154,7 +174,7 @@ func TestCheckAPIServerConnectivity(t *testing.T) {
 			}
 
 			// Execute the test
-			err := server.CheckAPIServerConnectivity(t.Context(), serveOpts)
+			err := server.CheckAPIServerConnectivity(t.Context(), serveOpts, http.DefaultClient)
 
 			// Verify results
 			if tt.expectError {
@@ -218,8 +238,8 @@ func TestStartHealthServer(t *testing.T) {
 			select {
 			case err := <-errChan:
 				t.Fatalf("unexpected error from health server: %v", err)
+			// Expected: no errors
 			default:
-				// Expected: no errors
 			}
 		})
 	}
