@@ -3,7 +3,13 @@
 
 package utils //nolint:revive
 
-import "fmt"
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"sync"
+)
 
 // TransportType is an enum for the available transport types.
 type TransportType string
@@ -109,4 +115,76 @@ type FlagConfig struct {
 	FlagType     FlagType
 	Short        string
 	Description  string
+}
+
+// StoppableServer defines an interface for servers that can be shut down.
+type StoppableServer interface {
+	Shutdown(ctx context.Context) error
+}
+
+// ServerGroup manages multiple servers that can be stopped together.
+type ServerGroup struct {
+	servers []StoppableServer
+	mu      sync.RWMutex
+}
+
+// NewServerGroup creates a new server group.
+func NewServerGroup() *ServerGroup {
+	return &ServerGroup{
+		servers: make([]StoppableServer, 0),
+	}
+}
+
+// Add adds a server to the group.
+func (sg *ServerGroup) Add(server StoppableServer) {
+	sg.mu.Lock()
+	defer sg.mu.Unlock()
+
+	sg.servers = append(sg.servers, server)
+}
+
+// Shutdown shuts down all servers in the group.
+func (sg *ServerGroup) Shutdown(ctx context.Context) error {
+	sg.mu.RLock()
+	defer sg.mu.RUnlock()
+
+	slog.Debug("shutting down server group", "servers.count", len(sg.servers))
+
+	var wg sync.WaitGroup
+
+	errChan := make(chan error, len(sg.servers))
+
+	for i, server := range sg.servers {
+		wg.Go(func() {
+			idx, s := i, server
+
+			err := s.Shutdown(ctx)
+			if err != nil {
+				slog.Debug("server shutdown failed", "server.index", idx, "error", err)
+
+				errChan <- err
+			} else {
+				slog.Debug("server shutdown completed", "server.index", idx)
+			}
+		})
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	// Collect any errors
+	errs := make([]error, 0, len(sg.servers))
+	for err := range errChan {
+		errs = append(errs, err)
+	}
+
+	if len(errs) == 0 {
+		slog.Debug("server group shutdown completed successfully")
+
+		return nil
+	}
+
+	slog.Debug("server group shutdown completed with errors", "error.count", len(errs))
+
+	return errors.Join(errs...)
 }

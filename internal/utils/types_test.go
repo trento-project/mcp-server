@@ -4,6 +4,8 @@
 package utils_test
 
 import (
+	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -204,5 +206,183 @@ func TestFlagType_Constants(t *testing.T) {
 		for j := i + 1; j < len(flagTypes); j++ {
 			assert.NotEqual(t, flagTypes[i], flagTypes[j], "FlagType constants should be unique")
 		}
+	}
+}
+
+// mockStoppableServer is a mock implementation for testing ServerGroup.
+type mockStoppableServer struct {
+	shutdownErr    error
+	shutdownCalled bool
+	shutdownFunc   func(ctx context.Context) error
+}
+
+func (m *mockStoppableServer) Shutdown(ctx context.Context) error {
+	m.shutdownCalled = true
+	if m.shutdownFunc != nil {
+		return m.shutdownFunc(ctx)
+	}
+
+	return m.shutdownErr
+}
+
+func TestNewServerGroup(t *testing.T) {
+	t.Parallel()
+
+	sg := utils.NewServerGroup()
+
+	assert.NotNil(t, sg)
+
+	err := sg.Shutdown(context.Background())
+	require.NoError(t, err)
+}
+
+func TestServerGroup_Add(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		serverCount int
+		description string
+	}{
+		{
+			name:        "add single server",
+			serverCount: 1,
+			description: "should add one server and shutdown successfully",
+		},
+		{
+			name:        "add multiple servers",
+			serverCount: 5,
+			description: "should add multiple servers and shutdown all",
+		},
+		{
+			name:        "add many servers",
+			serverCount: 20,
+			description: "should handle many servers efficiently",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			sg := utils.NewServerGroup()
+			servers := make([]*mockStoppableServer, tt.serverCount)
+
+			// Create and add servers
+			for i := range tt.serverCount {
+				servers[i] = &mockStoppableServer{}
+				sg.Add(servers[i])
+			}
+
+			// Test shutdown to verify all servers were added
+			err := sg.Shutdown(context.Background())
+			require.NoError(t, err, tt.description)
+
+			// Verify all servers were shutdown
+			for i, server := range servers {
+				assert.True(t, server.shutdownCalled, "server %d should have been shutdown", i)
+			}
+		})
+	}
+}
+
+func TestServerGroup_Shutdown(t *testing.T) {
+	t.Parallel()
+
+	// Predefined errors for consistent comparison
+	var (
+		err1 = errors.New("error1")
+		err2 = errors.New("error2")
+		err3 = errors.New("error3")
+	)
+
+	tests := []struct {
+		name           string
+		servers        []*mockStoppableServer
+		expectErr      bool
+		expectedErrors []error
+		description    string
+	}{
+		{
+			name:        "empty group",
+			servers:     []*mockStoppableServer{},
+			expectErr:   false,
+			description: "shutdown should succeed with no servers",
+		},
+		{
+			name: "successful shutdown of multiple servers",
+			servers: []*mockStoppableServer{
+				{},
+				{},
+				{},
+			},
+			expectErr:   false,
+			description: "all servers should shutdown successfully",
+		},
+		{
+			name: "single server with error",
+			servers: []*mockStoppableServer{
+				{},
+				{shutdownErr: err2},
+				{},
+			},
+			expectErr:      true,
+			expectedErrors: []error{err2},
+			description:    "should return the single error",
+		},
+		{
+			name: "multiple servers with errors",
+			servers: []*mockStoppableServer{
+				{shutdownErr: err1},
+				{},
+				{shutdownErr: err3},
+			},
+			expectErr:      true,
+			expectedErrors: []error{err1, err3},
+			description:    "should return joined errors",
+		},
+		{
+			name: "all servers fail",
+			servers: []*mockStoppableServer{
+				{shutdownErr: err1},
+				{shutdownErr: err2},
+				{shutdownErr: err3},
+			},
+			expectErr:      true,
+			expectedErrors: []error{err1, err2, err3},
+			description:    "should return all errors joined",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			sg := utils.NewServerGroup()
+
+			// Add servers to group
+			for _, server := range tt.servers {
+				sg.Add(server)
+			}
+
+			// Execute shutdown
+			err := sg.Shutdown(context.Background())
+
+			// Verify error expectation
+			if tt.expectErr {
+				require.Error(t, err, tt.description)
+				// Check that all expected errors are present in the joined error
+				for _, expectedErr := range tt.expectedErrors {
+					require.ErrorIs(t, err, expectedErr, "expected error should be present in joined error")
+				}
+			} else {
+				require.NoError(t, err, tt.description)
+			}
+
+			// Verify all servers had their Shutdown method called
+			for i, server := range tt.servers {
+				assert.True(t, server.shutdownCalled, "server %d should have been called for shutdown", i)
+			}
+		})
 	}
 }
