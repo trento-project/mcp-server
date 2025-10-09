@@ -361,7 +361,7 @@ func handleAPIKeyAuth(r *http.Request, headerName string) {
 	apiKey := r.Header.Get(headerName)
 
 	if apiKey == "" {
-		slog.InfoContext(r.Context(), "API key not found in request header", "header", headerName)
+		slog.DebugContext(r.Context(), "API key not found in request header", "header", headerName)
 		// Unset the bearer token if no API key is provided.
 		err := os.Unsetenv(bearerTokenEnv)
 		if err != nil {

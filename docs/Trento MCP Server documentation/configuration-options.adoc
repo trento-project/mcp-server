@@ -92,7 +92,7 @@ The `trento-mcp-server` binary accepts several command-line flags to configure i
 |`--port, -p` |`TRENTO_MCP_PORT` |`5000` |The port on which to run the MCP server.
 |`--health-port, -z` |`TRENTO_MCP_HEALTH_PORT` |`8080` |The port on which to run the health check server.
 |`--enable-health-check, -d` |`TRENTO_MCP_ENABLE_HEALTH_CHECK` |`false` |Enable the health check server.
-|`--oas-path, -P` |`TRENTO_MCP_OAS_PATH` |`./openapi.json` |Path to the OpenAPI spec file(s). Can be specified multiple times. Server URLs in specs are automatically overwritten with the `--trento-url` value.
+|`--oas-path, -P` |`TRENTO_MCP_OAS_PATH` |`https://www.trento-project.io/web/swaggerui/openapi.json` and`https://www.trento-project.io/wanda/swaggerui/openapi.json` |Path to the OpenAPI spec file(s). Can be specified multiple times.
 |`--transport, -t` |`TRENTO_MCP_TRANSPORT` |`streamable` |The protocol to use, choose "streamable" or "sse".
 |`--trento-url, -u` |`TRENTO_MCP_TRENTO_URL` |`https://demo.trento-project.io` |URL for the target Trento server.
 |`--header-name, -H` |`TRENTO_MCP_HEADER_NAME` |`X-TRENTO-MCP-APIKEY` |The header name to be used for the passing the Trento API key to the MCP server.

@@ -49,8 +49,6 @@ The project follows Go standard layout conventions:
 [source,text]
 ----
 mcp-server/
-├── api/                    # OpenAPI specification
-│   └── openapi.json       # API contract used for tool generation
 ├── bin/                    # Compiled binaries
 ├── cmd/                    # CLI commands and entry points
 │   └── root.go            # Main command definitions and flags
@@ -204,7 +202,7 @@ Log levels:
 
 ==== Common Debugging Scenarios
 
-1. **OpenAPI Specification Issues**: Verify `api/openapi.json` is valid and contains operations tagged with `MCP`
+1. **OpenAPI Specification Issues**: Verify OAS documentation provided via `--oas-path` flag is valid and contains operations tagged with the tag selected via `--tag-filter` flag.
 2. **Authentication Problems**: Check that the provided Trento API key is correct
 3. **Transport Issues**: Try switching between `streamable` and `sse` transports
 4. **Port Conflicts**: Use `--port` flag to specify a different port

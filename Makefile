@@ -71,7 +71,7 @@ clean:
 
 .PHONY: run
 run: build ## Compile and run the project.
-	$(GO) run main.go --port ${PORT} --oas-path ./api/openapi.json --transport streamable --verbosity=debug --header-name=X-TRENTO-MCP-APIKEY --tag-filter=MCP --enable-health-check
+	$(GO) run main.go --port ${PORT} --verbosity=info --tag-filter=MCP --enable-health-check
 
 ##@ Test
 
