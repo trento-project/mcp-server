@@ -71,7 +71,7 @@ clean:
 
 .PHONY: run
 run: build ## Compile and run the project.
-	$(GO) run main.go --port ${PORT} --verbosity=debug --tag-filter=MCP
+	$(GO) run main.go --port ${PORT} --verbosity=info --tag-filter=MCP --enable-health-check
 
 ##@ Test
 

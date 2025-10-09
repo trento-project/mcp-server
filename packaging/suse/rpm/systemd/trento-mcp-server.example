@@ -16,7 +16,13 @@
 # TRENTO_URL=<CHANGE_ME>
 
 ## The port on which the MCP Server listens for incoming connections.
-PORT=8080
+PORT=5000
+
+## The port on which the health check server listens for incoming connections.
+HEALTH_PORT=8080
+
+## Enable the health check server.
+ENABLE_HEALTH_CHECK=false
 
 ## The transport protocol to use for MCP communication. Options: 'streamable' (default) or 'sse'.
 TRANSPORT=streamable

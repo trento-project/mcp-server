@@ -37,15 +37,19 @@ func TestExecute(t *testing.T) {
 				"--tag-filter", "A,B",
 				"--verbosity", "debug",
 				"--insecure-skip-tls-verify",
+				"--health-port", "1234",
+				"--enable-health-check",
 			},
 			expConf: server.ServeOptions{
 				Port:                  9090,
+				HealthPort:            1234,
 				OASPath:               []string{"/tmp/api.json"},
 				Transport:             utils.TransportSSE,
 				TrentoURL:             "http://trento.example.com",
 				HeaderName:            "X-My-Header",
 				TagFilter:             []string{"A", "B"},
 				InsecureSkipTLSVerify: true,
+				EnableHealthCheck:     true,
 			},
 		},
 		{
@@ -57,10 +61,12 @@ func TestExecute(t *testing.T) {
 					"https://www.trento-project.io/web/swaggerui/openapi.json",
 					"https://www.trento-project.io/wanda/swaggerui/openapi.json",
 				},
-				Transport:  utils.TransportStreamable,
-				TrentoURL:  "https://demo.trento-project.io",
-				HeaderName: "X-TRENTO-MCP-APIKEY",
-				TagFilter:  []string{},
+				Transport:         utils.TransportStreamable,
+				TrentoURL:         "https://demo.trento-project.io",
+				HeaderName:        "X-TRENTO-MCP-APIKEY",
+				TagFilter:         []string{},
+				HealthPort:        8080,
+				EnableHealthCheck: false,
 			},
 		},
 		{
@@ -72,10 +78,12 @@ func TestExecute(t *testing.T) {
 					"https://www.trento-project.io/web/swaggerui/openapi.json",
 					"https://www.trento-project.io/wanda/swaggerui/openapi.json",
 				},
-				Transport:  "invalid-transport",
-				TrentoURL:  "https://demo.trento-project.io",
-				HeaderName: "X-TRENTO-MCP-APIKEY",
-				TagFilter:  []string{},
+				Transport:         "invalid-transport",
+				TrentoURL:         "https://demo.trento-project.io",
+				HeaderName:        "X-TRENTO-MCP-APIKEY",
+				TagFilter:         []string{},
+				HealthPort:        8080,
+				EnableHealthCheck: false,
 			},
 		},
 	}
@@ -162,6 +170,7 @@ func TestConfigureCLI(t *testing.T) {
 			},
 			expected: server.ServeOptions{
 				Port:       1234,
+				HealthPort: 8080,
 				OASPath:    []string{"/tmp/oas.json"},
 				Transport:  utils.TransportSSE,
 				TrentoURL:  "http://trento.test",
@@ -179,10 +188,12 @@ func TestConfigureCLI(t *testing.T) {
 					"https://www.trento-project.io/web/swaggerui/openapi.json",
 					"https://www.trento-project.io/wanda/swaggerui/openapi.json",
 				},
-				Transport:  utils.TransportStreamable,
-				TrentoURL:  "https://demo.trento-project.io",
-				HeaderName: "X-TRENTO-MCP-APIKEY",
-				TagFilter:  []string{},
+				Transport:         utils.TransportStreamable,
+				TrentoURL:         "https://demo.trento-project.io",
+				HeaderName:        "X-TRENTO-MCP-APIKEY",
+				TagFilter:         []string{},
+				HealthPort:        8080,
+				EnableHealthCheck: false,
 			},
 		},
 		{
@@ -197,15 +208,18 @@ func TestConfigureCLI(t *testing.T) {
 				"TRENTO_MCP_VERBOSITY":                "info",
 				"TRENTO_MCP_CONFIG":                   "/env/config.yaml",
 				"TRENTO_MCP_INSECURE_SKIP_TLS_VERIFY": "true",
+				"TRENTO_MCP_ENABLE_HEALTH_CHECK":      "true",
 			},
 			expected: server.ServeOptions{
 				Port:                  8888,
+				HealthPort:            8080,
 				OASPath:               []string{"/env/oas.json", "/another/path.json"},
 				Transport:             utils.TransportStreamable,
 				TrentoURL:             "https://env.trento.io",
 				HeaderName:            "X-Env-Header",
 				TagFilter:             []string{"X", "Y"},
 				InsecureSkipTLSVerify: true,
+				EnableHealthCheck:     true,
 			},
 		},
 		{
@@ -219,10 +233,12 @@ func TestConfigureCLI(t *testing.T) {
 					"https://www.trento-project.io/web/swaggerui/openapi.json",
 					"https://www.trento-project.io/wanda/swaggerui/openapi.json",
 				},
-				Transport:  "invalid-transport",
-				TrentoURL:  "https://demo.trento-project.io",
-				HeaderName: "X-TRENTO-MCP-APIKEY",
-				TagFilter:  []string{},
+				Transport:         "invalid-transport",
+				TrentoURL:         "https://demo.trento-project.io",
+				HeaderName:        "X-TRENTO-MCP-APIKEY",
+				TagFilter:         []string{},
+				HealthPort:        8080,
+				EnableHealthCheck: false,
 			},
 		},
 	}
@@ -284,7 +300,8 @@ TRENTO_URL=https://custom.trento.io
 HEADER_NAME=X-Custom-Header
 TAG_FILTER=tag1,tag2
 VERBOSITY=info
-INSECURE_SKIP_TLS_VERIFY=true`,
+INSECURE_SKIP_TLS_VERIFY=true
+ENABLE_HEALTH_CHECK=true`,
 			setConfigFile: true,
 			expected: map[string]any{
 				"PORT":                     "9999",
@@ -295,6 +312,7 @@ INSECURE_SKIP_TLS_VERIFY=true`,
 				"TAG_FILTER":               "tag1,tag2",
 				"VERBOSITY":                "info",
 				"INSECURE_SKIP_TLS_VERIFY": "true",
+				"ENABLE_HEALTH_CHECK":      "true",
 			},
 		},
 		{
@@ -376,11 +394,13 @@ func TestServeOpts(t *testing.T) {
 			"https://www.trento-project.io/web/swaggerui/openapi.json",
 			"https://www.trento-project.io/wanda/swaggerui/openapi.json",
 		},
+		HealthPort:            8080,
 		Transport:             utils.TransportStreamable,
 		TrentoURL:             "https://demo.trento-project.io",
 		HeaderName:            "X-TRENTO-MCP-APIKEY",
 		TagFilter:             []string{},
 		InsecureSkipTLSVerify: false,
+		EnableHealthCheck:     false,
 		Name:                  "trento-mcp-server",
 		Version:               "devel",
 	}
@@ -447,7 +467,7 @@ func TestFlagConfigs(t *testing.T) {
 	configs := cmd.FlagConfigs()
 
 	// Verify we have the expected number of configs
-	assert.Len(t, configs, 9)
+	assert.Len(t, configs, 11)
 
 	// Test basic properties of each flag configuration
 	expectedFlags := []struct {
@@ -456,6 +476,8 @@ func TestFlagConfigs(t *testing.T) {
 		short    string
 	}{
 		{"PORT", "port", "p"},
+		{"HEALTH_PORT", "health-port", "z"},
+		{"ENABLE_HEALTH_CHECK", "enable-health-check", "d"},
 		{"OAS_PATH", "oas-path", "P"},
 		{"TRANSPORT", "transport", "t"},
 		{"TRENTO_URL", "trento-url", "u"},

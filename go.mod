@@ -6,6 +6,7 @@ module github.com/trento-project/mcp-server
 go 1.25
 
 require (
+	github.com/alexliesenfeld/health v0.8.1
 	github.com/carlmjohnson/versioninfo v0.22.5
 	github.com/evcc-io/openapi-mcp v0.6.0
 	github.com/getkin/kin-openapi v0.133.0
@@ -19,8 +20,8 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/go-openapi/jsonpointer v0.22.0 // indirect
-	github.com/go-openapi/swag/jsonname v0.24.0 // indirect
+	github.com/go-openapi/jsonpointer v0.22.1 // indirect
+	github.com/go-openapi/swag/jsonname v0.25.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/google/jsonschema-go v0.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

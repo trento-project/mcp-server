@@ -32,7 +32,13 @@ OAS_PATH=<CHANGE_ME>
 TRENTO_URL=<CHANGE_ME>
 
 ## The port on which the MCP Server listens for incoming connections.
-PORT=8080
+PORT=5000
+
+## The port on which the health check server listens for incoming connections.
+HEALTH_PORT=8080
+
+## Enable the health check server.
+ENABLE_HEALTH_CHECK=false
 
 ## The transport protocol to use for MCP communication. Options: 'streamable' (default) or 'sse'.
 TRANSPORT=streamable
@@ -83,12 +89,14 @@ The `trento-mcp-server` binary accepts several command-line flags to configure i
 [width="100%",cols="20%,25%,25%,30%",options="header"]
 |===
 |Flag & Config Key |Environment Variable |Default Value |Description
-|`--port, -p` |`TRENTO_MCP_PORT` |`5000` |The port on which to run the server.
+|`--port, -p` |`TRENTO_MCP_PORT` |`5000` |The port on which to run the MCP server.
+|`--health-port, -z` |`TRENTO_MCP_HEALTH_PORT` |`8080` |The port on which to run the health check server.
+|`--enable-health-check, -d` |`TRENTO_MCP_ENABLE_HEALTH_CHECK` |`false` |Enable the health check server.
 |`--oas-path, -P` |`TRENTO_MCP_OAS_PATH` |`https://www.trento-project.io/web/swaggerui/openapi.json` and`https://www.trento-project.io/wanda/swaggerui/openapi.json` |Path to the OpenAPI spec file(s). Can be specified multiple times.
 |`--transport, -t` |`TRENTO_MCP_TRANSPORT` |`streamable` |The protocol to use, choose "streamable" or "sse".
 |`--trento-url, -u` |`TRENTO_MCP_TRENTO_URL` |`https://demo.trento-project.io` |URL for the target Trento server.
-|`--header-name, -H` |`TRENTO_MCP_HEADER_NAME` |`X-TRENTO-MCP-APIKEY` |The header name for passing the Trento API key.
-|`--tag-filter, -f` |`TRENTO_MCP_TAG_FILTER` |(empty) |A comma-separated list of OpenAPI tags. Only operations with at least one of these tags will be exposed as tools.
+|`--header-name, -H` |`TRENTO_MCP_HEADER_NAME` |`X-TRENTO-MCP-APIKEY` |The header name to be used for the passing the Trento API key to the MCP server.
+|`--tag-filter, -f` |`TRENTO_MCP_TAG_FILTER` |(empty) |Only include operations with at least one of these tags. If empty, all operations are included.
 |`--insecure-skip-tls-verify, -i` |`TRENTO_MCP_INSECURE_SKIP_TLS_VERIFY` |`false` |Skip TLS certificate verification when fetching OpenAPI spec from HTTPS URLs.
 |`--verbosity, -v` |`TRENTO_MCP_VERBOSITY` |`info` |Log level verbosity (debug, info, warning, error).
 |`--config, -c` |`TRENTO_MCP_CONFIG` |(empty) |Config file path.
@@ -108,7 +116,7 @@ trento-mcp-server
 
 [source,console]
 ----
-export TRENTO_MCP_PORT=8080
+export TRENTO_MCP_PORT=5000
 export TRENTO_MCP_TRENTO_URL=https://prod.trento.io
 export TRENTO_MCP_VERBOSITY=debug
 trento-mcp-server
@@ -118,7 +126,14 @@ trento-mcp-server
 
 [source,console]
 ----
+# Basic usage
 trento-mcp-server --port 9000 --verbosity debug --trento-url https://test.trento.io
+
+# Multiple OpenAPI specifications
+trento-mcp-server --oas-path https://api1.example.com/openapi.json --oas-path https://api2.example.com/openapi.json
+
+# With health checks enabled
+trento-mcp-server --enable-health-check --health-port 8080 --port 5000
 ----
 
 === Mixed Configuration
@@ -126,7 +141,7 @@ trento-mcp-server --port 9000 --verbosity debug --trento-url https://test.trento
 [source,console]
 ----
 # Set base config via environment
-export TRENTO_MCP_PORT=8080
+export TRENTO_MCP_PORT=5000
 export TRENTO_MCP_VERBOSITY=info
 
 # Override specific values via flags
@@ -138,8 +153,18 @@ trento-mcp-server --port 9000 --config /etc/trento/trento-mcp-server
 
 [source,console]
 ----
-docker run -p 8080:8080 \
-  -e TRENTO_MCP_PORT=8080 \
+# Basic container without health checks
+docker run -p 5000:5000 \
+  -e TRENTO_MCP_PORT=5000 \
+  -e TRENTO_MCP_TRENTO_URL=https://prod.trento.io \
+  -v /host/config:/app/trento-mcp-server \
+  trento-mcp-server
+
+# Container with health checks enabled
+docker run -p 5000:5000 -p 8080:8080 \
+  -e TRENTO_MCP_PORT=5000 \
+  -e TRENTO_MCP_ENABLE_HEALTH_CHECK=true \
+  -e TRENTO_MCP_HEALTH_PORT=8080 \
   -e TRENTO_MCP_TRENTO_URL=https://prod.trento.io \
   -v /host/config:/app/trento-mcp-server \
   trento-mcp-server
@@ -161,13 +186,20 @@ spec:
         image: trento-mcp-server:latest
         env:
         - name: TRENTO_MCP_PORT
+          value: "5000"
+        - name: TRENTO_MCP_HEALTH_PORT
           value: "8080"
+        - name: TRENTO_MCP_ENABLE_HEALTH_CHECK
+          value: "true"
         - name: TRENTO_MCP_TRENTO_URL
           value: "https://prod.trento.io"
         - name: TRENTO_MCP_VERBOSITY
           value: "info"
         ports:
+        - containerPort: 5000
+          name: mcp
         - containerPort: 8080
+          name: health
 ----
 
 == Help and Validation
@@ -180,3 +212,88 @@ trento-mcp-server --help
 ----
 
 The server will validate configuration on startup and log any issues with debug verbosity enabled.
+
+== Health Check Configuration
+
+The `trento-mcp-server` includes built-in health check endpoints for monitoring and kubernetes integration.
+
+*Note:* Health check functionality is disabled by default and must be explicitly enabled using the `--enable-health-check` flag or `TRENTO_MCP_ENABLE_HEALTH_CHECK` environment variable.
+
+=== Health Check Endpoints
+
+The health check server provides the following endpoints:
+
+* `/livez` - Liveness probe for kubernetes pod restart decisions
+* `/readyz` - Readiness probe for traffic routing decisions
+
+The readiness endpoint performs comprehensive health checks including:
+
+* `mcp-server` - Validates MCP server connectivity using an MCP client
+* `api-server` - Verifies connectivity to the configured Trento API server
+
+=== Enabling Health Checks
+
+[source,console]
+----
+# Enable health checks with default port (8080)
+trento-mcp-server --enable-health-check
+
+# Enable with custom health port
+trento-mcp-server --enable-health-check --health-port 9090
+
+# Using environment variables
+export TRENTO_MCP_ENABLE_HEALTH_CHECK=true
+export TRENTO_MCP_HEALTH_PORT=8080
+trento-mcp-server
+----
+
+=== Kubernetes Health Probes
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: trento-mcp-server
+    image: trento-mcp-server:latest
+    env:
+    - name: TRENTO_MCP_ENABLE_HEALTH_CHECK
+      value: "true"
+    - name: TRENTO_MCP_HEALTH_PORT
+      value: "8080"
+    ports:
+    - containerPort: 5000
+      name: mcp
+    - containerPort: 8080
+      name: health
+    livenessProbe:
+      httpGet:
+        path: /livez
+        port: 8080
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8080
+      initialDelaySeconds: 5
+      periodSeconds: 5
+----
+
+=== Testing Health Endpoints
+
+[source,console]
+----
+# Test liveness endpoint
+curl http://localhost:8080/livez
+
+# Test readiness endpoint
+curl http://localhost:8080/readyz
+
+# Expected readiness response format:
+# {"status":"up","checks":{"mcp-server":{"status":"up"},"api-server":{"status":"up"},"api-documentation":{"status":"up"}}}
+
+# Expected liveness response format:
+# {"status":"up"}
+----

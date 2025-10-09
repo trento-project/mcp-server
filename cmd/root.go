@@ -45,13 +45,16 @@ const (
 	// Default values.
 	defaultVerbosity             = "info"
 	defaultPort                  = 5000
+	defaultHealthPort            = 8080
 	defaultHeaderName            = "X-TRENTO-MCP-APIKEY"
 	defaultTrentoURL             = "https://demo.trento-project.io"
 	defaultConfig                = ""
 	defaultInsecureSkipTLSVerify = false
+	defaultEnableHealthCheck     = false
 
 	// Configuration keys.
 	configKeyPort                  = "PORT"
+	configKeyHealthPort            = "HEALTH_PORT"
 	configKeyOASPath               = "OAS_PATH"
 	configKeyTransport             = "TRANSPORT"
 	configKeyTrentoURL             = "TRENTO_URL"
@@ -60,6 +63,7 @@ const (
 	configKeyVerbosity             = "VERBOSITY"
 	configKeyConfig                = "CONFIG"
 	configKeyInsecureSkipTLSVerify = "INSECURE_SKIP_TLS_VERIFY"
+	configKeyEnableHealthCheck     = "ENABLE_HEALTH_CHECK"
 )
 
 // init creates a new command, append the runtime version and set flags.
@@ -93,7 +97,23 @@ func flagConfigs() []utils.FlagConfig {
 			FlagType:     utils.FlagTypeInt,
 			FlagName:     "port",
 			Short:        "p",
-			Description:  "The port on which to run the server",
+			Description:  "The port on which to run the MCP server",
+		},
+		{
+			Key:          configKeyHealthPort,
+			DefaultValue: defaultHealthPort,
+			FlagType:     utils.FlagTypeInt,
+			FlagName:     "health-port",
+			Short:        "z",
+			Description:  "The port on which to run the health check server",
+		},
+		{
+			Key:          configKeyEnableHealthCheck,
+			DefaultValue: defaultEnableHealthCheck,
+			FlagType:     utils.FlagTypeBool,
+			FlagName:     "enable-health-check",
+			Short:        "d",
+			Description:  "Enable the health check server",
 		},
 		{
 			Key:          configKeyOASPath,
