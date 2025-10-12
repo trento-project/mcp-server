@@ -9,11 +9,15 @@
 # Configuration can be provided via this file, environment variables, or command-line flags.
 # Command-line flags take precedence over environment variables, which take precedence over this file.
 
-## List of comma-separated paths to the OpenAPI specification files (local or remote URLs).
-# OAS_PATH=<CHANGE_ME>
-
 ## Target Trento server to connect to for API operations and data retrieval.
 # TRENTO_URL=<CHANGE_ME>
+
+## List of comma-separated paths to the OpenAPI specification files (local or remote URLs).
+## If not provided, the server will attempt autodiscovery using the Trento URL and autodiscovery paths.
+# OAS_PATH=
+
+## Custom paths for API autodiscovery endpoints (comma-separated), used when OAS_PATH is empty.
+AUTODISCOVERY_PATHS=/api/latest/openapi,/wanda/api/latest/openapi
 
 ## The port on which the MCP Server listens for incoming connections.
 PORT=5000
