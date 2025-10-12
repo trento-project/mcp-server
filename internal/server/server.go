@@ -18,9 +18,10 @@ import (
 
 // ServeOptions encapsulates the available command-line options.
 type ServeOptions struct {
+	AutodiscoveryPaths    []string            `mapstructure:"AUTODISCOVERY_PATHS"`
+	EnableHealthCheck     bool                `mapstructure:"ENABLE_HEALTH_CHECK"`
 	HeaderName            string              `mapstructure:"HEADER_NAME"`
 	HealthPort            int                 `mapstructure:"HEALTH_PORT"`
-	EnableHealthCheck     bool                `mapstructure:"ENABLE_HEALTH_CHECK"`
 	InsecureSkipTLSVerify bool                `mapstructure:"INSECURE_SKIP_TLS_VERIFY"`
 	Name                  string              `mapstructure:"-"`
 	OASPath               []string            `mapstructure:"OAS_PATH"`
