@@ -65,13 +65,39 @@ func handleToolsRegistration(
 	srv *mcp.Server,
 	serveOpts *ServeOptions, //nolint:revive
 ) (*mcp.Server, []string, error) {
-	var allTools []string
+	var (
+		allTools          []string
+		oasDiscoveryPaths []string
+	)
 
-	if len(serveOpts.OASPath) == 0 {
-		return nil, nil, errors.New("no OpenAPI spec path provided")
+	// If custom OAS paths are passed, use them;
+	// otherwise, try autodiscovery based on the given Trento URL.
+	if len(serveOpts.OASPath) != 0 {
+		oasDiscoveryPaths = serveOpts.OASPath
+	} else {
+		if serveOpts.TrentoURL == "" {
+			return nil, nil, errors.New("no OpenAPI spec path provided and no Trento URL configured for autodiscovery")
+		}
+
+		if len(serveOpts.AutodiscoveryPaths) == 0 {
+			return nil, nil, errors.New("no OpenAPI spec path provided and no autodiscovery paths configured")
+		}
+
+		// Construct URLs by removing trailing slash and appending the configurable API endpoints
+		trentoBaseURL := strings.TrimSuffix(serveOpts.TrentoURL, "/")
+
+		// Construct full URLs
+		for _, path := range serveOpts.AutodiscoveryPaths {
+			oasDiscoveryPaths = append(oasDiscoveryPaths, trentoBaseURL+path)
+		}
+
+		slog.InfoContext(ctx, "no OpenAPI spec paths provided, attempting autodiscovery",
+			"trento_url", serveOpts.TrentoURL,
+			"discovery_paths", oasDiscoveryPaths,
+		)
 	}
 
-	for _, path := range serveOpts.OASPath {
+	for _, path := range oasDiscoveryPaths {
 		// Load OpenAPI spec.
 		oasDoc, err := loadOpenAPISpec(ctx, path, serveOpts)
 		if err != nil {
