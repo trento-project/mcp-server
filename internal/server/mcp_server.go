@@ -27,28 +27,32 @@ import (
 // AuthContextWrapperFn is a wrapper for the authentication functions that are passed to the MCP server.
 type AuthContextWrapperFn = func(ctx context.Context, req *http.Request) context.Context
 
+// contextKey is a type definition for the context key.
+type contextKey string
+
 const (
 	// bearerTokenEnv is the env var name that the MCP client is expecting to read.
 	// This comes from the tool conversion performed at:
 	// https://github.com/evcc-io/openapi-mcp/blob/5af774c51f554649795872fe26c415f804456951/pkg/openapi2mcp/register.go#L77
-	bearerTokenEnv = "BEARER_TOKEN"
+	bearerTokenEnv string = "BEARER_TOKEN"
+	// sessionBearerTokenKey is the context key used for passing the API token through.
+	sessionBearerTokenKey contextKey = "session_bearer_token"
 
-	methodInitialize      = "initialize"
-	methodCallTool        = "tools/call"
-	methodClose           = "close"
-	sessionBearerTokenKey = "session_bearer_token"
+	// methodInitialize see https://modelcontextprotocol.io/specification/draft/schema#initialize
+	methodInitialize string = "initialize"
+	// methodCallTool see https://modelcontextprotocol.io/specification/draft/schema#tools%2Fcall
+	methodCallTool string = "tools/call"
 )
 
-// Session token storage and synchronization
+// Session token storage and synchronization.
 var (
-	// sessionTokens maps session ID to bearer token for multi-user support
-	sessionTokens sync.Map // map[string]string
+	// sessionTokens maps session ID to bearer token for multi-user support.
+	sessionTokens sync.Map //nolint:gochecknoglobals
 
 	// envMutex serializes tool execution to prevent race conditions when setting
-	// the global BEARER_TOKEN environment variable. This is necessary because
-	// openapi2mcp uses os.Getenv() which is process-global.
-	// TODO: Remove this mutex when openapi2mcp supports context-based auth
-	envMutex sync.Mutex
+	// the global BEARER_TOKEN environment variable.
+	// This is necessary because openapi2mcp uses os.Getenv() which is process-global.
+	envMutex sync.Mutex //nolint:gochecknoglobals
 )
 
 // createMCPServer creates the MCP server, but does not start serving it yet.
@@ -76,9 +80,6 @@ func createMCPServer(ctx context.Context, serveOpts *ServeOptions) *mcp.Server {
 
 	// Add logging middleware
 	srv.AddReceivingMiddleware(withLogger(slog.Default()))
-
-	// Add cleanup middleware to remove tokens when sessions end
-	srv.AddReceivingMiddleware(withSessionCleanup())
 
 	return srv
 }
@@ -334,6 +335,18 @@ func startServer(
 	return httpSrv
 }
 
+// setAPIKeyInContext extracts the API key from the request header and stores it in the request context.
+// The middleware will later associate it with the session.
+func setAPIKeyInContext(r *http.Request, headerName string) {
+	apiKey := r.Header.Get(headerName)
+	if apiKey != "" {
+		slog.DebugContext(r.Context(), "API key found in request, storing in context", "header", headerName)
+		*r = *r.WithContext(context.WithValue(r.Context(), sessionBearerTokenKey, apiKey))
+	} else {
+		slog.DebugContext(r.Context(), "API key not found in request header", "header", headerName)
+	}
+}
+
 // startStreamableHTTPServer initializes and starts a custom streamable HTTP server.
 func startStreamableHTTPServer(
 	ctx context.Context,
@@ -344,15 +357,7 @@ func startStreamableHTTPServer(
 ) (utils.StoppableServer, error) {
 	streamableHandler := mcp.NewStreamableHTTPHandler(
 		func(r *http.Request) *mcp.Server {
-			// Extract API key and store in request context
-			// The middleware will associate it with the session
-			apiKey := r.Header.Get(headerName)
-			if apiKey != "" {
-				slog.DebugContext(r.Context(), "API key found in request, storing in context", "header", headerName)
-				*r = *r.WithContext(context.WithValue(r.Context(), sessionBearerTokenKey, apiKey))
-			} else {
-				slog.DebugContext(r.Context(), "API key not found in request header", "header", headerName)
-			}
+			setAPIKeyInContext(r, headerName)
 
 			return mcpSrv
 		},
@@ -374,15 +379,7 @@ func startSSEServer(
 ) (utils.StoppableServer, error) {
 	sseHandler := mcp.NewSSEHandler(
 		func(r *http.Request) *mcp.Server {
-			// Extract API key and store in request context
-			// The middleware will associate it with the session
-			apiKey := r.Header.Get(headerName)
-			if apiKey != "" {
-				slog.DebugContext(r.Context(), "API key found in request, storing in context", "header", headerName)
-				*r = *r.WithContext(context.WithValue(r.Context(), sessionBearerTokenKey, apiKey))
-			} else {
-				slog.DebugContext(r.Context(), "API key not found in request header", "header", headerName)
-			}
+			setAPIKeyInContext(r, headerName)
 
 			return mcpSrv
 		},
@@ -414,6 +411,7 @@ func withAuthMiddleware() mcp.Middleware {
 						"session.id", sessionID,
 					)
 				}
+
 				return next(ctx, method, req)
 			}
 
@@ -426,8 +424,15 @@ func withAuthMiddleware() mcp.Middleware {
 
 			// Retrieve the session's bearer token
 			var token string
+
 			if storedToken, exists := sessionTokens.Load(sessionID); exists {
-				token, _ = storedToken.(string)
+				if t, ok := storedToken.(string); ok {
+					token = t
+				} else {
+					slog.WarnContext(ctx, "stored token is not a string, skipping",
+						"session_id", sessionID,
+					)
+				}
 			}
 
 			if token == "" {
@@ -451,11 +456,13 @@ func withAuthMiddleware() mcp.Middleware {
 			originalToken, hasOriginal := os.LookupEnv(bearerTokenEnv)
 
 			// Set session-specific token
-			if err := os.Setenv(bearerTokenEnv, token); err != nil {
+			err := os.Setenv(bearerTokenEnv, token)
+			if err != nil {
 				slog.ErrorContext(ctx, "failed to set bearer token",
 					"session.id", sessionID,
 					"error", err,
 				)
+
 				return nil, fmt.Errorf("failed to set authentication token: %w", err)
 			}
 
@@ -478,30 +485,6 @@ func withAuthMiddleware() mcp.Middleware {
 
 			// Execute tool with session-specific authentication
 			return next(ctx, method, req)
-		}
-	}
-}
-
-// withSessionCleanup creates middleware that cleans up session tokens when sessions end.
-func withSessionCleanup() mcp.Middleware {
-	return func(next mcp.MethodHandler) mcp.MethodHandler {
-		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
-			// Execute the method first
-			result, err := next(ctx, method, req)
-
-			// Clean up on session close or error
-			if method == methodClose || err != nil {
-				session := req.GetSession()
-				sessionID := session.ID()
-
-				if _, exists := sessionTokens.LoadAndDelete(sessionID); exists {
-					slog.InfoContext(ctx, "cleaned up bearer token for closed session",
-						"session.id", sessionID,
-					)
-				}
-			}
-
-			return result, err
 		}
 	}
 }

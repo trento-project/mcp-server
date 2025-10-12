@@ -842,83 +842,146 @@ func testServerShutdown(
 	}
 }
 
-func TestHandleAPIKeyAuth(t *testing.T) {
-	const (
-		headerName     = "X-Test-Api-Key"
-		bearerTokenEnv = "BEARER_TOKEN"
-	)
+func TestSetAPIKeyInContext(t *testing.T) {
+	t.Parallel()
+
+	const testHeaderName = "X-Test-Api-Key"
 
 	tests := []struct {
-		name           string
-		apiKey         string
-		headerPresent  bool
-		initialEnv     string // if empty, env is unset
-		expectEnvSet   bool
-		expectedAPIKey string
+		name            string
+		headerName      string
+		headerValue     string
+		headerPresent   bool
+		expectInContext bool
+		expectedAPIKey  string
 	}{
 		{
-			name:           "should set BEARER_TOKEN when api key is present",
-			apiKey:         "my-secret-key",
-			headerPresent:  true,
-			initialEnv:     "",
-			expectEnvSet:   true,
-			expectedAPIKey: "my-secret-key",
+			name:            "should store API key in context when header is present",
+			headerName:      testHeaderName,
+			headerValue:     "my-secret-key",
+			headerPresent:   true,
+			expectInContext: true,
+			expectedAPIKey:  "my-secret-key",
 		},
 		{
-			name:           "should unset BEARER_TOKEN when api key is not present",
-			headerPresent:  false,
-			initialEnv:     "some-stale-key",
-			expectEnvSet:   false,
-			expectedAPIKey: "",
+			name:            "should not store API key when header is absent",
+			headerName:      testHeaderName,
+			headerValue:     "",
+			headerPresent:   false,
+			expectInContext: false,
+			expectedAPIKey:  "",
 		},
 		{
-			name:           "should unset BEARER_TOKEN when api key is an empty string",
-			apiKey:         "",
-			headerPresent:  true,
-			initialEnv:     "some-stale-key",
-			expectEnvSet:   false,
-			expectedAPIKey: "",
+			name:            "should not store API key when header value is empty",
+			headerName:      testHeaderName,
+			headerValue:     "",
+			headerPresent:   true,
+			expectInContext: false,
+			expectedAPIKey:  "",
 		},
 		{
-			name:           "should overwrite an existing BEARER_TOKEN",
-			apiKey:         "new-key",
-			headerPresent:  true,
-			initialEnv:     "old-key",
-			expectEnvSet:   true,
-			expectedAPIKey: "new-key",
+			name:            "should handle different header names",
+			headerName:      "X-Custom-Auth",
+			headerValue:     "custom-key-123",
+			headerPresent:   true,
+			expectInContext: true,
+			expectedAPIKey:  "custom-key-123",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup initial environment for this test case
-			if tt.initialEnv != "" {
-				t.Setenv(bearerTokenEnv, tt.initialEnv)
-			} else {
-				err := os.Unsetenv(bearerTokenEnv)
-				require.NoError(t, err)
-			}
+			t.Parallel()
 
-			// Create request
-			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/test", nil)
+			// Create request with the chosen header
+			req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, "/mcp", nil)
 			require.NoError(t, err)
 
 			if tt.headerPresent {
-				req.Header.Set(headerName, tt.apiKey)
+				req.Header.Set(tt.headerName, tt.headerValue)
 			}
 
-			// Call the function under test
-			server.HandleAPIKeyAuth(req, headerName)
+			server.SetAPIKeyInContext(req, tt.headerName)
 
-			// Assertions
-			actualAPIKey, isSet := os.LookupEnv(bearerTokenEnv)
-			assert.Equal(t, tt.expectEnvSet, isSet)
+			// Get the value of the context key
+			ctxValue := req.Context().Value(server.SessionBearerTokenKey)
 
-			if tt.expectEnvSet {
-				assert.Equal(t, tt.expectedAPIKey, actualAPIKey)
+			if tt.expectInContext {
+				require.NotNil(t, ctxValue)
+				apiKey, ok := ctxValue.(string)
+				require.True(t, ok)
+				assert.Equal(t, tt.expectedAPIKey, apiKey)
+			} else {
+				assert.Nil(t, ctxValue)
 			}
 		})
 	}
+}
+
+//nolint:paralleltest
+func TestWithAuthMiddleware(t *testing.T) {
+	sessionID1 := "session-1"
+	sessionID2 := "session-2"
+	testToken := "eyJhbGciOiJ_token1"    //nolint:gosec
+	initialToken := "eyJhbGciOiJ_token2" //nolint:gosec
+
+	t.Run("should store and retrieve token from session map", func(t *testing.T) {
+		server.SessionTokens.Store(sessionID1, testToken)
+		defer server.SessionTokens.Delete(sessionID1)
+
+		storedToken, exists := server.SessionTokens.Load(sessionID1)
+		require.True(t, exists)
+
+		token, ok := storedToken.(string)
+		require.True(t, ok)
+		assert.Equal(t, testToken, token)
+	})
+
+	t.Run("should delete token from session map", func(t *testing.T) {
+		server.SessionTokens.Store(sessionID2, testToken)
+		server.SessionTokens.Delete(sessionID2)
+
+		_, exists := server.SessionTokens.Load(sessionID2)
+		assert.False(t, exists)
+	})
+
+	t.Run("should set bearer token environment variable", func(t *testing.T) {
+		originalValue, hasOriginal := os.LookupEnv(server.BearerTokenEnv)
+
+		defer func() {
+			if hasOriginal {
+				t.Setenv(server.BearerTokenEnv, originalValue)
+			} else {
+				_ = os.Unsetenv(server.BearerTokenEnv)
+			}
+		}()
+
+		t.Setenv(server.BearerTokenEnv, testToken)
+
+		value, exists := os.LookupEnv(server.BearerTokenEnv)
+		assert.True(t, exists)
+		assert.Equal(t, testToken, value)
+	})
+
+	t.Run("should unset bearer token environment variable", func(t *testing.T) {
+		originalValue, hasOriginal := os.LookupEnv(server.BearerTokenEnv)
+
+		defer func() {
+			if hasOriginal {
+				t.Setenv(server.BearerTokenEnv, originalValue)
+			} else {
+				_ = os.Unsetenv(server.BearerTokenEnv)
+			}
+		}()
+
+		t.Setenv(server.BearerTokenEnv, initialToken)
+
+		err := os.Unsetenv(server.BearerTokenEnv)
+		require.NoError(t, err)
+
+		_, exists := os.LookupEnv(server.BearerTokenEnv)
+		assert.False(t, exists)
+	})
 }
 
 func TestLoadOpenAPISpec(t *testing.T) {
