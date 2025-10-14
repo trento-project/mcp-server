@@ -41,7 +41,7 @@ func TestExecute(t *testing.T) {
 				"--enable-health-check",
 			},
 			expConf: server.ServeOptions{
-				AutodiscoveryPaths:    []string{"/api/latest/openapi", "/wanda/api/latest/openapi"},
+				AutodiscoveryPaths:    []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				EnableHealthCheck:     true,
 				HeaderName:            "X-My-Header",
 				HealthPort:            1234,
@@ -57,7 +57,7 @@ func TestExecute(t *testing.T) {
 			name: "default values",
 			args: []string{},
 			expConf: server.ServeOptions{
-				AutodiscoveryPaths: []string{"/api/latest/openapi", "/wanda/api/latest/openapi"},
+				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				EnableHealthCheck:  false,
 				HeaderName:         "X-TRENTO-MCP-APIKEY",
 				HealthPort:         8080,
@@ -72,7 +72,7 @@ func TestExecute(t *testing.T) {
 			name: "invalid transport",
 			args: []string{"--transport", "invalid-transport"},
 			expConf: server.ServeOptions{
-				AutodiscoveryPaths: []string{"/api/latest/openapi", "/wanda/api/latest/openapi"},
+				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				EnableHealthCheck:  false,
 				HeaderName:         "X-TRENTO-MCP-APIKEY",
 				HealthPort:         8080,
@@ -166,7 +166,7 @@ func TestConfigureCLI(t *testing.T) {
 				"TAG_FILTER":  []string{"C", "D"},
 			},
 			expected: server.ServeOptions{
-				AutodiscoveryPaths: []string{"/api/latest/openapi", "/wanda/api/latest/openapi"},
+				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				HeaderName:         "X-Test-Header",
 				HealthPort:         8080,
 				OASPath:            []string{"/tmp/oas.json"},
@@ -181,7 +181,7 @@ func TestConfigureCLI(t *testing.T) {
 			viperSettings: map[string]any{},
 			envVars:       map[string]string{},
 			expected: server.ServeOptions{
-				AutodiscoveryPaths: []string{"/api/latest/openapi", "/wanda/api/latest/openapi"},
+				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				EnableHealthCheck:  false,
 				HeaderName:         "X-TRENTO-MCP-APIKEY",
 				HealthPort:         8080,
@@ -207,7 +207,7 @@ func TestConfigureCLI(t *testing.T) {
 				"TRENTO_MCP_ENABLE_HEALTH_CHECK":      "true",
 			},
 			expected: server.ServeOptions{
-				AutodiscoveryPaths:    []string{"/api/latest/openapi", "/wanda/api/latest/openapi"},
+				AutodiscoveryPaths:    []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				EnableHealthCheck:     true,
 				HeaderName:            "X-Env-Header",
 				HealthPort:            8080,
@@ -225,7 +225,7 @@ func TestConfigureCLI(t *testing.T) {
 				"transport": "invalid-transport",
 			},
 			expected: server.ServeOptions{
-				AutodiscoveryPaths: []string{"/api/latest/openapi", "/wanda/api/latest/openapi"},
+				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				EnableHealthCheck:  false,
 				HeaderName:         "X-TRENTO-MCP-APIKEY",
 				HealthPort:         8080,
@@ -384,7 +384,7 @@ func TestServeOpts(t *testing.T) {
 
 	// Verify default values
 	expected := server.ServeOptions{
-		AutodiscoveryPaths:    []string{"/api/latest/openapi", "/wanda/api/latest/openapi"},
+		AutodiscoveryPaths:    []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 		EnableHealthCheck:     false,
 		HeaderName:            "X-TRENTO-MCP-APIKEY",
 		HealthPort:            8080,

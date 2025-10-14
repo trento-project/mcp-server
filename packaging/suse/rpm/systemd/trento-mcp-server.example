@@ -17,7 +17,7 @@
 # OAS_PATH=
 
 ## Custom paths for API autodiscovery endpoints (comma-separated), used when OAS_PATH is empty.
-AUTODISCOVERY_PATHS=/api/latest/openapi,/wanda/api/latest/openapi
+AUTODISCOVERY_PATHS=/api/all/openapi,/wanda/api/all/openapi
 
 ## The port on which the MCP Server listens for incoming connections.
 PORT=5000

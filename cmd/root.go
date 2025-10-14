@@ -27,7 +27,7 @@ var (
 
 	// Default values.
 	//nolint:gochecknoglobals
-	defaultAutodiscoveryPaths = []string{"/api/latest/openapi", "/wanda/api/latest/openapi"}
+	defaultAutodiscoveryPaths = []string{"/api/all/openapi", "/wanda/api/all/openapi"}
 	//nolint:gochecknoglobals
 	defaultConfigPaths = []string{"/etc/trento/", "/usr/etc/trento/"}
 	//nolint:gochecknoglobals
