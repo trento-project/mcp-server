@@ -65,7 +65,7 @@ jobs:
 
       # Commit the updated changelog to main branch.
       - name: Commit new changelog
-        uses: stefanzweifel/git-auto-commit-action@v6
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           branch: main
           commit_message: "Automatically update CHANGELOG.md for release ${{ steps.detect-version.outputs.current-version }}"
