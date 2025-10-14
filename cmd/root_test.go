@@ -29,19 +29,20 @@ func TestExecute(t *testing.T) {
 		{
 			name: "all arguments are captured",
 			args: []string{
-				"--port", "9090",
+				"--autodiscovery-paths", "/foo,/bar",
+				"--enable-health-check",
+				"--header-name", "X-My-Header",
+				"--health-port", "1234",
+				"--insecure-skip-tls-verify",
 				"--oas-path", "/tmp/api.json",
+				"--port", "9090",
+				"--tag-filter", "A,B",
 				"--transport", "sse",
 				"--trento-url", "http://trento.example.com",
-				"--header-name", "X-My-Header",
-				"--tag-filter", "A,B",
 				"--verbosity", "debug",
-				"--insecure-skip-tls-verify",
-				"--health-port", "1234",
-				"--enable-health-check",
 			},
 			expConf: server.ServeOptions{
-				AutodiscoveryPaths:    []string{"/api/all/openapi", "/wanda/api/all/openapi"},
+				AutodiscoveryPaths:    []string{"/foo", "/bar"},
 				EnableHealthCheck:     true,
 				HeaderName:            "X-My-Header",
 				HealthPort:            1234,
@@ -158,12 +159,12 @@ func TestConfigureCLI(t *testing.T) {
 		{
 			name: "custom configuration values",
 			viperSettings: map[string]any{
-				"PORT":        1234,
+				"HEADER_NAME": "X-Test-Header",
 				"OAS_PATH":    []string{"/tmp/oas.json"},
+				"PORT":        1234,
+				"TAG_FILTER":  []string{"C", "D"},
 				"TRANSPORT":   "sse",
 				"TRENTO_URL":  "http://trento.test",
-				"HEADER_NAME": "X-Test-Header",
-				"TAG_FILTER":  []string{"C", "D"},
 			},
 			expected: server.ServeOptions{
 				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
@@ -195,16 +196,16 @@ func TestConfigureCLI(t *testing.T) {
 		{
 			name: "environment variables",
 			envVars: map[string]string{
-				"TRENTO_MCP_PORT":                     "8888",
+				"TRENTO_MCP_CONFIG":                   "/env/config.yaml",
+				"TRENTO_MCP_ENABLE_HEALTH_CHECK":      "true",
+				"TRENTO_MCP_HEADER_NAME":              "X-Env-Header",
+				"TRENTO_MCP_INSECURE_SKIP_TLS_VERIFY": "true",
 				"TRENTO_MCP_OAS_PATH":                 "/env/oas.json,/another/path.json",
+				"TRENTO_MCP_PORT":                     "8888",
+				"TRENTO_MCP_TAG_FILTER":               "X,Y",
 				"TRENTO_MCP_TRANSPORT":                "streamable",
 				"TRENTO_MCP_TRENTO_URL":               "https://env.trento.io",
-				"TRENTO_MCP_HEADER_NAME":              "X-Env-Header",
-				"TRENTO_MCP_TAG_FILTER":               "X,Y",
 				"TRENTO_MCP_VERBOSITY":                "info",
-				"TRENTO_MCP_CONFIG":                   "/env/config.yaml",
-				"TRENTO_MCP_INSECURE_SKIP_TLS_VERIFY": "true",
-				"TRENTO_MCP_ENABLE_HEALTH_CHECK":      "true",
 			},
 			expected: server.ServeOptions{
 				AutodiscoveryPaths:    []string{"/api/all/openapi", "/wanda/api/all/openapi"},
@@ -289,25 +290,31 @@ func TestReadConfigFile(t *testing.T) {
 		{
 			name: "all keys set",
 			configContent: `PORT=9999
-OAS_PATH=/custom/api.json
-TRANSPORT=streamable
-TRENTO_URL=https://custom.trento.io
-HEADER_NAME=X-Custom-Header
-TAG_FILTER=tag1,tag2
-VERBOSITY=info
+AUTODISCOVERY_PATHS=/foo,/bar
+ENABLE_HEALTH_CHECK=true
+HEADER_NAME=X-My-Header
+HEALTH_PORT=4321
 INSECURE_SKIP_TLS_VERIFY=true
-ENABLE_HEALTH_CHECK=true`,
+OAS_PATH=/custom/api.json
+PORT=9999
+TAG_FILTER=tag1,tag2
+TRANSPORT=sse
+TRENTO_URL=https://custom.trento.io
+VERBOSITY=info
+`,
 			setConfigFile: true,
 			expected: map[string]any{
-				"PORT":                     "9999",
-				"OAS_PATH":                 "/custom/api.json",
-				"TRANSPORT":                "streamable",
-				"TRENTO_URL":               "https://custom.trento.io",
-				"HEADER_NAME":              "X-Custom-Header",
-				"TAG_FILTER":               "tag1,tag2",
-				"VERBOSITY":                "info",
-				"INSECURE_SKIP_TLS_VERIFY": "true",
+				"AUTODISCOVERY_PATHS":      "/foo,/bar",
 				"ENABLE_HEALTH_CHECK":      "true",
+				"HEADER_NAME":              "X-My-Header",
+				"HEALTH_PORT":              "4321",
+				"INSECURE_SKIP_TLS_VERIFY": "true",
+				"OAS_PATH":                 "/custom/api.json",
+				"PORT":                     "9999",
+				"TAG_FILTER":               "tag1,tag2",
+				"TRANSPORT":                "sse",
+				"TRENTO_URL":               "https://custom.trento.io",
+				"VERBOSITY":                "info",
 			},
 		},
 		{
