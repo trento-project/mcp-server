@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/carlmjohnson/versioninfo"
@@ -48,8 +49,9 @@ const (
 	defaultHealthPort            = 8080
 	defaultInsecureSkipTLSVerify = false
 	defaultPort                  = 5000
-	defaultTrentoURL             = "https://demo.trento-project.io"
+	defaultTrentoURL             = ""
 	defaultVerbosity             = "info"
+	fallbackTrentoURL            = "https://demo.trento-project.io"
 
 	// Configuration keys.
 	configKeyAutodiscoveryPaths    = "AUTODISCOVERY_PATHS"
@@ -223,6 +225,12 @@ func configureCLI(_ *cobra.Command, _ []string) error {
 	err = viper.Unmarshal(&serveOpts)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+
+	// Apply fallback Trento URL only if no explicit Trento URL AND no OAS paths  provided.
+	if serveOpts.TrentoURL == "" && len(serveOpts.OASPath) == 0 {
+		slog.Warn("no Trento URL or OAS paths provided, using demo instance", "trento_url", fallbackTrentoURL)
+		serveOpts.TrentoURL = fallbackTrentoURL
 	}
 
 	return nil

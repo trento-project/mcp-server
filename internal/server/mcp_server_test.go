@@ -1205,14 +1205,14 @@ func TestHandleToolsRegistrationAutodiscovery(t *testing.T) {
 			name:        "fails when no Trento URL provided for autodiscovery",
 			trentoURL:   "",
 			expectErr:   true,
-			errContains: "no OpenAPI spec path provided and no Trento URL configured for autodiscovery",
+			errContains: "no OAS paths provided and no Trento URL configured for autodiscovery",
 		},
 		{
 			name:               "fails when no autodiscovery paths configured",
 			trentoURL:          "https://trento.example.com",
 			autodiscoveryPaths: []string{},
 			expectErr:          true,
-			errContains:        "no OpenAPI spec path provided and no autodiscovery paths configured",
+			errContains:        "no OAS paths provided and no autodiscovery paths configured",
 		},
 		{
 			name:               "handles trailing slash in Trento URL correctly",

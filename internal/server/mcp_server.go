@@ -11,6 +11,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"slices"
@@ -95,17 +96,16 @@ func handleToolsRegistration(
 		oasDiscoveryPaths []string
 	)
 
-	// If custom OAS paths are passed, use them;
-	// otherwise, try autodiscovery based on the given Trento URL.
+	// If custom OAS paths are passed, use them; otherwise, try autodiscovery.
 	if len(serveOpts.OASPath) != 0 {
 		oasDiscoveryPaths = serveOpts.OASPath
 	} else {
 		if serveOpts.TrentoURL == "" {
-			return nil, nil, errors.New("no OpenAPI spec path provided and no Trento URL configured for autodiscovery")
+			return nil, nil, errors.New("no OAS paths provided and no Trento URL configured for autodiscovery")
 		}
 
 		if len(serveOpts.AutodiscoveryPaths) == 0 {
-			return nil, nil, errors.New("no OpenAPI spec path provided and no autodiscovery paths configured")
+			return nil, nil, errors.New("no OAS paths provided and no autodiscovery paths configured")
 		}
 
 		// Construct URLs by removing trailing slash and appending the configurable API endpoints
@@ -134,14 +134,26 @@ func handleToolsRegistration(
 			return nil, nil, fmt.Errorf("failed to read API spec from %s: %w", path, err)
 		}
 
-		// Overwrite the Trento URL in the OpenAPI
-		if len(oasDoc.Servers) > 0 {
-			oasDoc.Servers[0].URL = serveOpts.TrentoURL
-		} else {
-			// Or just add it
-			oasDoc.Servers = append(oasDoc.Servers, &openapi3.Server{
-				URL: serveOpts.TrentoURL,
-			})
+		// Determine the server base URL for this spec:
+		// 1. If serveOpts.TrentoURL is explicitly set (non-empty), use it as-is.
+		// 2. Otherwise, if the spec path is remote (http/https), derive base (scheme://host[:port]).
+		// 3. If neither applies (e.g. local file and no TrentoURL), leave servers untouched.
+		baseURL := ""
+		if serveOpts.TrentoURL != "" {
+			baseURL = serveOpts.TrentoURL
+		} else if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
+			parsedURL, err := url.Parse(path)
+			if err == nil && parsedURL.Scheme != "" && parsedURL.Host != "" {
+				baseURL = fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host)
+			}
+		}
+
+		if baseURL != "" { // only override/add server section if we know a base URL
+			if len(oasDoc.Servers) > 0 {
+				oasDoc.Servers[0].URL = baseURL
+			} else {
+				oasDoc.Servers = append(oasDoc.Servers, &openapi3.Server{URL: baseURL})
+			}
 		}
 
 		tools := registerToolsFromSpec(srv, oasDoc, serveOpts)
