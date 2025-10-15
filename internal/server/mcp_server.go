@@ -422,18 +422,17 @@ func startSSEServer(
 func withAuthMiddleware() mcp.Middleware {
 	return func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
-			session := req.GetSession()
-			sessionID := session.ID()
+			sessionID := req.GetSession().ID()
 
 			// When a session is initialized, store its bearer token
 			if method == methodInitialize {
 				if token, ok := ctx.Value(sessionBearerTokenKey).(string); ok && token != "" {
 					sessionTokens.Store(sessionID, token)
-					slog.InfoContext(ctx, "stored bearer token for new session",
+					slog.DebugContext(ctx, "stored bearer token for new session",
 						"session.id", sessionID,
 					)
 				} else {
-					slog.WarnContext(ctx, "session initialized without bearer token",
+					slog.DebugContext(ctx, "session initialized without bearer token",
 						"session.id", sessionID,
 					)
 				}
@@ -455,14 +454,14 @@ func withAuthMiddleware() mcp.Middleware {
 				if t, ok := storedToken.(string); ok {
 					token = t
 				} else {
-					slog.WarnContext(ctx, "stored token is not a string, skipping",
+					slog.DebugContext(ctx, "stored token is not a string, skipping",
 						"session_id", sessionID,
 					)
 				}
 			}
 
 			if token == "" {
-				slog.WarnContext(ctx, "no bearer token found for tool call",
+				slog.DebugContext(ctx, "no bearer token found for tool call",
 					"session.id", sessionID,
 					"method", method,
 				)

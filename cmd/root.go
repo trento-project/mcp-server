@@ -114,7 +114,7 @@ func flagConfigs() []utils.FlagConfig {
 			FlagType:     utils.FlagTypeBool,
 			FlagName:     "enable-health-check",
 			Short:        "d",
-			Description:  "Enable the health check server",
+			Description:  "Enable the health check server (default false)",
 		},
 		{
 			Key:          configKeyHeaderName,
@@ -137,9 +137,8 @@ func flagConfigs() []utils.FlagConfig {
 			DefaultValue: defaultInsecureSkipTLSVerify,
 			FlagType:     utils.FlagTypeBool,
 			FlagName:     "insecure-skip-tls-verify",
-			IsPersistent: false,
 			Short:        "i",
-			Description:  "Skip TLS certificate verification when fetching OpenAPI spec from HTTPS URLs",
+			Description:  "Skip TLS certificate verification when fetching OpenAPI spec from HTTPS URLs (default false)",
 		},
 		{
 			Key:          configKeyOASPath,
@@ -147,7 +146,7 @@ func flagConfigs() []utils.FlagConfig {
 			FlagType:     utils.FlagTypeStringSlice,
 			FlagName:     "oas-path",
 			Short:        "P",
-			Description:  "Path to the OpenAPI spec file(s)",
+			Description:  "Path to the OpenAPI spec file(s) (default [])",
 		},
 		{
 			Key:          configKeyPort,
@@ -163,7 +162,7 @@ func flagConfigs() []utils.FlagConfig {
 			FlagType:     utils.FlagTypeStringSlice,
 			FlagName:     "tag-filter",
 			Short:        "f",
-			Description:  "Only include operations with at least one of these tags",
+			Description:  "Only include operations with at least one of these tags (default [])",
 		},
 		{
 			Key:          configKeyTransport,
@@ -179,7 +178,7 @@ func flagConfigs() []utils.FlagConfig {
 			FlagType:     utils.FlagTypeString,
 			FlagName:     "trento-url",
 			Short:        "u",
-			Description:  "URL for the target Trento server",
+			Description:  "URL for the target Trento server (default \"\")",
 		},
 		{
 			Key:          configKeyVerbosity,
@@ -188,7 +187,7 @@ func flagConfigs() []utils.FlagConfig {
 			FlagName:     "verbosity",
 			IsPersistent: true,
 			Short:        "v",
-			Description:  "log level verbosity (debug, info, warning, error)",
+			Description:  "Log level verbosity (debug, info, warning, error)",
 		},
 	}
 }

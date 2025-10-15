@@ -34,14 +34,14 @@ type ServeOptions struct {
 
 // Serve is the root command that is run when no other sub-commands are present.
 func Serve(ctx context.Context, serveOpts *ServeOptions) error {
-	slog.DebugContext(ctx, "starting Serve() command",
+	slog.InfoContext(ctx, "starting the MCP server",
 		"server.options", fmt.Sprintf("%+v", *serveOpts),
 	)
 
 	// Create the MCP server.
 	srv := createMCPServer(ctx, serveOpts)
 
-	slog.DebugContext(ctx, "the MCP server has been created",
+	slog.InfoContext(ctx, "the MCP server has been created",
 		"mcp.name", serveOpts.Name,
 		"mcp.version", serveOpts.Version,
 	)
