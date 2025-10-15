@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -48,24 +49,112 @@ func createReadinessChecker(serveOpts *ServeOptions) http.Handler {
 		Timeout: 5 * time.Second,
 	}
 
-	readinessChecker := health.NewChecker(
-		health.WithCheck(health.Check{
+	// Start with the MCP server check
+	checks := []health.Check{
+		{
 			Name: "mcp-server",
 			Check: func(ctx context.Context) error {
 				// Check connectivity to the MCP server using an MCP client.
 				return checkMCPServer(ctx, serveOpts)
 			},
-		}),
-		health.WithCheck(health.Check{
-			Name: "api-server",
-			Check: func(ctx context.Context) error {
-				// Check HTTP connectivity to the API server.
-				return checkAPIServerConnectivity(ctx, serveOpts, httpClient)
-			},
-		}),
-	)
+		},
+	}
+
+	// Add individual health checks for each OAS path
+	checks = append(checks, createOASPathHealthChecks(serveOpts, httpClient)...)
+
+	// Build the checker options
+	options := []health.CheckerOption{}
+	for _, check := range checks {
+		options = append(options, health.WithCheck(check))
+	}
+
+	readinessChecker := health.NewChecker(options...)
 
 	return health.NewHandler(readinessChecker)
+}
+
+// createOASPathHealthChecks creates individual health checks for each OAS path.
+func createOASPathHealthChecks(serveOpts *ServeOptions, httpClient *http.Client) []health.Check {
+	var checks []health.Check
+
+	// If we have explicit OAS paths, create a health check for each one
+	// assuming "<base path> + /api/healthz"
+	if len(serveOpts.OASPath) > 0 {
+		for _, oasPath := range serveOpts.OASPath {
+			check, err := createSingleOASHealthCheck(oasPath, serveOpts, httpClient)
+			if err != nil {
+				continue
+			}
+
+			checks = append(checks, check)
+		}
+		// If no explicit OAS paths but we have a TrentoURL, create checks for autodiscovery paths
+		// also assuming "<base path> + /api/healthz"
+	} else if serveOpts.TrentoURL != "" {
+		for _, autoPath := range serveOpts.AutodiscoveryPaths {
+			fullOASPath := strings.TrimRight(serveOpts.TrentoURL, "/") + autoPath
+
+			check, err := createSingleOASHealthCheck(fullOASPath, serveOpts, httpClient)
+			if err != nil {
+				continue
+			}
+
+			checks = append(checks, check)
+		}
+		// at this point, TrentoURL should be populated even with the fallback demo instance;
+		// if not, just return empty checks
+	}
+
+	return checks
+}
+
+// createSingleOASHealthCheck creates a single health check for an OAS path.
+func createSingleOASHealthCheck(
+	oasPath string,
+	serveOpts *ServeOptions,
+	httpClient *http.Client,
+) (health.Check, error) {
+	// Parse the OAS path once to extract information for the health check
+	parsedURL, err := url.Parse(oasPath)
+	if err != nil {
+		return health.Check{}, fmt.Errorf("failed to parse OAS path %s: %w", oasPath, err)
+	}
+
+	// Validate that the URL has a host (required for health checks)
+	if parsedURL.Host == "" {
+		return health.Check{}, fmt.Errorf("failed to extract host from OAS path %s", oasPath)
+	}
+
+	checkNameTpl := "%s-api"
+
+	// Determine check name based on the oasPath
+	checkName := fmt.Sprintf(checkNameTpl, "web")
+	if strings.Contains(oasPath, "wanda") {
+		checkName = fmt.Sprintf(checkNameTpl, "wanda")
+	}
+
+	// Build the health check URL
+	healthPath := serveOpts.HealthAPIPath
+	if strings.Contains(parsedURL.Path, "/wanda/") {
+		healthPath = fmt.Sprintf("/wanda%s", serveOpts.HealthAPIPath)
+	}
+
+	baseURL := fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host)
+	healthURL := strings.TrimRight(baseURL, "/") + healthPath
+
+	slog.Debug("createSingleOASHealthCheck",
+		"checkName", checkName,
+		"oasPath", oasPath,
+		"healthURL", healthURL,
+	)
+
+	return health.Check{
+		Name: checkName,
+		Check: func(ctx context.Context) error {
+			return checkAPIServiceHealth(ctx, healthURL, oasPath, serveOpts, httpClient)
+		},
+	}, nil
 }
 
 // checkMCPServer checks if the MCP server can connect using an MCP client.
@@ -124,53 +213,40 @@ func checkMCPServer(ctx context.Context, serveOpts *ServeOptions) error {
 	return nil
 }
 
-// checkAPIServerConnectivity checks if a single API server is reachable.
-func checkAPIServerConnectivity(
+// checkAPIServiceHealth checks if an API server is reachable using the provided health URL.
+func checkAPIServiceHealth(
 	ctx context.Context,
+	healthURL string,
+	oasPath string,
 	serveOpts *ServeOptions,
-	client *http.Client,
+	httpClient *http.Client,
 ) error {
-	if serveOpts.TrentoURL == "" {
-		return errors.New("the Trento server URL is empty")
-	}
-
-	// Sanitize the URL and create the health check URL
-	healthzURL := fmt.Sprintf("%s/api/healthz", strings.TrimSuffix(serveOpts.TrentoURL, "/"))
-
-	// Create a health check request with timeout
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthzURL, nil)
+	// Create the HTTP request
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
 	if err != nil {
-		return fmt.Errorf("failed to create request to the Trento server health endpoint (%s): %w",
-			healthzURL, err,
-		)
+		return fmt.Errorf("failed to create request for %s: %w", healthURL, err)
 	}
 
-	// Set the UA to track the version.
+	// Set User-Agent header
 	req.Header.Set("User-Agent", fmt.Sprintf("%s/%s", serveOpts.Name, serveOpts.Version))
 
-	// Perform the request
-	resp, err := client.Do(req)
+	// Make the request
+	resp, err := httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("the Trento server health endpoint (%s) is unreachable: %w",
-			healthzURL, err,
-		)
+		return fmt.Errorf("failed to connect to %s (derived from OAS path %s): %w", healthURL, oasPath, err)
 	}
 
 	defer func() {
-		err := resp.Body.Close()
-		if err != nil {
-			slog.WarnContext(ctx, "failed to close response body",
-				"error", err,
-				"trento.url", healthzURL,
-			)
-		}
+		err = resp.Body.Close()
+		slog.WarnContext(ctx, "failed to close response body",
+			"error", err,
+		)
 	}()
 
-	// The health check must return 200 OK.
+	// Check the response status code
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf(
-			"the Trento server health endpoint (%s) returned a non-200 status code (%d) %s",
-			healthzURL, resp.StatusCode, resp.Status,
+		return fmt.Errorf("API server at %s (derived from OAS path %s) returned a non-200 status code (%d)",
+			healthURL, oasPath, resp.StatusCode,
 		)
 	}
 

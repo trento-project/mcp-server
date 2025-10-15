@@ -45,6 +45,7 @@ func TestExecute(t *testing.T) {
 				AutodiscoveryPaths:    []string{"/foo", "/bar"},
 				EnableHealthCheck:     true,
 				HeaderName:            "X-My-Header",
+				HealthAPIPath:         "/api/healthz",
 				HealthPort:            1234,
 				InsecureSkipTLSVerify: true,
 				OASPath:               []string{"/tmp/api.json"},
@@ -61,6 +62,7 @@ func TestExecute(t *testing.T) {
 				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				EnableHealthCheck:  false,
 				HeaderName:         "X-TRENTO-MCP-APIKEY",
+				HealthAPIPath:      "/api/healthz",
 				HealthPort:         8080,
 				OASPath:            []string{},
 				Port:               5000,
@@ -76,6 +78,7 @@ func TestExecute(t *testing.T) {
 				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				EnableHealthCheck:  false,
 				HeaderName:         "X-TRENTO-MCP-APIKEY",
+				HealthAPIPath:      "/api/healthz",
 				HealthPort:         8080,
 				OASPath:            []string{},
 				Port:               5000,
@@ -169,6 +172,7 @@ func TestConfigureCLI(t *testing.T) {
 			expected: server.ServeOptions{
 				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				HeaderName:         "X-Test-Header",
+				HealthAPIPath:      "/api/healthz",
 				HealthPort:         8080,
 				OASPath:            []string{"/tmp/oas.json"},
 				Port:               1234,
@@ -185,6 +189,7 @@ func TestConfigureCLI(t *testing.T) {
 				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				EnableHealthCheck:  false,
 				HeaderName:         "X-TRENTO-MCP-APIKEY",
+				HealthAPIPath:      "/api/healthz",
 				HealthPort:         8080,
 				OASPath:            []string{},
 				Port:               5000,
@@ -196,9 +201,12 @@ func TestConfigureCLI(t *testing.T) {
 		{
 			name: "environment variables",
 			envVars: map[string]string{
+				"TRENTO_MCP_AUTODISCOVERY_PATHS":      "/custom/api,/custom/wanda",
 				"TRENTO_MCP_CONFIG":                   "/env/config.yaml",
 				"TRENTO_MCP_ENABLE_HEALTH_CHECK":      "true",
 				"TRENTO_MCP_HEADER_NAME":              "X-Env-Header",
+				"TRENTO_MCP_HEALTH_API_PATH":          "/custom/healthz",
+				"TRENTO_MCP_HEALTH_PORT":              "9090",
 				"TRENTO_MCP_INSECURE_SKIP_TLS_VERIFY": "true",
 				"TRENTO_MCP_OAS_PATH":                 "/env/oas.json,/another/path.json",
 				"TRENTO_MCP_PORT":                     "8888",
@@ -208,10 +216,11 @@ func TestConfigureCLI(t *testing.T) {
 				"TRENTO_MCP_VERBOSITY":                "info",
 			},
 			expected: server.ServeOptions{
-				AutodiscoveryPaths:    []string{"/api/all/openapi", "/wanda/api/all/openapi"},
+				AutodiscoveryPaths:    []string{"/custom/api", "/custom/wanda"},
 				EnableHealthCheck:     true,
 				HeaderName:            "X-Env-Header",
-				HealthPort:            8080,
+				HealthAPIPath:         "/custom/healthz",
+				HealthPort:            9090,
 				InsecureSkipTLSVerify: true,
 				OASPath:               []string{"/env/oas.json", "/another/path.json"},
 				Port:                  8888,
@@ -229,6 +238,7 @@ func TestConfigureCLI(t *testing.T) {
 				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				EnableHealthCheck:  false,
 				HeaderName:         "X-TRENTO-MCP-APIKEY",
+				HealthAPIPath:      "/api/healthz",
 				HealthPort:         8080,
 				OASPath:            []string{},
 				Port:               5000,
@@ -394,6 +404,7 @@ func TestServeOpts(t *testing.T) {
 		AutodiscoveryPaths:    []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 		EnableHealthCheck:     false,
 		HeaderName:            "X-TRENTO-MCP-APIKEY",
+		HealthAPIPath:         "/api/healthz",
 		HealthPort:            8080,
 		InsecureSkipTLSVerify: false,
 		Name:                  "trento-mcp-server",
@@ -467,7 +478,7 @@ func TestFlagConfigs(t *testing.T) {
 	configs := cmd.FlagConfigs()
 
 	// Verify we have the expected number of configs
-	assert.Len(t, configs, 12)
+	assert.Len(t, configs, 13)
 
 	// Test basic properties of each flag configuration
 	expectedFlags := []struct {
@@ -479,6 +490,7 @@ func TestFlagConfigs(t *testing.T) {
 		{"CONFIG", "config", "c"},
 		{"ENABLE_HEALTH_CHECK", "enable-health-check", "d"},
 		{"HEADER_NAME", "header-name", "H"},
+		{"HEALTH_API_PATH", "health-api-path", "a"},
 		{"HEALTH_PORT", "health-port", "z"},
 		{"INSECURE_SKIP_TLS_VERIFY", "insecure-skip-tls-verify", "i"},
 		{"OAS_PATH", "oas-path", "P"},

@@ -46,6 +46,7 @@ const (
 	defaultConfig                = ""
 	defaultEnableHealthCheck     = false
 	defaultHeaderName            = "X-TRENTO-MCP-APIKEY"
+	defaultHealthAPIPath         = "/api/healthz"
 	defaultHealthPort            = 8080
 	defaultInsecureSkipTLSVerify = false
 	defaultPort                  = 5000
@@ -58,6 +59,7 @@ const (
 	configKeyConfig                = "CONFIG"
 	configKeyEnableHealthCheck     = "ENABLE_HEALTH_CHECK"
 	configKeyHeaderName            = "HEADER_NAME"
+	configKeyHealthAPIPath         = "HEALTH_API_PATH"
 	configKeyHealthPort            = "HEALTH_PORT"
 	configKeyInsecureSkipTLSVerify = "INSECURE_SKIP_TLS_VERIFY"
 	configKeyOASPath               = "OAS_PATH"
@@ -125,6 +127,14 @@ func flagConfigs() []utils.FlagConfig {
 			FlagName:     "header-name",
 			Short:        "H",
 			Description:  "The header name to be used for the passing the Trento API key to the MCP server",
+		},
+		{
+			Key:          configKeyHealthAPIPath,
+			DefaultValue: defaultHealthAPIPath,
+			FlagType:     utils.FlagTypeString,
+			FlagName:     "health-api-path",
+			Short:        "a",
+			Description:  "The API path used for health checks on target servers",
 		},
 		{
 			Key:          configKeyHealthPort,
