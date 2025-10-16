@@ -6,7 +6,6 @@ package cmd
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 
 	"github.com/carlmjohnson/versioninfo"
@@ -239,8 +238,10 @@ func configureCLI(_ *cobra.Command, _ []string) error {
 
 	// Apply fallback Trento URL only if no explicit Trento URL AND no OAS paths  provided.
 	if serveOpts.TrentoURL == "" && len(serveOpts.OASPath) == 0 {
-		slog.Warn("no Trento URL or OAS paths provided, using demo instance", "trento_url", fallbackTrentoURL)
-		serveOpts.TrentoURL = fallbackTrentoURL
+		return fmt.Errorf(
+			"no Trento URL or OAS paths provided. If you don't have Trento running, consider using the Trento demo instance: %s",
+			fallbackTrentoURL,
+		)
 	}
 
 	return nil

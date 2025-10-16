@@ -22,9 +22,10 @@ import (
 //nolint:paralleltest
 func TestExecute(t *testing.T) {
 	tests := []struct {
-		name    string
-		args    []string
-		expConf server.ServeOptions
+		name        string
+		args        []string
+		expConf     server.ServeOptions
+		expectError bool
 	}{
 		{
 			name: "all arguments are captured",
@@ -57,7 +58,7 @@ func TestExecute(t *testing.T) {
 		},
 		{
 			name: "default values",
-			args: []string{},
+			args: []string{"--trento-url", "http://trento.example.com"},
 			expConf: server.ServeOptions{
 				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				EnableHealthCheck:  false,
@@ -68,12 +69,12 @@ func TestExecute(t *testing.T) {
 				Port:               5000,
 				TagFilter:          []string{},
 				Transport:          utils.TransportStreamable,
-				TrentoURL:          "https://demo.trento-project.io",
+				TrentoURL:          "http://trento.example.com",
 			},
 		},
 		{
 			name: "invalid transport",
-			args: []string{"--transport", "invalid-transport"},
+			args: []string{"--transport", "invalid-transport", "--trento-url", "http://trento.example.com"},
 			expConf: server.ServeOptions{
 				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				EnableHealthCheck:  false,
@@ -84,8 +85,13 @@ func TestExecute(t *testing.T) {
 				Port:               5000,
 				TagFilter:          []string{},
 				Transport:          "invalid-transport",
-				TrentoURL:          "https://demo.trento-project.io",
+				TrentoURL:          "http://trento.example.com",
 			},
+		},
+		{
+			name:        "no trento url and no oas path should fail",
+			args:        []string{},
+			expectError: true,
 		},
 	}
 
@@ -100,6 +106,13 @@ func TestExecute(t *testing.T) {
 			cmd.SetFlags(command)
 			command.SetArgs(tt.args)
 			err := command.Execute()
+
+			if tt.expectError {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "no Trento URL or OAS paths provided")
+
+				return
+			}
 
 			require.NoError(t, err)
 
@@ -140,6 +153,9 @@ func TestInitLogger(t *testing.T) {
 			// Set verbosity through viper, which is then read by ConfigureCLI
 			viper.Set("verbosity", tt.verbosity)
 
+			// Avoid errors
+			viper.Set(cmd.ConfigKeyTrentoURL, "http://trento.example.com")
+
 			err := cmd.ConfigureCLI(rootCmd, []string{})
 			if tt.errExpected {
 				require.Error(t, err)
@@ -158,6 +174,7 @@ func TestConfigureCLI(t *testing.T) {
 		viperSettings map[string]any
 		envVars       map[string]string
 		expected      server.ServeOptions
+		expectError   bool
 	}{
 		{
 			name: "custom configuration values",
@@ -182,9 +199,11 @@ func TestConfigureCLI(t *testing.T) {
 			},
 		},
 		{
-			name:          "default values",
-			viperSettings: map[string]any{},
-			envVars:       map[string]string{},
+			name: "default values with trento url",
+			viperSettings: map[string]any{
+				"TRENTO_URL": "http://trento.example.com",
+			},
+			envVars: map[string]string{},
 			expected: server.ServeOptions{
 				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				EnableHealthCheck:  false,
@@ -195,7 +214,7 @@ func TestConfigureCLI(t *testing.T) {
 				Port:               5000,
 				TagFilter:          []string{},
 				Transport:          utils.TransportStreamable,
-				TrentoURL:          "https://demo.trento-project.io",
+				TrentoURL:          "http://trento.example.com",
 			},
 		},
 		{
@@ -232,7 +251,8 @@ func TestConfigureCLI(t *testing.T) {
 		{
 			name: "invalid transport",
 			viperSettings: map[string]any{
-				"transport": "invalid-transport",
+				"transport":  "invalid-transport",
+				"TRENTO_URL": "http://trento.example.com",
 			},
 			expected: server.ServeOptions{
 				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
@@ -244,8 +264,13 @@ func TestConfigureCLI(t *testing.T) {
 				Port:               5000,
 				TagFilter:          []string{},
 				Transport:          "invalid-transport",
-				TrentoURL:          "https://demo.trento-project.io",
+				TrentoURL:          "http://trento.example.com",
 			},
+		},
+		{
+			name:          "no trento url and no oas path should fail",
+			viperSettings: map[string]any{},
+			expectError:   true,
 		},
 	}
 
@@ -269,6 +294,14 @@ func TestConfigureCLI(t *testing.T) {
 			}
 
 			err := cmd.ConfigureCLI(rootCmd, []string{})
+
+			if tt.expectError {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "no Trento URL or OAS paths provided")
+
+				return
+			}
+
 			require.NoError(t, err)
 
 			opts := cmd.ServeOpts()
@@ -393,6 +426,9 @@ func TestServeOpts(t *testing.T) {
 	rootCmd.RunE = func(_ *cobra.Command, _ []string) error { return nil }
 	cmd.SetFlags(rootCmd)
 
+	// Set a Trento URL to avoid validation error
+	viper.Set(cmd.ConfigKeyTrentoURL, "http://trento.example.com")
+
 	err := cmd.ConfigureCLI(rootCmd, []string{})
 	require.NoError(t, err)
 
@@ -412,7 +448,7 @@ func TestServeOpts(t *testing.T) {
 		Port:                  5000,
 		TagFilter:             []string{},
 		Transport:             utils.TransportStreamable,
-		TrentoURL:             "https://demo.trento-project.io",
+		TrentoURL:             "http://trento.example.com",
 		Version:               "devel",
 	}
 
