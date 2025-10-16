@@ -1398,6 +1398,82 @@ func TestHandleToolsRegistrationMixedScenarios(t *testing.T) {
 	}
 }
 
+func TestServerURLBehavior(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name              string
+		isRemote          bool
+		trentoURL         string
+		originalServerURL string
+	}{
+
+		{
+			name:              "remote URL with TrentoURL should leave server untouched",
+			isRemote:          true,
+			trentoURL:         "https://trento.example.com",
+			originalServerURL: "https://trento.example.com/api/v1",
+		},
+		{
+			name:              "local file with no TrentoURL should leave server untouched",
+			isRemote:          false,
+			trentoURL:         "",
+			originalServerURL: "https://trento.example.com/wanda/api/v1",
+		},
+		{
+			name:              "local file with TrentoURL should leave server untouched",
+			isRemote:          false,
+			trentoURL:         "https://trento.example.com",
+			originalServerURL: "https://trento.example.com/wanda/api/v1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			oasPath := ""
+
+			srv := server.CreateMCPServer(t.Context(), &server.ServeOptions{Name: "test", Version: "v1"})
+
+			oasContent := createOASContentWithServer(t, "testOp", "TestAPI", tt.originalServerURL)
+
+			if tt.isRemote {
+				// Create a test HTTP server
+				testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(oasContent))
+				}))
+				defer testServer.Close()
+				oasPath = testServer.URL + "/openapi.json"
+			} else {
+				// Create a local file
+				oasPath = createTempOASFile(t, oasContent)
+			}
+
+			serveOpts := &server.ServeOptions{
+				Name:      "trento-mcp-server",
+				Version:   "1.0.0",
+				OASPath:   []string{oasPath},
+				TrentoURL: tt.trentoURL,
+				TagFilter: []string{},
+			}
+
+			oasDoc, err := server.LoadOpenAPISpec(t.Context(), oasPath, serveOpts)
+			require.NoError(t, err)
+
+			_, _, err = server.HandleToolsRegistration(t.Context(), srv, serveOpts)
+			require.NoError(t, err)
+
+			// Server URL should remain untouched
+			assert.NotNil(t, oasDoc.Servers)
+			if len(oasDoc.Servers) > 0 {
+				assert.Equal(t, tt.originalServerURL, oasDoc.Servers[0].URL)
+			}
+		})
+	}
+}
+
 // Helper types and functions for autodiscovery tests
 
 type apiResponse struct {
@@ -1430,4 +1506,36 @@ func createOASContentWithOperation(t *testing.T, operationID, tag string) string
 		}
 	}
 }`, tag, operationID, tag, tag)
+}
+
+// createOASContentWithServer creates OAS content with a specific server URL.
+func createOASContentWithServer(t *testing.T, operationID, tag, serverURL string) string {
+	t.Helper()
+
+	return fmt.Sprintf(`{
+	"openapi": "3.0.0",
+	"info": {
+		"title": "%s API",
+		"version": "1.0.0"
+	},
+	"servers": [
+		{
+			"url": "%s"
+		}
+	],
+	"paths": {
+		"/test": {
+			"get": {
+				"operationId": "%s",
+				"summary": "A test endpoint for %s",
+				"tags": ["%s"],
+				"responses": {
+					"200": {
+						"description": "OK"
+					}
+				}
+			}
+		}
+	}
+}`, tag, serverURL, operationID, tag, tag)
 }
