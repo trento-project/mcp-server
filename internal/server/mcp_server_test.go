@@ -1407,7 +1407,6 @@ func TestServerURLBehavior(t *testing.T) {
 		trentoURL         string
 		originalServerURL string
 	}{
-
 		{
 			name:              "remote URL with TrentoURL should leave server untouched",
 			isRemote:          true,
@@ -1432,7 +1431,7 @@ func TestServerURLBehavior(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			oasPath := ""
+			var oasPath string
 
 			srv := server.CreateMCPServer(t.Context(), &server.ServeOptions{Name: "test", Version: "v1"})
 
@@ -1445,6 +1444,7 @@ func TestServerURLBehavior(t *testing.T) {
 					_, _ = w.Write([]byte(oasContent))
 				}))
 				defer testServer.Close()
+
 				oasPath = testServer.URL + "/openapi.json"
 			} else {
 				// Create a local file
@@ -1467,6 +1467,7 @@ func TestServerURLBehavior(t *testing.T) {
 
 			// Server URL should remain untouched
 			assert.NotNil(t, oasDoc.Servers)
+
 			if len(oasDoc.Servers) > 0 {
 				assert.Equal(t, tt.originalServerURL, oasDoc.Servers[0].URL)
 			}
