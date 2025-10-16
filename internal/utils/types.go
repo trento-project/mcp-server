@@ -148,7 +148,7 @@ func (sg *ServerGroup) Shutdown(ctx context.Context) error {
 	sg.mu.RLock()
 	defer sg.mu.RUnlock()
 
-	slog.Debug("shutting down server group", "servers.count", len(sg.servers))
+	slog.DebugContext(ctx, "shutting down server group", "servers.count", len(sg.servers))
 
 	var wg sync.WaitGroup
 
@@ -160,11 +160,11 @@ func (sg *ServerGroup) Shutdown(ctx context.Context) error {
 
 			err := s.Shutdown(ctx)
 			if err != nil {
-				slog.Debug("server shutdown failed", "server.index", idx, "error", err)
+				slog.DebugContext(ctx, "server shutdown failed", "server.index", idx, "error", err)
 
 				errChan <- err
 			} else {
-				slog.Debug("server shutdown completed", "server.index", idx)
+				slog.DebugContext(ctx, "server shutdown completed", "server.index", idx)
 			}
 		})
 	}
@@ -179,12 +179,12 @@ func (sg *ServerGroup) Shutdown(ctx context.Context) error {
 	}
 
 	if len(errs) == 0 {
-		slog.Debug("server group shutdown completed successfully")
+		slog.DebugContext(ctx, "server group shutdown completed successfully")
 
 		return nil
 	}
 
-	slog.Debug("server group shutdown completed with errors", "error.count", len(errs))
+	slog.DebugContext(ctx, "server group shutdown completed with errors", "error.count", len(errs))
 
 	return errors.Join(errs...)
 }

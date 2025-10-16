@@ -20,7 +20,7 @@ import (
 )
 
 // createLivenessChecker creates and returns a liveness health check handler.
-func createLivenessChecker(serveOpts *ServeOptions) http.Handler {
+func createLivenessChecker(ctx context.Context, serveOpts *ServeOptions) http.Handler {
 	if serveOpts == nil {
 		serveOpts = &ServeOptions{}
 	}
@@ -33,11 +33,13 @@ func createLivenessChecker(serveOpts *ServeOptions) http.Handler {
 		}),
 	)
 
+	slog.InfoContext(ctx, "creating liveness health check")
+
 	return health.NewHandler(livenessChecker)
 }
 
 // createReadinessChecker creates and returns a readiness health check handler.
-func createReadinessChecker(serveOpts *ServeOptions) http.Handler {
+func createReadinessChecker(ctx context.Context, serveOpts *ServeOptions) http.Handler {
 	// Create HTTP client with appropriate settings
 	httpClient := &http.Client{
 		Transport: &http.Transport{
@@ -60,8 +62,10 @@ func createReadinessChecker(serveOpts *ServeOptions) http.Handler {
 		},
 	}
 
+	slog.InfoContext(ctx, "creating health check for MCP server")
+
 	// Add individual health checks for each OAS path
-	checks = append(checks, createOASPathHealthChecks(serveOpts, httpClient)...)
+	checks = append(checks, createOASPathHealthChecks(ctx, serveOpts, httpClient)...)
 
 	// Build the checker options
 	options := []health.CheckerOption{}
@@ -75,14 +79,14 @@ func createReadinessChecker(serveOpts *ServeOptions) http.Handler {
 }
 
 // createOASPathHealthChecks creates individual health checks for each OAS path.
-func createOASPathHealthChecks(serveOpts *ServeOptions, httpClient *http.Client) []health.Check {
+func createOASPathHealthChecks(ctx context.Context, serveOpts *ServeOptions, httpClient *http.Client) []health.Check {
 	var checks []health.Check
 
 	// If we have explicit OAS paths, create a health check for each one
 	// assuming "<base path> + /api/healthz"
 	if len(serveOpts.OASPath) > 0 {
 		for _, oasPath := range serveOpts.OASPath {
-			check, err := createSingleOASHealthCheck(oasPath, serveOpts, httpClient)
+			check, err := createSingleOASHealthCheck(ctx, oasPath, serveOpts, httpClient)
 			if err != nil {
 				continue
 			}
@@ -95,7 +99,7 @@ func createOASPathHealthChecks(serveOpts *ServeOptions, httpClient *http.Client)
 		for _, autoPath := range serveOpts.AutodiscoveryPaths {
 			fullOASPath := strings.TrimRight(serveOpts.TrentoURL, "/") + autoPath
 
-			check, err := createSingleOASHealthCheck(fullOASPath, serveOpts, httpClient)
+			check, err := createSingleOASHealthCheck(ctx, fullOASPath, serveOpts, httpClient)
 			if err != nil {
 				continue
 			}
@@ -111,6 +115,7 @@ func createOASPathHealthChecks(serveOpts *ServeOptions, httpClient *http.Client)
 
 // createSingleOASHealthCheck creates a single health check for an OAS path.
 func createSingleOASHealthCheck(
+	ctx context.Context,
 	oasPath string,
 	serveOpts *ServeOptions,
 	httpClient *http.Client,
@@ -143,10 +148,10 @@ func createSingleOASHealthCheck(
 	baseURL := fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host)
 	healthURL := strings.TrimRight(baseURL, "/") + healthPath
 
-	slog.Debug("createSingleOASHealthCheck",
+	slog.InfoContext(ctx, "creating health check for OAS path",
 		"checkName", checkName,
-		"oasPath", oasPath,
 		"healthURL", healthURL,
+		"oasPath", oasPath,
 	)
 
 	return health.Check{
@@ -263,8 +268,8 @@ func startHealthServer(
 	errChan chan<- error,
 ) *http.Server {
 	// Create separate handlers for liveness and readiness following Kubernetes best practices
-	livenessHandler := createLivenessChecker(serveOpts)
-	readinessHandler := createReadinessChecker(serveOpts)
+	livenessHandler := createLivenessChecker(ctx, serveOpts)
+	readinessHandler := createReadinessChecker(ctx, serveOpts)
 
 	livenessEndpoint := "/livez"
 	readinessEndpoint := "/readyz"

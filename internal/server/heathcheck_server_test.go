@@ -75,9 +75,9 @@ func TestHealthCheckers(t *testing.T) {
 
 			switch tt.checkerType {
 			case "liveness":
-				handler = server.CreateLivenessChecker(tt.serveOpts)
+				handler = server.CreateLivenessChecker(t.Context(), tt.serveOpts)
 			case "readiness":
-				handler = server.CreateReadinessChecker(tt.serveOpts)
+				handler = server.CreateReadinessChecker(t.Context(), tt.serveOpts)
 			default:
 				t.Fatalf("unknown checker type: %s", tt.checkerType)
 			}
@@ -407,7 +407,7 @@ func TestCreateOASPathHealthChecks(t *testing.T) {
 			t.Parallel()
 
 			httpClient := &http.Client{Timeout: 5 * time.Second}
-			checks := server.CreateOASPathHealthChecks(tt.serveOpts, httpClient)
+			checks := server.CreateOASPathHealthChecks(t.Context(), tt.serveOpts, httpClient)
 
 			assert.Len(t, checks, tt.expectedCheckCount)
 
@@ -638,7 +638,7 @@ func TestCreateSingleOASHealthCheck(t *testing.T) {
 			t.Parallel()
 
 			httpClient := &http.Client{Timeout: 5 * time.Second}
-			check, err := server.CreateSingleOASHealthCheck(tt.oasPath, tt.serveOpts, httpClient)
+			check, err := server.CreateSingleOASHealthCheck(t.Context(), tt.oasPath, tt.serveOpts, httpClient)
 
 			if tt.expectError {
 				require.Error(t, err)
