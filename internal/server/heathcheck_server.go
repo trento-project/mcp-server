@@ -19,6 +19,20 @@ import (
 	"github.com/trento-project/mcp-server/internal/utils"
 )
 
+const (
+	// wandaProxyName is the name used when serving Wanda behind a proxy.
+	// For now, this is the default recommended name, but users might want to change it;
+	// if needed, we can always extract it into a config flag.
+	wandaProxyName = "wanda"
+
+	// checkNameTpl is the template name for the checks.
+	checkNameTpl = "%s-api"
+	// wandaCheckName is the name for the wanda check.
+	wandaCheckName = "wanda"
+	// wandaCheckName is the name for the web check.
+	webCheckName = "web"
+)
+
 // createLivenessChecker creates and returns a liveness health check handler.
 func createLivenessChecker(ctx context.Context, serveOpts *ServeOptions) http.Handler {
 	if serveOpts == nil {
@@ -121,31 +135,35 @@ func createSingleOASHealthCheck(
 	httpClient *http.Client,
 ) (health.Check, error) {
 	// Parse the OAS path once to extract information for the health check
-	parsedURL, err := url.Parse(oasPath)
+	parsedOASPath, err := url.Parse(oasPath)
 	if err != nil {
 		return health.Check{}, fmt.Errorf("failed to parse OAS path %s: %w", oasPath, err)
 	}
 
 	// Validate that the URL has a host (required for health checks)
-	if parsedURL.Host == "" {
+	if parsedOASPath.Host == "" {
 		return health.Check{}, fmt.Errorf("failed to extract host from OAS path %s", oasPath)
 	}
 
-	checkNameTpl := "%s-api"
-
-	// Determine check name based on the oasPath
-	checkName := fmt.Sprintf(checkNameTpl, "web")
-	if strings.Contains(oasPath, "wanda") {
-		checkName = fmt.Sprintf(checkNameTpl, "wanda")
+	// Determine check name based on the oasPath:
+	// if it contains "wandaProxyName" somewhere, assume it is the "wandaCheckName" check,
+	// otherwise, default to webCheckName
+	checkName := fmt.Sprintf(checkNameTpl, webCheckName)
+	if strings.Contains(oasPath, wandaProxyName) {
+		checkName = fmt.Sprintf(checkNameTpl, wandaCheckName)
 	}
 
-	// Build the health check URL
+	// Build the health check URL:
+	// if it contains "/wandaProxyName/" in the path (like foo.example.com/wanda),
+	// then pre-append the "/wandaProxyName/" to the health check URL,
+	// (for example foo.example.com/wanda/api/healthz)
 	healthPath := serveOpts.HealthAPIPath
-	if strings.Contains(parsedURL.Path, "/wanda/") {
-		healthPath = fmt.Sprintf("/wanda%s", serveOpts.HealthAPIPath)
+	if strings.Contains(parsedOASPath.Path, fmt.Sprintf("/%s/", wandaProxyName)) {
+		healthPath = fmt.Sprintf("/%s%s", wandaProxyName, serveOpts.HealthAPIPath)
 	}
 
-	baseURL := fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host)
+	// Use the OAS path scheme and host and build the health check URL
+	baseURL := fmt.Sprintf("%s://%s", parsedOASPath.Scheme, parsedOASPath.Host)
 	healthURL := strings.TrimRight(baseURL, "/") + healthPath
 
 	slog.InfoContext(ctx, "creating health check for OAS path",
