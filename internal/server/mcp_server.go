@@ -264,10 +264,11 @@ func loadOpenAPISpecFromURL(ctx context.Context, path string, serveOpts *ServeOp
 	}
 
 	defer func() {
-		closeErr := resp.Body.Close()
-		if closeErr != nil {
+		err = resp.Body.Close()
+		if err != nil {
 			slog.DebugContext(ctx, "failed to close response body",
-				"error", closeErr,
+				"error", err,
+				"path", path,
 			)
 		}
 	}()

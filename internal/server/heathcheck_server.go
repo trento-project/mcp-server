@@ -238,9 +238,12 @@ func checkAPIServiceHealth(
 
 	defer func() {
 		err = resp.Body.Close()
-		slog.WarnContext(ctx, "failed to close response body",
-			"error", err,
-		)
+		if err != nil {
+			slog.DebugContext(ctx, "failed to close response body",
+				"error", err,
+				"path", healthURL,
+			)
+		}
 	}()
 
 	// Check the response status code
