@@ -16,7 +16,7 @@ import (
 
 const (
 	// Configuration file settings.
-	configFileName = "trento-mcp-server"
+	configFileName = "mcp-server-trento"
 	configFileType = "env"
 
 	// Environment variable prefix.
