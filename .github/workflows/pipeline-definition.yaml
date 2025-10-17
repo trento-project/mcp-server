@@ -287,7 +287,8 @@ jobs:
   # Sync the project with OBS (Open Build Service).
   obs-sync:
     name: OBS sync
-    if: vars.OBS_ENABLED == 'true' && (github.event_name == 'push' && github.ref_name == 'main') || github.event_name == 'workflow_dispatch'
+    # TMP: DISABLED CONDITION FOR TESTING THE CHANGE. PLEASE REVERT BEFORE MERGE.
+    # if: vars.OBS_ENABLED == 'true' && (github.event_name == 'push' && github.ref_name == 'main') || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/obs.yaml
     needs:
       - setup
