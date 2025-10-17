@@ -27,6 +27,7 @@ Source:         %{name}-%{version}.tar.gz
 Source1:        vendor.tar.gz
 ExclusiveArch:  x86_64 ppc64le s390x
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
+BuildRequires:  make
 BuildRequires:  golang(API) = 1.25
 Provides:       %{name} = %{version}-%{release}
 
@@ -60,7 +61,7 @@ install -D -m 0755 %{binaryname} "%{buildroot}%{_bindir}/%{binaryname}"
 install -D -m 0644 packaging/suse/rpm/systemd/mcp-server-trento.service %{buildroot}%{_unitdir}/mcp-server-trento.service
 
 # Install example configuration file
-install -D -m 0600 packaging/suse/rpm/systemd/mcp-server-trento.example %{buildroot}%{_distconfdir}/trento/mcp-server-trento.example
+install -D -m 0600 packaging/suse/rpm/systemd/mcp-server-trento.example %{buildroot}%{_sysconfdir}/trento/mcp-server-trento.example
 
 # Add rc symlink
 mkdir -p %{buildroot}/usr/sbin
@@ -84,8 +85,8 @@ ln -sf /usr/sbin/service %{buildroot}/usr/sbin/rc%{binaryname}
 %{_bindir}/%{binaryname}
 %{_unitdir}/%{binaryname}.service
 %{_sbindir}/rc%{binaryname}
-%dir %{_distconfdir}/trento
-%{_distconfdir}/trento/mcp-server-trento.example
+%dir %{_sysconfdir}/trento
+%config %{_sysconfdir}/trento/mcp-server-trento.example
 
 %license LICENSE
 
