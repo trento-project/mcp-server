@@ -85,7 +85,7 @@ ln -sf /usr/sbin/service %{buildroot}/usr/sbin/rc%{binaryname}
 %{_unitdir}/%{binaryname}.service
 %{_sbindir}/rc%{binaryname}
 %dir %{_distconfdir}/trento
-%config %{_distconfdir}/trento/mcp-server-trento.example
+%{_distconfdir}/trento/mcp-server-trento.example
 
 %license LICENSE
 
