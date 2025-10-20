@@ -31,13 +31,12 @@ video::7kDVc3YUR-U[youtube,width=800,height=450]
 * Query SAP system health status conversationally
 * Retrieve cluster configuration details on demand
 * Analyze host information across your landscape
-* Execute Trento operations without leaving your development environment
 
 == Key Capabilities
 
 === AI-Native SAP Management
 
-Interact with your SAP landscape through natural language conversations with AI assistants. Ask questions, request information, and perform operations without memorizing commands or navigating multiple screens.
+Interact with your SAP landscape through natural language conversations with AI assistants. Ask questions, request information, and perform actions without memorizing commands or navigating multiple screens.
 
 === Flexible Deployment Options
 

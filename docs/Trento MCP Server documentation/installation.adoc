@@ -422,9 +422,9 @@ For a basic deployment connecting to a running Trento Server via its public URL 
 docker run -d \
   --name mcp-server-trento \
   -p 5000:5000 \
-  -e TRENTO_URL=https://trento.example.com \
+  -e TRENTO_MCP_TRENTO_URL=https://trento.example.com \
   -e TRENTO_MCP_TAG_FILTER=MCP \
-  -e VERBOSITY=info \
+  -e TRENTO_MCP_VERBOSITY=info \
   --restart unless-stopped \
   registry.opensuse.org/devel/sap/trento/factory/containers/trento/mcp-server-trento:latest
 ----
@@ -441,11 +441,11 @@ docker run -d \
   --name mcp-server-trento \
   -p 5000:5000 \
   -p 8080:8080 \
-  -e TRENTO_URL=https://trento.example.com \
+  -e TRENTO_MCP_TRENTO_URL=https://trento.example.com \
   -e TRENTO_MCP_TAG_FILTER=MCP \
-  -e ENABLE_HEALTH_CHECK=true \
-  -e HEALTH_PORT=8080 \
-  -e VERBOSITY=info \
+  -e TRENTO_MCP_ENABLE_HEALTH_CHECK=true \
+  -e TRENTO_MCP_HEALTH_PORT=8080 \
+  -e TRENTO_MCP_ERBOSITY=info \
   --restart unless-stopped \
   registry.opensuse.org/devel/sap/trento/factory/containers/trento/mcp-server-trento:latest
 ----
@@ -467,9 +467,9 @@ docker run -d \
   --name mcp-server-trento \
   --network trento-net \
   -p 5000:5000 \
-  -e OAS_PATH=http://trento-web:4000/api/all/openapi,http://trento-wanda:4000/wanda/api/all/openapi \
+  -e TRENTO_MCP_OAS_PATH=http://trento-web:4000/api/all/openapi,http://trento-wanda:4000/wanda/api/all/openapi \
   -e TRENTO_MCP_TAG_FILTER=MCP \
-  -e VERBOSITY=info \
+  -e TRENTO_MCP_VERBOSITY=info \
   --restart unless-stopped \
   registry.opensuse.org/devel/sap/trento/factory/containers/trento/mcp-server-trento:latest
 ----
