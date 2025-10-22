@@ -58,7 +58,7 @@ Works with any MCP-compatible AI assistant or development tool. Refer to the fol
 
 == Quick Start
 
-Get started with the Trento MCP Server in minutes. For detailed instructions, see the xref:docs/Trento MCP Server documentation/README.adoc[full documentation].
+Get started with the Trento MCP Server in minutes. For detailed instructions, see the link:docs/Trento MCP Server documentation/README.adoc[full documentation].
 
 === Prerequisites
 
@@ -74,15 +74,15 @@ For traditional Linux deployments:
 
 [source,bash]
 ----
-# Install the package
-zypper install mcp-server-trento
+# 1. Install the package
+sudo zypper install mcp-server-trento
 
-# Configure the service
-cp /usr/share/doc/packages/mcp-server-trento/mcp-server-trento.example /etc/trento/mcp-server-trento
-vi /etc/trento/mcp-server-trento  # Set your TRENTO_URL
+# 2. Configure the service
+sudo cp /usr/share/doc/packages/mcp-server-trento/mcp-server-trento.example /etc/trento/mcp-server-trento
+sudo vi /etc/trento/mcp-server-trento # Set your TRENTO_URL
 
-# Start the service
-systemctl enable --now mcp-server-trento
+# 3. Start the service
+sudo systemctl enable --now mcp-server-trento
 
 # The Trento MCP server will be available at
 # http://localhost:5000/mcp
@@ -104,14 +104,14 @@ docker run -d \
 
 ==== Option 3: Kubernetes Deployment
 
-If you're deploying Trento on Kubernetes:
+If you're deploying Trento on Kubernetes using Helm:
 
 [source,bash]
 ----
 helm upgrade --install trento-server oci://registry.suse.com/trento/trento-server \
   --set trento-mcp-server.enabled=true \
   --set trento-mcp-server.mcpServer.trentoURL=https://demo.trento-project.io/
-  # ... other flags
+  ... # other flags
 ----
 
 The MCP Server will be deployed alongside your Trento installation.
@@ -129,13 +129,13 @@ The AI assistant will use the Trento MCP Server to execute these requests and pr
 
 == Documentation
 
-For comprehensive documentation on installation, configuration, and integration, see the xref:docs/Trento MCP Server documentation/README.adoc[Trento MCP Server Documentation].
+For comprehensive documentation on installation, configuration, and integration, see the main documentation page.
 
 **Quick Links:**
 
-* xref:docs/Trento MCP Server documentation/installation.adoc[Installation Guide] - Deploy on Kubernetes, systemd, or containers
-* xref:docs/Trento MCP Server documentation/integration-mcp-clients.adoc[MCP Client Integration] - Connect VS Code, Claude Desktop, and other tools
-* xref:docs/Trento MCP Server documentation/configuration-options.adoc[Configuration Reference] - All configuration options and examples
+*link:docs/Trento MCP Server documentation/installation.adoc[Installation Guide] - Deploy on Kubernetes, systemd, or containers.
+*link:docs/Trento MCP Server documentation/integration-mcp-clients.adoc[MCP Client Integration] - Connect VS Code, Claude Desktop, and other tools.
+*link:docs/Trento MCP Server documentation/configuration-options.adoc[Configuration Reference] - All configuration options and examples.
 
 **External Resources:**
 
@@ -168,7 +168,7 @@ make run
 
 We welcome contributions! Report bugs, improve documentation, or submit pull requests via link:https://github.com/trento-project/mcp-server/issues[GitHub Issues].
 
-For detailed development information, see the xref:docs/Developer/README.adoc[Developer Documentation].
+For detailed development information, see the link:docs/Developer/README.adoc[Developer Documentation].
 
 == License
 

@@ -57,6 +57,12 @@ helm upgrade --install trento-server oci://registry.suse.com/trento/trento-serve
 ----
 ====
 +
+[IMPORTANT]
+====
+Replace placeholders like `TRENTO_SERVER_HOSTNAME` and `ADMIN_PASSWORD` with your actual values.
+====
+
++
 [NOTE]
 ====
 By default, the MCP Server connects to internal Kubernetes services. For advanced use cases where you need the MCP Server to connect through an external URL (e.g., when behind NGINX), you can configure it with `--set trento-mcp-server.mcpServer.trentoURL=https://TRENTO_SERVER_HOSTNAME`. Ensure the URL is accessible from within the Kubernetes cluster.
@@ -162,7 +168,7 @@ helm upgrade --install trento-server oci://registry.suse.com/trento/trento-serve
 
 ==== Complete Configuration Example
 
-Here's a complete example configuring external access and custom ingress path:
+Here is a complete example that configures external access via a custom ingress path:
 
 ====
 [source,bash]
@@ -445,7 +451,7 @@ docker run -d \
   -e TRENTO_MCP_TAG_FILTER=MCP \
   -e TRENTO_MCP_ENABLE_HEALTH_CHECK=true \
   -e TRENTO_MCP_HEALTH_PORT=8080 \
-  -e TRENTO_MCP_ERBOSITY=info \
+  -e TRENTO_MCP_VERBOSITY=info \
   --restart unless-stopped \
   registry.opensuse.org/devel/sap/trento/factory/containers/trento/mcp-server-trento:latest
 ----
@@ -581,7 +587,7 @@ When using environment variables, prefix each configuration key with `TRENTO_MCP
 - `TRENTO_URL` → `TRENTO_MCP_TRENTO_URL`
 - `ENABLE_HEALTH_CHECK` → `TRENTO_MCP_ENABLE_HEALTH_CHECK`
 
-For the complete reference including command-line flags and detailed examples, see link:configuration-options.adoc[Configuration Options].
+For the complete reference including command-line flags and detailed examples, see the link:configuration-options.adoc[Configuration Options] page.
 ====
 
 [cols="25%,15%,60%",options="header"]

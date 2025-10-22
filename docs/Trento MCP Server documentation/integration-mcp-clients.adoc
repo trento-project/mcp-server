@@ -16,7 +16,7 @@ This guide uses Visual Studio Code with GitHub Copilot as the primary example, b
 Before configuring your MCP Host, ensure you have:
 
 . *A running Trento Server installation* with the MCP Server component enabled
-** Follow the link:installation.adoc[Installation Guide] to deploy Trento Server and enable the MCP Server
+** Follow the link:installation.adoc[Installation Guide] to deploy Trento Server and enable the MCP Server.
 ** Note the MCP Server endpoint URL (e.g., `http://trento.example.com/mcp-server-trento/mcp`)
 
 . *A Trento API token (Personal Access Token)*
@@ -104,7 +104,7 @@ Replace `http://trento.example.com/mcp-server-trento/mcp` with your actual Trent
 
 * *VS Code*: Configuration is typically stored in `.vscode/settings.json` or your user settings. The client will remember your API key for the session.
 * *Claude Desktop*: Configuration is usually in `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows).
-* *Other MCP Hosts*: Refer to your client's documentation for the configuration file location and format. Solely for informational purposes, refer to link:https://github.com/github/github-mcp-server/blob/main/docs/installation-guides/README.md[these additional guides on how to use different MCP Hosts].
+* *Other MCP Hosts*: Refer to your client's documentation for the configuration file location. For examples of how other tools integrate with MCP, see the link:https://github.com/github/github-mcp-server/blob/main/docs/installation-guides/README.md[GitHub MCP Server installation guides].
 
 === General Configuration Notes
 
@@ -136,7 +136,7 @@ If you encounter issues connecting your MCP Host to the Trento MCP Server:
 *** Claude Desktop: Check application logs
 *** Other clients: Refer to your client's documentation for log locations
 ** Review the Trento MCP Server logs for connection attempts and errors
-** Refer to the link:installation.adoc#sec-mcp-troubleshooting[Installation Guide Troubleshooting section] for additional help
+** Refer to the link:installation.adoc#sec-mcp-troubleshooting[Installation Guide Troubleshooting section] for additional help.
 
 
 == Using the Trento MCP Server
@@ -159,6 +159,6 @@ To see the Trento MCP Server in action, watch link:https://www.youtube.com/watch
 
 == Additional Resources
 
-* link:installation.adoc[Trento MCP Server Installation Guide] - For deploying and configuring the MCP Server
-* link:configuration-options.adoc[Configuration Options] - For detailed MCP Server configuration reference
-* link:https://modelcontextprotocol.io[Model Context Protocol Documentation] - For general MCP information and client compatibility
+* link:installation.adoc[Trento MCP Server Installation Guide] - For deploying and configuring the MCP Server.
+* link:configuration-options.adoc[Configuration Options] - For detailed MCP Server configuration reference.
+* link:https://modelcontextprotocol.io[Model Context Protocol Documentation] - For general MCP information and client compatibility.
