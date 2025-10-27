@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 	"time"
 
@@ -110,8 +111,28 @@ func createOASPathHealthChecks(ctx context.Context, serveOpts *ServeOptions, htt
 		// If no explicit OAS paths but we have a TrentoURL, create checks for autodiscovery paths
 		// also assuming "<base path> + /api/healthz"
 	} else if serveOpts.TrentoURL != "" {
+		parsedTrentoURL, err := url.Parse(serveOpts.TrentoURL)
+		if err != nil {
+			slog.WarnContext(ctx, "invalid Trento URL; skipping checks",
+				"error", err,
+				"trentoURL", serveOpts.TrentoURL,
+			)
+
+			return checks
+		}
+
 		for _, autoPath := range serveOpts.AutodiscoveryPaths {
-			fullOASPath := strings.TrimRight(serveOpts.TrentoURL, "/") + autoPath
+			ref, err := url.Parse(autoPath)
+			if err != nil {
+				slog.DebugContext(ctx, "invalid autodiscovery path; skipping checks",
+					"error", err,
+					"path", autoPath,
+				)
+
+				continue
+			}
+
+			fullOASPath := parsedTrentoURL.ResolveReference(ref).String()
 
 			check, err := createSingleOASHealthCheck(ctx, fullOASPath, serveOpts, httpClient)
 			if err != nil {
@@ -157,12 +178,19 @@ func createSingleOASHealthCheck(
 	// (for example foo.example.com/wanda/api/healthz)
 	healthPath := serveOpts.HealthAPIPath
 	if strings.Contains(parsedOASPath.Path, fmt.Sprintf("/%s/", wandaProxyName)) {
-		healthPath = fmt.Sprintf("/%s%s", wandaProxyName, serveOpts.HealthAPIPath)
+		healthPath = path.Join("/", wandaProxyName, serveOpts.HealthAPIPath)
 	}
 
 	// Use the OAS path scheme and host and build the health check URL
-	baseURL := fmt.Sprintf("%s://%s", parsedOASPath.Scheme, parsedOASPath.Host)
-	healthURL := strings.TrimRight(baseURL, "/") + healthPath
+	// Build the health URL using url.URL to avoid issues with manual string concatenation
+	baseURL := &url.URL{Scheme: parsedOASPath.Scheme, Host: parsedOASPath.Host}
+
+	ref, err := url.Parse(healthPath)
+	if err != nil {
+		return health.Check{}, fmt.Errorf("failed to parse health path %s: %w", healthPath, err)
+	}
+
+	healthURL := baseURL.ResolveReference(ref).String()
 
 	slog.InfoContext(ctx, "creating health check for OAS path",
 		"checkName", checkName,

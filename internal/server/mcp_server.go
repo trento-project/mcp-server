@@ -133,7 +133,18 @@ func handleToolsRegistration(
 
 		// Construct full URLs
 		for _, path := range serveOpts.AutodiscoveryPaths {
-			oasDiscoveryPaths = append(oasDiscoveryPaths, trentoBaseURL+path)
+			ref, err := url.Parse(path)
+			if err != nil {
+				slog.DebugContext(ctx, "invalid autodiscovery path; skipping",
+					"error", err,
+					"path", path,
+				)
+
+				continue
+			}
+
+			fullPath := trentoBaseURL.ResolveReference(ref).String()
+			oasDiscoveryPaths = append(oasDiscoveryPaths, fullPath)
 		}
 
 		slog.InfoContext(ctx, "no OpenAPI spec paths provided, attempting autodiscovery",
@@ -162,7 +173,11 @@ func handleToolsRegistration(
 			parsedURL, err := url.Parse(path)
 
 			if err == nil && parsedURL.Scheme != "" && parsedURL.Host != "" {
-				newAPIServerURL = fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host)
+				serverURL := &url.URL{
+					Scheme: parsedURL.Scheme,
+					Host:   parsedURL.Host,
+				}
+				newAPIServerURL = serverURL.String()
 			}
 
 			// If there is already at least one server, replace the first entry.
