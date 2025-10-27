@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -91,7 +92,11 @@ func TestServe(t *testing.T) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errContains)
 			} else {
-				checkURL := fmt.Sprintf("http://localhost:%d%s", port, tt.path)
+				checkURL := (&url.URL{
+					Scheme: "http",
+					Host:   fmt.Sprintf("localhost:%d", port),
+					Path:   tt.path,
+				}).String()
 				testServerShutdown(t, cancel, func() error {
 					return server.Serve(ctx, serveOpts)
 				}, checkURL, fmt.Sprintf("TestServe with transport %s timed out", tt.transport))
@@ -227,7 +232,11 @@ func TestWaitForShutdown(t *testing.T) {
 					close(waitErrChan)
 				}()
 
-				checkURL := fmt.Sprintf("http://localhost:%d%s", port, tt.checkPath)
+				checkURL := (&url.URL{
+					Scheme: "http",
+					Host:   fmt.Sprintf("localhost:%d", port),
+					Path:   tt.checkPath,
+				}).String()
 				waitForServerReady(t, checkURL, 5*time.Second)
 
 				cancel()

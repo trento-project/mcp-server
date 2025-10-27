@@ -194,14 +194,22 @@ func checkMCPServer(ctx context.Context, serveOpts *ServeOptions) error {
 	switch serveOpts.Transport {
 	case utils.TransportSSE:
 		mcpTransport = &mcp.SSEClientTransport{
-			Endpoint: fmt.Sprintf("http://localhost:%d/sse", serveOpts.Port),
+			Endpoint: (&url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%d", serveOpts.Port),
+				Path:   "/sse",
+			}).String(),
 			HTTPClient: &http.Client{
 				Timeout: 3 * time.Second,
 			},
 		}
 	case utils.TransportStreamable:
 		mcpTransport = &mcp.StreamableClientTransport{
-			Endpoint: fmt.Sprintf("http://localhost:%d/mcp", serveOpts.Port),
+			Endpoint: (&url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%d", serveOpts.Port),
+				Path:   "/mcp",
+			}).String(),
 			HTTPClient: &http.Client{
 				Timeout: 3 * time.Second,
 			},
