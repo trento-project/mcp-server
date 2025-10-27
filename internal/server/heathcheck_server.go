@@ -120,8 +120,6 @@ func createOASPathHealthChecks(ctx context.Context, serveOpts *ServeOptions, htt
 
 			checks = append(checks, check)
 		}
-		// at this point, TrentoURL should be populated even with the fallback demo instance;
-		// if not, just return empty checks
 	}
 
 	return checks

@@ -39,7 +39,6 @@ TAG_FILTER=MCP
 TRANSPORT=streamable
 
 ## Target Trento server, useful when targeting remote Trento servers. Empty by default.
-## If both TRENTO_URL and OAS_PATH are empty, falls back to https://demo.trento-project.io for demo purposes.
 TRENTO_URL=
 
 ##  The logging verbosity level. Options: 'debug', 'info', 'warning', 'error'.

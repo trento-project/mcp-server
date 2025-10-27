@@ -14,15 +14,6 @@ The `trento-mcp-server` supports multiple configuration sources with the followi
 3. **Configuration file** - YAML file for persistent settings
 4. **Built-in defaults** - Fallback values
 
-== Demo Instance Fallback
-
-The server automatically uses the demo Trento instance (`https://demo.trento-project.io`) as a fallback when:
-
-- No `--trento-url` (or `TRENTO_MCP_TRENTO_URL`) is provided, AND
-- No `--oas-path` (or `TRENTO_MCP_OAS_PATH`) entries are specified
-
-This allows users to quickly test the server without configuration. When either a Trento URL or OAS paths are provided, the demo fallback is not used.
-
 == Configuration File
 
 You can create a `trento-mcp-server` file in the working directory or specify a custom path using the `--config` flag.
@@ -34,19 +25,14 @@ The Trento MCP Server searches for configuration files in the following order:
 
 [source,env]
 ----
-## Target Trento server to connect to for API operations and data retrieval.
-## Empty by default. If both TRENTO_URL and OAS_PATH are empty, falls back to https://demo.trento-project.io for demo purposes.
-# TRENTO_URL=<CHANGE_ME>
-
-## List of comma-separated paths to the OpenAPI specification files (local or remote URLs).
-## If not provided, the server will attempt autodiscovery using the Trento URL and autodiscovery paths.
-# OAS_PATH=
-
-## Custom paths for API autodiscovery endpoints (comma-separated), used when OAS_PATH is empty.
+## Custom paths for API autodiscovery endpoints (comma-separated), used when OAS_PATH is empty and TRENTO_URL is set.
 AUTODISCOVERY_PATHS=/api/all/openapi,/wanda/api/all/openapi
 
-## The port on which the MCP Server listens for incoming connections.
-PORT=5000
+## Enable the health check server.
+ENABLE_HEALTH_CHECK=false
+
+## The HTTP header name used to pass the Trento API key for authentication with the Trento server.
+HEADER_NAME=X-TRENTO-MCP-APIKEY
 
 ## The API path used for health checks on target servers.
 HEALTH_API_PATH=/api/healthz
@@ -54,23 +40,24 @@ HEALTH_API_PATH=/api/healthz
 ## The port on which the health check server listens for incoming connections.
 HEALTH_PORT=8080
 
-## Enable the health check server.
-ENABLE_HEALTH_CHECK=false
+## List of comma-separated paths to the OpenAPI specification files (local or remote URLs).
+## If not provided, the server will attempt autodiscovery using the Trento URL and autodiscovery paths.
+OAS_PATH=http://localhost:4000/api/all/openapi,http://localhost:4001/wanda/api/all/openapi
 
-## The transport protocol to use for MCP communication. Options: 'streamable' (default) or 'sse'.
-TRANSPORT=streamable
-
-## The HTTP header name used to pass the Trento API key for authentication with the Trento server.
-HEADER_NAME=X-TRENTO-MCP-APIKEY
+## The port on which the MCP Server listens for incoming connections.
+PORT=5000
 
 ## List of OpenAPI tags to filter which operations are exposed as MCP tools. Only operations with at least one matching tag will be available.
 TAG_FILTER=MCP
 
+## The transport protocol to use for MCP communication. Options: 'streamable' (default) or 'sse'.
+TRANSPORT=streamable
+
+## Target Trento server, useful when targeting remote Trento servers. Empty by default.
+TRENTO_URL=
+
 ##  The logging verbosity level. Options: 'debug', 'info', 'warning', 'error'.
 VERBOSITY=info
-
-## Skip TLS certificate verification when connecting to HTTPS URLs. Use only in development or trusted environments.
-INSECURE_SKIP_TLS_VERIFY=false
 ----
 
 === System-Wide Configuration
@@ -82,7 +69,6 @@ For system-wide configuration, place the config file in `/etc/trento/trento-mcp-
 sudo mkdir -p /etc/trento
 sudo tee /etc/trento/trento-mcp-server > /dev/null <<EOF
 TRENTO_URL=https://prod.trento.io
-OAS_PATH=https://prod.trento.io/openapi.json
 EOF
 ----
 
@@ -97,7 +83,7 @@ trento-mcp-server
 
 All command-line flags can also be set via environment variables. The environment variable name is constructed by adding the `TRENTO_MCP_` prefix to the configuration key (e.g., `TRENTO_MCP_PORT`).
 
-For slice values like `OAS_PATH` and `TAG_FILTER`, provide a comma-separated string.
+For slice values like `TRENTO_MCP_OAS_PATH` and `TRENTO_MCP_TAG_FILTER`, provide a comma-separated string.
 
 == Command-Line Parameters
 
@@ -117,7 +103,7 @@ The `trento-mcp-server` binary accepts several command-line flags to configure i
 |`--port, -p` |`TRENTO_MCP_PORT` |`5000` |The port on which to run the MCP server.
 |`--tag-filter, -f` |`TRENTO_MCP_TAG_FILTER` |(empty) |Only include operations with at least one of these tags. If empty, all operations are included.
 |`--transport, -t` |`TRENTO_MCP_TRANSPORT` |`streamable` |The protocol to use, choose "streamable" or "sse".
-|`--trento-url, -u` |`TRENTO_MCP_TRENTO_URL` |(empty, falls back to `https://demo.trento-project.io` if no OAS paths  provided) |URL for the target Trento server.
+|`--trento-url, -u` |`TRENTO_MCP_TRENTO_URL` |(empty) |URL for the target Trento server. Required for autodiscovery if `oas-path` is not set.
 |`--verbosity, -v` |`TRENTO_MCP_VERBOSITY` |`info` |Log level verbosity (debug, info, warning, error).
 |===
 
@@ -152,7 +138,7 @@ trento-mcp-server --port 9000 --verbosity debug --trento-url https://test.trento
 trento-mcp-server --oas-path https://api1.example.com/openapi.json --oas-path https://api2.example.com/openapi.json
 
 # With autodiscovery using custom paths
-trento-mcp-server --trento-url https://trento.example.com --autodiscovery-paths /api/v1/openapi,/wanda/v1/openapi
+trento-mcp-server --trento-url https://trento.example.com --autodiscovery-paths /api/v1/openapi,/wanda/api/v1/openapi
 
 # With health checks enabled
 trento-mcp-server --enable-health-check --health-port 8080 --port 5000

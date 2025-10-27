@@ -109,7 +109,7 @@ func TestExecute(t *testing.T) {
 
 			if tt.expectError {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), "no Trento URL or OAS paths provided")
+				assert.Contains(t, err.Error(), "either a Trento URL or at least one OAS path must be provided")
 
 				return
 			}
@@ -297,7 +297,7 @@ func TestConfigureCLI(t *testing.T) {
 
 			if tt.expectError {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), "no Trento URL or OAS paths provided")
+				assert.Contains(t, err.Error(), "either a Trento URL or at least one OAS path must be provided")
 
 				return
 			}

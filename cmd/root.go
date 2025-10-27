@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -51,7 +52,6 @@ const (
 	defaultPort                  = 5000
 	defaultTrentoURL             = ""
 	defaultVerbosity             = "info"
-	fallbackTrentoURL            = "https://demo.trento-project.io"
 
 	// Configuration keys.
 	configKeyAutodiscoveryPaths    = "AUTODISCOVERY_PATHS"
@@ -236,12 +236,9 @@ func configureCLI(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
-	// Apply fallback Trento URL only if no explicit Trento URL AND no OAS paths  provided.
+	// If no TrentoURL or no OASPaths are provided, just error
 	if serveOpts.TrentoURL == "" && len(serveOpts.OASPath) == 0 {
-		return fmt.Errorf(
-			"no Trento URL or OAS paths provided. If you don't have Trento running, consider using the Trento demo instance: %s",
-			fallbackTrentoURL,
-		)
+		return errors.New("either a Trento URL or at least one OAS path must be provided")
 	}
 
 	return nil

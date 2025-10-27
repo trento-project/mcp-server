@@ -134,9 +134,8 @@ func handleToolsRegistration(
 			return nil, nil, fmt.Errorf("failed to read API spec from %s: %w", path, err)
 		}
 
-		// Determine the server base URL for this spec:
-		// 1. If no TrentoURL is passed, rely on the oas path,
-		// if is remote (http/https), replace the server with a derived baseURL (scheme://host[:port]).
+		// If TrentoURL is empty and the spec path is remote (http/https), derive the base URL (scheme://host[:port])
+		// from the path and update the OpenAPI servers accordingly:
 		if serveOpts.TrentoURL == "" && (strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")) {
 			newAPIServerURL := ""
 
@@ -146,7 +145,7 @@ func handleToolsRegistration(
 				newAPIServerURL = fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host)
 			}
 
-			// If there are already a server, replace it.
+			// If there is already at least one server, replace the first entry.
 			if len(oasDoc.Servers) > 0 {
 				slog.DebugContext(ctx, "replacing server URL in OpenAPI spec",
 					"path", path,
@@ -155,7 +154,7 @@ func handleToolsRegistration(
 				)
 
 				oasDoc.Servers[0].URL = newAPIServerURL
-				// 2. If TrentoURL is explicitly set (non-empty), leave servers untouched.
+				// If not, just create a new "server" entry.
 			} else {
 				oasDoc.Servers = append(oasDoc.Servers, &openapi3.Server{URL: newAPIServerURL})
 				slog.DebugContext(ctx, "no server found in OpenAPI spec, adding new server",
@@ -163,7 +162,7 @@ func handleToolsRegistration(
 					"current_url", newAPIServerURL,
 				)
 			}
-			// 3. If neither applies (e.g. local file and no TrentoURL), leave servers untouched.
+			// Otherwise (TrentoURL provided or non-remote path) leave servers as-is.
 		} else {
 			if len(oasDoc.Servers) > 0 {
 				slog.DebugContext(ctx, "using original server URL in OpenAPI spec",
