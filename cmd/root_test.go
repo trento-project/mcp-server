@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -550,7 +552,10 @@ func TestGetConfigDescription(t *testing.T) {
 	description := cmd.GetConfigDescription()
 
 	// The description should contain the expected format
-	expectedPaths := "/etc/trento/trento-mcp-server or /usr/etc/trento/trento-mcp-server"
+	expectedPaths := strings.Join([]string{
+		filepath.Join("/etc/trento/", "trento-mcp-server"),
+		filepath.Join("/usr/etc/trento/", "trento-mcp-server"),
+	}, " or ")
 	expectedDescription := fmt.Sprintf("Configuration file path (default search: %s)", expectedPaths)
 
 	assert.Equal(t, expectedDescription, description)
