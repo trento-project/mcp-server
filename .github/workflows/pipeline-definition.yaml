@@ -199,7 +199,7 @@ jobs:
           cache-to: type=gha,mode=max
           outputs: type=docker,dest=${{ steps.setup.outputs.img_file }}
       # Upload the built image as an artifact.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         name: Upload artifacts
         with:
           name: ${{matrix.image}}-image
