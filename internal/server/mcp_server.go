@@ -109,7 +109,27 @@ func handleToolsRegistration(
 		}
 
 		// Construct URLs by removing trailing slash and appending the configurable API endpoints
-		trentoBaseURL := strings.TrimSuffix(serveOpts.TrentoURL, "/")
+		trentoBaseURL, err := url.Parse(serveOpts.TrentoURL)
+		if err != nil {
+			return nil, nil, fmt.Errorf(
+				"invalid Trento URL for autodiscovery: %q (parse error: %w). Expected format like http://trento.example.com",
+				serveOpts.TrentoURL, err,
+			)
+		}
+
+		if trentoBaseURL.Scheme == "" {
+			return nil, nil, fmt.Errorf(
+				"invalid Trento URL for autodiscovery: %q (missing scheme). Please include http:// or https://",
+				serveOpts.TrentoURL,
+			)
+		}
+
+		if trentoBaseURL.Host == "" {
+			return nil, nil, fmt.Errorf(
+				"invalid Trento URL for autodiscovery: %q (missing host). Expected a host like trento.example.com",
+				serveOpts.TrentoURL,
+			)
+		}
 
 		// Construct full URLs
 		for _, path := range serveOpts.AutodiscoveryPaths {

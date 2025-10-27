@@ -1120,6 +1120,27 @@ func TestHandleToolsRegistrationAutodiscovery(t *testing.T) {
 		minToolsCount      int
 	}{
 		{
+			name:               "invalid TrentoURL - parse error",
+			trentoURL:          "http://exa mple.com", // space in host triggers parse error
+			autodiscoveryPaths: []string{"/api/all/openapi"},
+			expectErr:          true,
+			errContains:        "parse error",
+		},
+		{
+			name:               "invalid TrentoURL - missing scheme",
+			trentoURL:          "trento.example.com", // no scheme
+			autodiscoveryPaths: []string{"/api/all/openapi"},
+			expectErr:          true,
+			errContains:        "missing scheme",
+		},
+		{
+			name:               "invalid TrentoURL - missing host",
+			trentoURL:          "http:///api", // scheme present, host missing
+			autodiscoveryPaths: []string{"/api/all/openapi"},
+			expectErr:          true,
+			errContains:        "missing host",
+		},
+		{
 			name:               "successful autodiscovery with both endpoints working",
 			trentoURL:          "https://trento.example.com",
 			autodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
