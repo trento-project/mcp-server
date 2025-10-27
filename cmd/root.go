@@ -34,7 +34,7 @@ var (
 	//nolint:gochecknoglobals
 	defaultOASPath = []string{}
 	//nolint:gochecknoglobals
-	defaultTagFilter = []string{}
+	defaultTagFilter = []string{"MCP"}
 	//nolint:gochecknoglobals
 	defaultTransport = string(utils.TransportStreamable)
 )
@@ -173,7 +173,7 @@ func flagConfigs() []utils.FlagConfig {
 			FlagType:     utils.FlagTypeStringSlice,
 			FlagName:     "tag-filter",
 			Short:        "f",
-			Description:  "Only include operations with at least one of these tags (default [])",
+			Description:  "Only include operations with at least one of these tags",
 		},
 		{
 			Key:          configKeyTransport,
