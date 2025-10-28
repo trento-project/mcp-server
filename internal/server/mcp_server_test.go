@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -56,7 +57,7 @@ func TestStartSSEServer(t *testing.T) {
 			srv := server.CreateMCPServer(ctx, &server.ServeOptions{Name: "test", Version: "v1"})
 			port := getAvailablePort(t)
 			listenAddr := fmt.Sprintf(":%d", port)
-			checkURL := fmt.Sprintf("http://localhost:%d%s", port, tt.checkPath)
+			checkURL := (&url.URL{Scheme: "http", Host: fmt.Sprintf("localhost:%d", port), Path: tt.checkPath}).String()
 
 			testServerShutdown(t, cancel, func() error {
 				serverErrChan := make(chan error, 1)
@@ -104,7 +105,7 @@ func TestStartStreamableHTTPServer(t *testing.T) {
 			srv := server.CreateMCPServer(ctx, &server.ServeOptions{Name: "test", Version: "v1"})
 			port := getAvailablePort(t)
 			listenAddr := fmt.Sprintf(":%d", port)
-			checkURL := fmt.Sprintf("http://localhost:%d%s", port, tt.checkPath)
+			checkURL := (&url.URL{Scheme: "http", Host: fmt.Sprintf("localhost:%d", port), Path: tt.checkPath}).String()
 
 			testServerShutdown(t, cancel, func() error {
 				serverErrChan := make(chan error, 1)
@@ -164,7 +165,7 @@ func TestStartServer(t *testing.T) {
 
 			port := getAvailablePort(t)
 			listenAddr := fmt.Sprintf(":%d", port)
-			checkURL := fmt.Sprintf("http://localhost:%d", port)
+			checkURL := (&url.URL{Scheme: "http", Host: fmt.Sprintf("localhost:%d", port)}).String()
 
 			testServerShutdown(t, cancel, func() error {
 				serverErrChan := make(chan error, 1)
@@ -650,7 +651,7 @@ func TestHandleMCPServerRun(t *testing.T) {
 					assert.Contains(t, err.Error(), tt.errContains)
 				}
 			} else {
-				checkURL := fmt.Sprintf("http://localhost:%d%s", port, tt.path)
+				checkURL := (&url.URL{Scheme: "http", Host: fmt.Sprintf("localhost:%d", port), Path: tt.path}).String()
 				testServerShutdown(t, cancel, func() error {
 					serverErrChan := make(chan error, 1)
 
@@ -683,14 +684,14 @@ func TestLoadOpenAPISpec_MultipleFiles(t *testing.T) {
 	assert.Contains(t, tools, "getTest2")
 }
 
-func waitForServerReady(t *testing.T, url string, timeout time.Duration) {
+func waitForServerReady(t *testing.T, urlStr string, timeout time.Duration) {
 	t.Helper()
 
 	client := http.Client{}
 
 	deadline := time.Now().Add(timeout)
 
-	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, urlStr, nil)
 	require.NoError(t, err)
 
 	for time.Now().Before(deadline) {
@@ -709,7 +710,7 @@ func waitForServerReady(t *testing.T, url string, timeout time.Duration) {
 		time.Sleep(200 * time.Millisecond)
 	}
 
-	t.Fatalf("server at %s not ready after %v", url, timeout)
+	t.Fatalf("server at %s not ready after %v", urlStr, timeout)
 }
 
 // Helper functions for test setup and cleanup
@@ -1119,6 +1120,27 @@ func TestHandleToolsRegistrationAutodiscovery(t *testing.T) {
 		notExpectedTools   []string
 		minToolsCount      int
 	}{
+		{
+			name:               "invalid TrentoURL - parse error",
+			trentoURL:          "http://exa mple.com", // space in host triggers parse error
+			autodiscoveryPaths: []string{"/api/all/openapi"},
+			expectErr:          true,
+			errContains:        "parse error",
+		},
+		{
+			name:               "invalid TrentoURL - missing scheme",
+			trentoURL:          "trento.example.com", // no scheme
+			autodiscoveryPaths: []string{"/api/all/openapi"},
+			expectErr:          true,
+			errContains:        "missing scheme",
+		},
+		{
+			name:               "invalid TrentoURL - missing host",
+			trentoURL:          "http:///api", // scheme present, host missing
+			autodiscoveryPaths: []string{"/api/all/openapi"},
+			expectErr:          true,
+			errContains:        "missing host",
+		},
 		{
 			name:               "successful autodiscovery with both endpoints working",
 			trentoURL:          "https://trento.example.com",
