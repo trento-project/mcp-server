@@ -6,10 +6,13 @@ package server
 
 var (
 	BearerTokenEnv             = bearerTokenEnv
-	CheckAPIServerConnectivity = checkAPIServerConnectivity
+	CheckAPIServiceHealth      = checkAPIServiceHealth
+	CheckMCPServer             = checkMCPServer
 	CreateLivenessChecker      = createLivenessChecker
 	CreateMCPServer            = createMCPServer
+	CreateOASPathHealthChecks  = createOASPathHealthChecks
 	CreateReadinessChecker     = createReadinessChecker
+	CreateSingleOASHealthCheck = createSingleOASHealthCheck
 	HandleMCPServerRun         = handleMCPServerRun
 	HandleToolsRegistration    = handleToolsRegistration
 	LoadOpenAPISpec            = loadOpenAPISpec

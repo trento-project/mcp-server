@@ -1,0 +1,45 @@
+# Copyright 2025 SUSE LLC
+# SPDX-License-Identifier: Apache-2.0
+
+# Trento MCP Server Configuration File
+#
+# This file contains the configuration settings for the Trento MCP Server.
+# The server acts as a bridge between MCP clients and the Trento API, exposing
+# selected API operations as MCP tools based on the configured filters.
+#
+# Configuration can be provided via this file, environment variables, or command-line flags.
+# Command-line flags take precedence over environment variables, which take precedence over this file.
+
+## Custom paths for API autodiscovery endpoints (comma-separated), used when OAS_PATH is empty and TRENTO_URL is set.
+AUTODISCOVERY_PATHS=/api/all/openapi,/wanda/api/all/openapi
+
+## Enable the health check server.
+ENABLE_HEALTH_CHECK=false
+
+## The HTTP header name used to pass the Trento API key for authentication with the Trento server.
+HEADER_NAME=X-TRENTO-MCP-APIKEY
+
+## The API path used for health checks on target servers.
+HEALTH_API_PATH=/api/healthz
+
+## The port on which the health check server listens for incoming connections.
+HEALTH_PORT=8080
+
+## List of comma-separated paths to the OpenAPI specification files (local or remote URLs).
+## If not provided, the server will attempt autodiscovery using the Trento URL and autodiscovery paths.
+OAS_PATH=http://localhost:4000/api/all/openapi,http://localhost:4001/wanda/api/all/openapi
+
+## The port on which the MCP Server listens for incoming connections.
+PORT=5000
+
+## List of OpenAPI tags to filter which operations are exposed as MCP tools. Only operations with at least one matching tag will be available.
+TAG_FILTER=MCP
+
+## The transport protocol to use for MCP communication. Options: 'streamable' (default) or 'sse'.
+TRANSPORT=streamable
+
+## Target Trento server, useful when targeting remote Trento servers. Empty by default.
+TRENTO_URL=
+
+##  The logging verbosity level. Options: 'debug', 'info', 'warning', 'error'.
+VERBOSITY=info

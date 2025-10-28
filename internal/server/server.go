@@ -18,9 +18,11 @@ import (
 
 // ServeOptions encapsulates the available command-line options.
 type ServeOptions struct {
-	HeaderName            string              `mapstructure:"HEADER_NAME"`
-	HealthPort            int                 `mapstructure:"HEALTH_PORT"`
+	AutodiscoveryPaths    []string            `mapstructure:"AUTODISCOVERY_PATHS"`
 	EnableHealthCheck     bool                `mapstructure:"ENABLE_HEALTH_CHECK"`
+	HeaderName            string              `mapstructure:"HEADER_NAME"`
+	HealthAPIPath         string              `mapstructure:"HEALTH_API_PATH"`
+	HealthPort            int                 `mapstructure:"HEALTH_PORT"`
 	InsecureSkipTLSVerify bool                `mapstructure:"INSECURE_SKIP_TLS_VERIFY"`
 	Name                  string              `mapstructure:"-"`
 	OASPath               []string            `mapstructure:"OAS_PATH"`
@@ -33,14 +35,14 @@ type ServeOptions struct {
 
 // Serve is the root command that is run when no other sub-commands are present.
 func Serve(ctx context.Context, serveOpts *ServeOptions) error {
-	slog.DebugContext(ctx, "starting Serve() command",
+	slog.InfoContext(ctx, "starting the MCP server",
 		"server.options", fmt.Sprintf("%+v", *serveOpts),
 	)
 
 	// Create the MCP server.
 	srv := createMCPServer(ctx, serveOpts)
 
-	slog.DebugContext(ctx, "the MCP server has been created",
+	slog.InfoContext(ctx, "the MCP server has been created",
 		"mcp.name", serveOpts.Name,
 		"mcp.version", serveOpts.Version,
 	)

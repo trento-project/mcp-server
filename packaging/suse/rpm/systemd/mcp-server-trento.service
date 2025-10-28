@@ -8,7 +8,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/bin/trento-mcp-server
+ExecStart=/usr/bin/mcp-server-trento
 Restart=on-failure
 RestartSec=5
 

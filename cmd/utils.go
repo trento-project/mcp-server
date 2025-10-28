@@ -16,7 +16,7 @@ import (
 
 const (
 	// Configuration file settings.
-	configFileName = "trento-mcp-server"
+	configFileName = "mcp-server-trento"
 	configFileType = "env"
 
 	// Environment variable prefix.
@@ -187,7 +187,7 @@ func getConfigDescription() string {
 		}
 	}
 
-	return fmt.Sprintf("config file path (default search: %s)", strings.Join(paths, " or "))
+	return fmt.Sprintf("Configuration file path (default search: %s)", strings.Join(paths, " or "))
 }
 
 // normalizeStringSlice handles the case where Viper reads a comma-separated string

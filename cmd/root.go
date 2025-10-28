@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -27,43 +28,45 @@ var (
 
 	// Default values.
 	//nolint:gochecknoglobals
-	defaultTagFilter = []string{}
-	//nolint:gochecknoglobals
-	defaultTransport = string(utils.TransportStreamable)
+	defaultAutodiscoveryPaths = []string{"/api/all/openapi", "/wanda/api/all/openapi"}
 	//nolint:gochecknoglobals
 	defaultConfigPaths = []string{"/etc/trento/", "/usr/etc/trento/"}
 	//nolint:gochecknoglobals
-	defaultOASPath = []string{
-		"https://www.trento-project.io/web/swaggerui/openapi.json",
-		"https://www.trento-project.io/wanda/swaggerui/openapi.json",
-	}
+	defaultOASPath = []string{}
+	//nolint:gochecknoglobals
+	defaultTagFilter = []string{"MCP"}
+	//nolint:gochecknoglobals
+	defaultTransport = string(utils.TransportStreamable)
 )
 
 const (
-	name = "trento-mcp-server"
+	name = "mcp-server-trento"
 
 	// Default values.
-	defaultVerbosity             = "info"
-	defaultPort                  = 5000
-	defaultHealthPort            = 8080
-	defaultHeaderName            = "X-TRENTO-MCP-APIKEY"
-	defaultTrentoURL             = "https://demo.trento-project.io"
 	defaultConfig                = ""
-	defaultInsecureSkipTLSVerify = false
 	defaultEnableHealthCheck     = false
+	defaultHeaderName            = "X-TRENTO-MCP-APIKEY"
+	defaultHealthAPIPath         = "/api/healthz"
+	defaultHealthPort            = 8080
+	defaultInsecureSkipTLSVerify = false
+	defaultPort                  = 5000
+	defaultTrentoURL             = ""
+	defaultVerbosity             = "info"
 
 	// Configuration keys.
-	configKeyPort                  = "PORT"
+	configKeyAutodiscoveryPaths    = "AUTODISCOVERY_PATHS"
+	configKeyConfig                = "CONFIG"
+	configKeyEnableHealthCheck     = "ENABLE_HEALTH_CHECK"
+	configKeyHeaderName            = "HEADER_NAME"
+	configKeyHealthAPIPath         = "HEALTH_API_PATH"
 	configKeyHealthPort            = "HEALTH_PORT"
+	configKeyInsecureSkipTLSVerify = "INSECURE_SKIP_TLS_VERIFY"
 	configKeyOASPath               = "OAS_PATH"
+	configKeyPort                  = "PORT"
+	configKeyTagFilter             = "TAG_FILTER"
 	configKeyTransport             = "TRANSPORT"
 	configKeyTrentoURL             = "TRENTO_URL"
-	configKeyHeaderName            = "HEADER_NAME"
-	configKeyTagFilter             = "TAG_FILTER"
 	configKeyVerbosity             = "VERBOSITY"
-	configKeyConfig                = "CONFIG"
-	configKeyInsecureSkipTLSVerify = "INSECURE_SKIP_TLS_VERIFY"
-	configKeyEnableHealthCheck     = "ENABLE_HEALTH_CHECK"
 )
 
 // init creates a new command, append the runtime version and set flags.
@@ -92,12 +95,45 @@ func newRootCmd() *cobra.Command {
 func flagConfigs() []utils.FlagConfig {
 	return []utils.FlagConfig{
 		{
-			Key:          configKeyPort,
-			DefaultValue: defaultPort,
-			FlagType:     utils.FlagTypeInt,
-			FlagName:     "port",
-			Short:        "p",
-			Description:  "The port on which to run the MCP server",
+			Key:          configKeyAutodiscoveryPaths,
+			DefaultValue: defaultAutodiscoveryPaths,
+			FlagType:     utils.FlagTypeStringSlice,
+			FlagName:     "autodiscovery-paths",
+			Short:        "A",
+			Description:  "Custom paths for API autodiscovery",
+		},
+		{
+			Key:          configKeyConfig,
+			DefaultValue: defaultConfig,
+			FlagType:     utils.FlagTypeString,
+			FlagName:     "config",
+			IsPersistent: true,
+			Short:        "c",
+			Description:  getConfigDescription(),
+		},
+		{
+			Key:          configKeyEnableHealthCheck,
+			DefaultValue: defaultEnableHealthCheck,
+			FlagType:     utils.FlagTypeBool,
+			FlagName:     "enable-health-check",
+			Short:        "d",
+			Description:  "Enable the health check server (default false)",
+		},
+		{
+			Key:          configKeyHeaderName,
+			DefaultValue: defaultHeaderName,
+			FlagType:     utils.FlagTypeString,
+			FlagName:     "header-name",
+			Short:        "H",
+			Description:  "The header name to be used for the passing the Trento API key to the MCP server",
+		},
+		{
+			Key:          configKeyHealthAPIPath,
+			DefaultValue: defaultHealthAPIPath,
+			FlagType:     utils.FlagTypeString,
+			FlagName:     "health-api-path",
+			Short:        "a",
+			Description:  "The API path used for health checks on target servers",
 		},
 		{
 			Key:          configKeyHealthPort,
@@ -108,12 +144,12 @@ func flagConfigs() []utils.FlagConfig {
 			Description:  "The port on which to run the health check server",
 		},
 		{
-			Key:          configKeyEnableHealthCheck,
-			DefaultValue: defaultEnableHealthCheck,
+			Key:          configKeyInsecureSkipTLSVerify,
+			DefaultValue: defaultInsecureSkipTLSVerify,
 			FlagType:     utils.FlagTypeBool,
-			FlagName:     "enable-health-check",
-			Short:        "d",
-			Description:  "Enable the health check server",
+			FlagName:     "insecure-skip-tls-verify",
+			Short:        "i",
+			Description:  "Skip TLS certificate verification when fetching OpenAPI spec from HTTPS URLs (default false)",
 		},
 		{
 			Key:          configKeyOASPath,
@@ -121,7 +157,23 @@ func flagConfigs() []utils.FlagConfig {
 			FlagType:     utils.FlagTypeStringSlice,
 			FlagName:     "oas-path",
 			Short:        "P",
-			Description:  "Path to the OpenAPI spec file(s)",
+			Description:  "Path to the OpenAPI spec file(s) (default [])",
+		},
+		{
+			Key:          configKeyPort,
+			DefaultValue: defaultPort,
+			FlagType:     utils.FlagTypeInt,
+			FlagName:     "port",
+			Short:        "p",
+			Description:  "The port on which to run the MCP server",
+		},
+		{
+			Key:          configKeyTagFilter,
+			DefaultValue: defaultTagFilter,
+			FlagType:     utils.FlagTypeStringSlice,
+			FlagName:     "tag-filter",
+			Short:        "f",
+			Description:  "Only include operations with at least one of these tags",
 		},
 		{
 			Key:          configKeyTransport,
@@ -137,32 +189,7 @@ func flagConfigs() []utils.FlagConfig {
 			FlagType:     utils.FlagTypeString,
 			FlagName:     "trento-url",
 			Short:        "u",
-			Description:  "URL for the target Trento server",
-		},
-		{
-			Key:          configKeyHeaderName,
-			DefaultValue: defaultHeaderName,
-			FlagType:     utils.FlagTypeString,
-			FlagName:     "header-name",
-			Short:        "H",
-			Description:  "The header name to be used for the passing the Trento API key to the MCP server",
-		},
-		{
-			Key:          configKeyTagFilter,
-			DefaultValue: defaultTagFilter,
-			FlagType:     utils.FlagTypeStringSlice,
-			FlagName:     "tag-filter",
-			Short:        "f",
-			Description:  "Only include operations with at least one of these tags",
-		},
-		{
-			Key:          configKeyInsecureSkipTLSVerify,
-			DefaultValue: defaultInsecureSkipTLSVerify,
-			FlagType:     utils.FlagTypeBool,
-			FlagName:     "insecure-skip-tls-verify",
-			IsPersistent: false,
-			Short:        "i",
-			Description:  "Skip TLS certificate verification when fetching OpenAPI spec from HTTPS URLs",
+			Description:  "URL for the target Trento server (default \"\")",
 		},
 		{
 			Key:          configKeyVerbosity,
@@ -171,16 +198,7 @@ func flagConfigs() []utils.FlagConfig {
 			FlagName:     "verbosity",
 			IsPersistent: true,
 			Short:        "v",
-			Description:  "log level verbosity (debug, info, warning, error)",
-		},
-		{
-			Key:          configKeyConfig,
-			DefaultValue: defaultConfig,
-			FlagType:     utils.FlagTypeString,
-			FlagName:     "config",
-			IsPersistent: true,
-			Short:        "c",
-			Description:  getConfigDescription(),
+			Description:  "Log level verbosity (debug, info, warning, error)",
 		},
 	}
 }
@@ -210,11 +228,17 @@ func configureCLI(_ *cobra.Command, _ []string) error {
 	// Normalize string slice flags/env vars
 	normalizeStringSlice(configKeyOASPath)
 	normalizeStringSlice(configKeyTagFilter)
+	normalizeStringSlice(configKeyAutodiscoveryPaths)
 
 	// Set serveOpts from Viper after flags are parsed
 	err = viper.Unmarshal(&serveOpts)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+
+	// If no TrentoURL or no OASPaths are provided, just error
+	if serveOpts.TrentoURL == "" && len(serveOpts.OASPath) == 0 {
+		return errors.New("either a Trento URL or at least one OAS path must be provided")
 	}
 
 	return nil

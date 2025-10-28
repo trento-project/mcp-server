@@ -6,13 +6,14 @@ package cmd
 
 // Exports for testing.
 var (
+	ConfigKeyConfig      = configKeyConfig
+	ConfigKeyTrentoURL   = configKeyTrentoURL
 	ConfigureCLI         = configureCLI
-	InitLogger           = initLogger
-	ReadConfigFile       = readConfigFile
-	NewRootCmd           = newRootCmd
-	SetFlags             = setFlags
-	GetConfigDescription = getConfigDescription
 	CreateAndBindFlags   = createAndBindFlags
 	FlagConfigs          = flagConfigs
-	ConfigKeyConfig      = configKeyConfig
+	GetConfigDescription = getConfigDescription
+	InitLogger           = initLogger
+	NewRootCmd           = newRootCmd
+	ReadConfigFile       = readConfigFile
+	SetFlags             = setFlags
 )

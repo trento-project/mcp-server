@@ -534,7 +534,7 @@ func TestHandleToolsRegistrationWithURL(t *testing.T) {
 			defer testServer.Close()
 
 			serveOpts := &server.ServeOptions{
-				Name:                  "trento-mcp-server",
+				Name:                  "mcp-server-trento",
 				Version:               "1.0.0",
 				OASPath:               []string{testServer.URL + "/openapi.json"},
 				TrentoURL:             tt.trentoURL,
@@ -961,7 +961,7 @@ func TestLoadOpenAPISpec(t *testing.T) {
 			t.Parallel()
 
 			serveOpts := &server.ServeOptions{
-				Name:                  "trento-mcp-server",
+				Name:                  "mcp-server-trento",
 				Version:               "1.0.0",
 				OASPath:               []string{tt.oasPath},
 				InsecureSkipTLSVerify: false,
@@ -1069,7 +1069,7 @@ func TestLoadOpenAPISpecFromURL(t *testing.T) {
 			testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				// Verify User-Agent header is set
 				userAgent := r.Header.Get("User-Agent")
-				assert.Contains(t, userAgent, "trento-mcp-server")
+				assert.Contains(t, userAgent, "mcp-server-trento")
 
 				w.WriteHeader(tt.statusCode)
 				_, _ = w.Write([]byte(tt.oasContent))
@@ -1077,7 +1077,7 @@ func TestLoadOpenAPISpecFromURL(t *testing.T) {
 			defer testServer.Close()
 
 			serveOpts := &server.ServeOptions{
-				Name:                  "trento-mcp-server",
+				Name:                  "mcp-server-trento",
 				Version:               "1.0.0",
 				OASPath:               []string{""},
 				InsecureSkipTLSVerify: tt.InsecureSkipTLSVerify,
@@ -1103,4 +1103,440 @@ func TestLoadOpenAPISpecFromURL(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHandleToolsRegistrationAutodiscovery(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name               string
+		trentoURL          string
+		autodiscoveryPaths []string
+		apiEndpointResp    map[string]apiResponse
+		expectErr          bool
+		errContains        string
+		expectedTools      []string
+		notExpectedTools   []string
+		minToolsCount      int
+	}{
+		{
+			name:               "successful autodiscovery with both endpoints working",
+			trentoURL:          "https://trento.example.com",
+			autodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
+			apiEndpointResp: map[string]apiResponse{
+				"/api/all/openapi": {
+					statusCode: http.StatusOK,
+					content:    createOASContentWithOperation(t, "getTrentoAPI", "TrentoAPI"),
+				},
+				"/wanda/api/all/openapi": {
+					statusCode: http.StatusOK,
+					content:    createOASContentWithOperation(t, "getWandaAPI", "WandaAPI"),
+				},
+			},
+			expectErr:     false,
+			expectedTools: []string{"getTrentoAPI", "getWandaAPI", "info"},
+			minToolsCount: 3, // 2 operations + info from each spec
+		},
+		{
+			name:      "autodiscovery fails if any endpoint fails (Trento API works, Wanda API fails)",
+			trentoURL: "https://trento.example.com/",
+			apiEndpointResp: map[string]apiResponse{
+				"/api/all/openapi": {
+					statusCode: http.StatusOK,
+					content:    createOASContentWithOperation(t, "getTrentoAPI", "TrentoAPI"),
+				},
+				"/wanda/api/all/openapi": {
+					statusCode: http.StatusNotFound,
+					content:    "Not Found",
+				},
+			},
+			expectErr:   true,
+			errContains: "failed to read API spec from",
+		},
+		{
+			name:      "autodiscovery fails if any endpoint fails (Wanda API works, Trento API fails)",
+			trentoURL: "https://trento.example.com",
+			apiEndpointResp: map[string]apiResponse{
+				"/api/all/openapi": {
+					statusCode: http.StatusInternalServerError,
+					content:    "Server Error",
+				},
+				"/wanda/api/all/openapi": {
+					statusCode: http.StatusOK,
+					content:    createOASContentWithOperation(t, "getWandaAPI", "WandaAPI"),
+				},
+			},
+			expectErr:   true,
+			errContains: "failed to read API spec from",
+		},
+		{
+			name:      "autodiscovery fails when both endpoints fail",
+			trentoURL: "https://trento.example.com",
+			apiEndpointResp: map[string]apiResponse{
+				"/api/all/openapi": {
+					statusCode: http.StatusNotFound,
+					content:    "Not Found",
+				},
+				"/wanda/api/all/openapi": {
+					statusCode: http.StatusInternalServerError,
+					content:    "Server Error",
+				},
+			},
+			expectErr:   true,
+			errContains: "failed to read API spec from",
+		},
+		{
+			name:      "autodiscovery fails with invalid JSON from endpoint",
+			trentoURL: "https://trento.example.com",
+			apiEndpointResp: map[string]apiResponse{
+				"/api/all/openapi": {
+					statusCode: http.StatusOK,
+					content:    `{ "invalid": "json"`,
+				},
+				"/wanda/api/all/openapi": {
+					statusCode: http.StatusOK,
+					content:    `{ "another": "invalid json"`,
+				},
+			},
+			expectErr:   true,
+			errContains: "failed to parse OpenAPI spec",
+		},
+		{
+			name:        "fails when no Trento URL provided for autodiscovery",
+			trentoURL:   "",
+			expectErr:   true,
+			errContains: "no OAS paths provided and no Trento URL configured for autodiscovery",
+		},
+		{
+			name:               "fails when no autodiscovery paths configured",
+			trentoURL:          "https://trento.example.com",
+			autodiscoveryPaths: []string{},
+			expectErr:          true,
+			errContains:        "no OAS paths provided and no autodiscovery paths configured",
+		},
+		{
+			name:               "handles trailing slash in Trento URL correctly",
+			trentoURL:          "https://trento.example.com/////",
+			autodiscoveryPaths: []string{"/api/all/openapi"},
+			apiEndpointResp: map[string]apiResponse{
+				"/api/all/openapi": {
+					statusCode: http.StatusOK,
+					content:    createOASContentWithOperation(t, "getTrentoAPI", "TrentoAPI"),
+				},
+			},
+			expectErr:     false,
+			expectedTools: []string{"getTrentoAPI", "info"},
+			minToolsCount: 2,
+		},
+		{
+			name:               "successful autodiscovery with custom paths",
+			trentoURL:          "https://trento.example.com",
+			autodiscoveryPaths: []string{"/api/v1/openapi", "/custom/api/openapi"},
+			apiEndpointResp: map[string]apiResponse{
+				"/api/v1/openapi": {
+					statusCode: http.StatusOK,
+					content:    createOASContentWithOperation(t, "getCustomAPI", "CustomAPI"),
+				},
+				"/custom/api/openapi": {
+					statusCode: http.StatusOK,
+					content:    createOASContentWithOperation(t, "getSpecialAPI", "SpecialAPI"),
+				},
+			},
+			expectErr:     false,
+			expectedTools: []string{"getCustomAPI", "getSpecialAPI", "info"},
+			minToolsCount: 3,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			srv := server.CreateMCPServer(t.Context(), &server.ServeOptions{Name: "test", Version: "v1"})
+
+			// Create a test server that handles multiple endpoints
+			testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if resp, exists := tt.apiEndpointResp[r.URL.Path]; exists {
+					w.WriteHeader(resp.statusCode)
+					_, _ = w.Write([]byte(resp.content))
+
+					return
+				}
+				// Default to 404 for unknown paths
+				w.WriteHeader(http.StatusNotFound)
+				_, _ = w.Write([]byte("Not Found"))
+			}))
+			defer testServer.Close()
+
+			// Replace the trentoURL with our test server URL for the test
+			testTrentoURL := tt.trentoURL
+			if tt.trentoURL != "" && len(tt.apiEndpointResp) > 0 {
+				testTrentoURL = testServer.URL
+			}
+
+			// Set default autodiscovery paths if not specified in test
+			autodiscoveryPaths := tt.autodiscoveryPaths
+			if len(autodiscoveryPaths) == 0 && tt.trentoURL != "" && !strings.Contains(tt.errContains, "no autodiscovery paths") {
+				autodiscoveryPaths = []string{"/api/all/openapi", "/wanda/api/all/openapi"}
+			}
+
+			serveOpts := &server.ServeOptions{
+				Name:               "mcp-server-trento",
+				Version:            "1.0.0",
+				OASPath:            []string{}, // Empty to trigger autodiscovery
+				TrentoURL:          testTrentoURL,
+				TagFilter:          []string{}, // No filtering for these tests
+				AutodiscoveryPaths: autodiscoveryPaths,
+			}
+
+			// Execute the function under test
+			_, tools, err := server.HandleToolsRegistration(t.Context(), srv, serveOpts)
+
+			// Assertions
+			if tt.expectErr {
+				require.Error(t, err)
+
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, tools)
+
+				if tt.minToolsCount > 0 {
+					assert.GreaterOrEqual(t, len(tools), tt.minToolsCount,
+						"Expected at least %d tools, got %d: %v", tt.minToolsCount, len(tools), tools)
+				}
+
+				for _, expectedTool := range tt.expectedTools {
+					assert.Contains(t, tools, expectedTool,
+						"Expected tool '%s' not found in tools: %v", expectedTool, tools)
+				}
+
+				for _, notExpectedTool := range tt.notExpectedTools {
+					assert.NotContains(t, tools, notExpectedTool,
+						"Unexpected tool '%s' found in tools: %v", notExpectedTool, tools)
+				}
+			}
+		})
+	}
+}
+
+func TestHandleToolsRegistrationMixedScenarios(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		oasPath       []string
+		trentoURL     string
+		expectErr     bool
+		errContains   string
+		expectedTools []string
+		description   string
+	}{
+		{
+			name:          "explicit paths provided should not trigger autodiscovery",
+			oasPath:       []string{},                   // Will be set to temp file path
+			trentoURL:     "https://trento.example.com", // Should be ignored
+			expectErr:     false,
+			expectedTools: []string{"getExplicitTest", "info"},
+			description:   "When explicit OAS paths are provided, autodiscovery should not be attempted",
+		},
+		{
+			name:        "explicit path failure should fail immediately (not try autodiscovery)",
+			oasPath:     []string{"/nonexistent/file.json"},
+			trentoURL:   "https://trento.example.com",
+			expectErr:   true,
+			errContains: "failed to read API spec from /nonexistent/file.json",
+			description: "Explicit path failures should not fall back to autodiscovery",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			srv := server.CreateMCPServer(t.Context(), &server.ServeOptions{Name: "test", Version: "v1"})
+
+			// For the first test, create a temp file
+			var actualOASPath []string
+
+			if len(tt.oasPath) == 0 {
+				tmpFile := createTempOASFile(t, createOASContentWithOperation(t, "getExplicitTest", "ExplicitAPI"))
+				actualOASPath = []string{tmpFile}
+			} else {
+				actualOASPath = tt.oasPath
+			}
+
+			serveOpts := &server.ServeOptions{
+				Name:      "mcp-server-trento",
+				Version:   "1.0.0",
+				OASPath:   actualOASPath,
+				TrentoURL: tt.trentoURL,
+				TagFilter: []string{},
+			}
+
+			// Execute the function under test
+			_, tools, err := server.HandleToolsRegistration(t.Context(), srv, serveOpts)
+
+			// Assertions
+			if tt.expectErr {
+				require.Error(t, err, tt.description)
+
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+			} else {
+				require.NoError(t, err, tt.description)
+				require.NotNil(t, tools)
+
+				for _, expectedTool := range tt.expectedTools {
+					assert.Contains(t, tools, expectedTool)
+				}
+			}
+		})
+	}
+}
+
+func TestServerURLBehavior(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name              string
+		isRemote          bool
+		trentoURL         string
+		originalServerURL string
+	}{
+		{
+			name:              "remote URL with TrentoURL should leave server untouched",
+			isRemote:          true,
+			trentoURL:         "https://trento.example.com",
+			originalServerURL: "https://trento.example.com/api/v1",
+		},
+		{
+			name:              "local file with no TrentoURL should leave server untouched",
+			isRemote:          false,
+			trentoURL:         "",
+			originalServerURL: "https://trento.example.com/wanda/api/v1",
+		},
+		{
+			name:              "local file with TrentoURL should leave server untouched",
+			isRemote:          false,
+			trentoURL:         "https://trento.example.com",
+			originalServerURL: "https://trento.example.com/wanda/api/v1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var oasPath string
+
+			srv := server.CreateMCPServer(t.Context(), &server.ServeOptions{Name: "test", Version: "v1"})
+
+			oasContent := createOASContentWithServer(t, "testOp", "TestAPI", tt.originalServerURL)
+
+			if tt.isRemote {
+				// Create a test HTTP server
+				testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(oasContent))
+				}))
+				defer testServer.Close()
+
+				oasPath = testServer.URL + "/openapi.json"
+			} else {
+				// Create a local file
+				oasPath = createTempOASFile(t, oasContent)
+			}
+
+			serveOpts := &server.ServeOptions{
+				Name:      "mcp-server-trento",
+				Version:   "1.0.0",
+				OASPath:   []string{oasPath},
+				TrentoURL: tt.trentoURL,
+				TagFilter: []string{},
+			}
+
+			oasDoc, err := server.LoadOpenAPISpec(t.Context(), oasPath, serveOpts)
+			require.NoError(t, err)
+
+			_, _, err = server.HandleToolsRegistration(t.Context(), srv, serveOpts)
+			require.NoError(t, err)
+
+			// Server URL should remain untouched
+			assert.NotNil(t, oasDoc.Servers)
+
+			if len(oasDoc.Servers) > 0 {
+				assert.Equal(t, tt.originalServerURL, oasDoc.Servers[0].URL)
+			}
+		})
+	}
+}
+
+// Helper types and functions for autodiscovery tests
+
+type apiResponse struct {
+	statusCode int
+	content    string
+}
+
+// createOASContentWithOperation creates OAS content with a specific operation for testing.
+func createOASContentWithOperation(t *testing.T, operationID, tag string) string {
+	t.Helper()
+
+	return fmt.Sprintf(`{
+	"openapi": "3.0.0",
+	"info": {
+		"title": "%s API",
+		"version": "1.0.0"
+	},
+	"paths": {
+		"/test": {
+			"get": {
+				"operationId": "%s",
+				"summary": "A test endpoint for %s",
+				"tags": ["%s"],
+				"responses": {
+					"200": {
+						"description": "OK"
+					}
+				}
+			}
+		}
+	}
+}`, tag, operationID, tag, tag)
+}
+
+// createOASContentWithServer creates OAS content with a specific server URL.
+func createOASContentWithServer(t *testing.T, operationID, tag, serverURL string) string {
+	t.Helper()
+
+	return fmt.Sprintf(`{
+	"openapi": "3.0.0",
+	"info": {
+		"title": "%s API",
+		"version": "1.0.0"
+	},
+	"servers": [
+		{
+			"url": "%s"
+		}
+	],
+	"paths": {
+		"/test": {
+			"get": {
+				"operationId": "%s",
+				"summary": "A test endpoint for %s",
+				"tags": ["%s"],
+				"responses": {
+					"200": {
+						"description": "OK"
+					}
+				}
+			}
+		}
+	}
+}`, tag, serverURL, operationID, tag, tag)
 }
