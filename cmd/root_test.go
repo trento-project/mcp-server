@@ -501,7 +501,7 @@ func TestGetConfigDescription(t *testing.T) {
 	description := cmd.GetConfigDescription()
 
 	// The description should contain the expected format
-	expectedPaths := "/etc/trento/trento-mcp-server or /usr/etc/trento/trento-mcp-server"
+	expectedPaths := "/etc/trento/mcp-server-trento or /usr/etc/trento/mcp-server-trento"
 	expectedDescription := fmt.Sprintf("config file path (default search: %s)", expectedPaths)
 
 	assert.Equal(t, expectedDescription, description)
