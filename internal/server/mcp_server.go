@@ -11,6 +11,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"slices"
@@ -90,13 +91,38 @@ func handleToolsRegistration(
 	srv *mcp.Server,
 	serveOpts *ServeOptions, //nolint:revive
 ) (*mcp.Server, []string, error) {
-	var allTools []string
+	var (
+		allTools          []string
+		oasDiscoveryPaths []string
+	)
 
-	if len(serveOpts.OASPath) == 0 {
-		return nil, nil, errors.New("no OpenAPI spec path provided")
+	// If custom OAS paths are passed, use them; otherwise, try autodiscovery.
+	if len(serveOpts.OASPath) != 0 {
+		oasDiscoveryPaths = serveOpts.OASPath
+	} else {
+		if serveOpts.TrentoURL == "" {
+			return nil, nil, errors.New("no OAS paths provided and no Trento URL configured for autodiscovery")
+		}
+
+		if len(serveOpts.AutodiscoveryPaths) == 0 {
+			return nil, nil, errors.New("no OAS paths provided and no autodiscovery paths configured")
+		}
+
+		// Construct URLs by removing trailing slash and appending the configurable API endpoints
+		trentoBaseURL := strings.TrimSuffix(serveOpts.TrentoURL, "/")
+
+		// Construct full URLs
+		for _, path := range serveOpts.AutodiscoveryPaths {
+			oasDiscoveryPaths = append(oasDiscoveryPaths, trentoBaseURL+path)
+		}
+
+		slog.InfoContext(ctx, "no OpenAPI spec paths provided, attempting autodiscovery",
+			"trento_url", serveOpts.TrentoURL,
+			"discovery_paths", oasDiscoveryPaths,
+		)
 	}
 
-	for _, path := range serveOpts.OASPath {
+	for _, path := range oasDiscoveryPaths {
 		// Load OpenAPI spec.
 		oasDoc, err := loadOpenAPISpec(ctx, path, serveOpts)
 		if err != nil {
@@ -108,14 +134,46 @@ func handleToolsRegistration(
 			return nil, nil, fmt.Errorf("failed to read API spec from %s: %w", path, err)
 		}
 
-		// Overwrite the Trento URL in the OpenAPI
-		if len(oasDoc.Servers) > 0 {
-			oasDoc.Servers[0].URL = serveOpts.TrentoURL
+		// If TrentoURL is empty and the spec path is remote (http/https), derive the base URL (scheme://host[:port])
+		// from the path and update the OpenAPI servers accordingly:
+		if serveOpts.TrentoURL == "" && (strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")) {
+			newAPIServerURL := ""
+
+			parsedURL, err := url.Parse(path)
+
+			if err == nil && parsedURL.Scheme != "" && parsedURL.Host != "" {
+				newAPIServerURL = fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host)
+			}
+
+			// If there is already at least one server, replace the first entry.
+			if len(oasDoc.Servers) > 0 {
+				slog.DebugContext(ctx, "replacing server URL in OpenAPI spec",
+					"path", path,
+					"old_url", oasDoc.Servers[0].URL,
+					"current_url", newAPIServerURL,
+				)
+
+				oasDoc.Servers[0].URL = newAPIServerURL
+				// If not, just create a new "server" entry.
+			} else {
+				oasDoc.Servers = append(oasDoc.Servers, &openapi3.Server{URL: newAPIServerURL})
+				slog.DebugContext(ctx, "no server found in OpenAPI spec, adding new server",
+					"path", path,
+					"current_url", newAPIServerURL,
+				)
+			}
+			// Otherwise (TrentoURL provided or non-remote path) leave servers as-is.
 		} else {
-			// Or just add it
-			oasDoc.Servers = append(oasDoc.Servers, &openapi3.Server{
-				URL: serveOpts.TrentoURL,
-			})
+			if len(oasDoc.Servers) > 0 {
+				slog.DebugContext(ctx, "using original server URL in OpenAPI spec",
+					"path", path,
+					"current_url", oasDoc.Servers[0].URL,
+				)
+			} else {
+				slog.ErrorContext(ctx, "no server found in OpenAPI spec, check the API documentation",
+					"path", path,
+				)
+			}
 		}
 
 		tools := registerToolsFromSpec(srv, oasDoc, serveOpts)
@@ -226,10 +284,11 @@ func loadOpenAPISpecFromURL(ctx context.Context, path string, serveOpts *ServeOp
 	}
 
 	defer func() {
-		closeErr := resp.Body.Close()
-		if closeErr != nil {
+		err = resp.Body.Close()
+		if err != nil {
 			slog.DebugContext(ctx, "failed to close response body",
-				"error", closeErr,
+				"error", err,
+				"path", path,
 			)
 		}
 	}()
@@ -396,18 +455,17 @@ func startSSEServer(
 func withAuthMiddleware() mcp.Middleware {
 	return func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
-			session := req.GetSession()
-			sessionID := session.ID()
+			sessionID := req.GetSession().ID()
 
 			// When a session is initialized, store its bearer token
 			if method == methodInitialize {
 				if token, ok := ctx.Value(sessionBearerTokenKey).(string); ok && token != "" {
 					sessionTokens.Store(sessionID, token)
-					slog.InfoContext(ctx, "stored bearer token for new session",
+					slog.DebugContext(ctx, "stored bearer token for new session",
 						"session.id", sessionID,
 					)
 				} else {
-					slog.WarnContext(ctx, "session initialized without bearer token",
+					slog.DebugContext(ctx, "session initialized without bearer token",
 						"session.id", sessionID,
 					)
 				}
@@ -429,14 +487,14 @@ func withAuthMiddleware() mcp.Middleware {
 				if t, ok := storedToken.(string); ok {
 					token = t
 				} else {
-					slog.WarnContext(ctx, "stored token is not a string, skipping",
+					slog.DebugContext(ctx, "stored token is not a string, skipping",
 						"session_id", sessionID,
 					)
 				}
 			}
 
 			if token == "" {
-				slog.WarnContext(ctx, "no bearer token found for tool call",
+				slog.DebugContext(ctx, "no bearer token found for tool call",
 					"session.id", sessionID,
 					"method", method,
 				)

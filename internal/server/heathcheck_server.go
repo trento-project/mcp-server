@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -18,8 +19,22 @@ import (
 	"github.com/trento-project/mcp-server/internal/utils"
 )
 
+const (
+	// wandaProxyName is the name used when serving Wanda behind a proxy.
+	// For now, this is the default recommended name, but users might want to change it;
+	// if needed, we can always extract it into a config flag.
+	wandaProxyName = "wanda"
+
+	// checkNameTpl is the template name for the checks.
+	checkNameTpl = "%s-api"
+	// wandaCheckName is the name for the wanda check.
+	wandaCheckName = "wanda"
+	// wandaCheckName is the name for the web check.
+	webCheckName = "web"
+)
+
 // createLivenessChecker creates and returns a liveness health check handler.
-func createLivenessChecker(serveOpts *ServeOptions) http.Handler {
+func createLivenessChecker(ctx context.Context, serveOpts *ServeOptions) http.Handler {
 	if serveOpts == nil {
 		serveOpts = &ServeOptions{}
 	}
@@ -32,11 +47,13 @@ func createLivenessChecker(serveOpts *ServeOptions) http.Handler {
 		}),
 	)
 
+	slog.InfoContext(ctx, "creating liveness health check")
+
 	return health.NewHandler(livenessChecker)
 }
 
 // createReadinessChecker creates and returns a readiness health check handler.
-func createReadinessChecker(serveOpts *ServeOptions) http.Handler {
+func createReadinessChecker(ctx context.Context, serveOpts *ServeOptions) http.Handler {
 	// Create HTTP client with appropriate settings
 	httpClient := &http.Client{
 		Transport: &http.Transport{
@@ -48,24 +65,117 @@ func createReadinessChecker(serveOpts *ServeOptions) http.Handler {
 		Timeout: 5 * time.Second,
 	}
 
-	readinessChecker := health.NewChecker(
-		health.WithCheck(health.Check{
+	// Start with the MCP server check
+	checks := []health.Check{
+		{
 			Name: "mcp-server",
 			Check: func(ctx context.Context) error {
 				// Check connectivity to the MCP server using an MCP client.
 				return checkMCPServer(ctx, serveOpts)
 			},
-		}),
-		health.WithCheck(health.Check{
-			Name: "api-server",
-			Check: func(ctx context.Context) error {
-				// Check HTTP connectivity to the API server.
-				return checkAPIServerConnectivity(ctx, serveOpts, httpClient)
-			},
-		}),
-	)
+		},
+	}
+
+	slog.InfoContext(ctx, "creating health check for MCP server")
+
+	// Add individual health checks for each OAS path
+	checks = append(checks, createOASPathHealthChecks(ctx, serveOpts, httpClient)...)
+
+	// Build the checker options
+	options := []health.CheckerOption{}
+	for _, check := range checks {
+		options = append(options, health.WithCheck(check))
+	}
+
+	readinessChecker := health.NewChecker(options...)
 
 	return health.NewHandler(readinessChecker)
+}
+
+// createOASPathHealthChecks creates individual health checks for each OAS path.
+func createOASPathHealthChecks(ctx context.Context, serveOpts *ServeOptions, httpClient *http.Client) []health.Check {
+	var checks []health.Check
+
+	// If we have explicit OAS paths, create a health check for each one
+	// assuming "<base path> + /api/healthz"
+	if len(serveOpts.OASPath) > 0 {
+		for _, oasPath := range serveOpts.OASPath {
+			check, err := createSingleOASHealthCheck(ctx, oasPath, serveOpts, httpClient)
+			if err != nil {
+				continue
+			}
+
+			checks = append(checks, check)
+		}
+		// If no explicit OAS paths but we have a TrentoURL, create checks for autodiscovery paths
+		// also assuming "<base path> + /api/healthz"
+	} else if serveOpts.TrentoURL != "" {
+		for _, autoPath := range serveOpts.AutodiscoveryPaths {
+			fullOASPath := strings.TrimRight(serveOpts.TrentoURL, "/") + autoPath
+
+			check, err := createSingleOASHealthCheck(ctx, fullOASPath, serveOpts, httpClient)
+			if err != nil {
+				continue
+			}
+
+			checks = append(checks, check)
+		}
+	}
+
+	return checks
+}
+
+// createSingleOASHealthCheck creates a single health check for an OAS path.
+func createSingleOASHealthCheck(
+	ctx context.Context,
+	oasPath string,
+	serveOpts *ServeOptions,
+	httpClient *http.Client,
+) (health.Check, error) {
+	// Parse the OAS path once to extract information for the health check
+	parsedOASPath, err := url.Parse(oasPath)
+	if err != nil {
+		return health.Check{}, fmt.Errorf("failed to parse OAS path %s: %w", oasPath, err)
+	}
+
+	// Validate that the URL has a host (required for health checks)
+	if parsedOASPath.Host == "" {
+		return health.Check{}, fmt.Errorf("failed to extract host from OAS path %s", oasPath)
+	}
+
+	// Determine check name based on the oasPath:
+	// if it contains "wandaProxyName" somewhere, assume it is the "wandaCheckName" check,
+	// otherwise, default to webCheckName
+	checkName := fmt.Sprintf(checkNameTpl, webCheckName)
+	if strings.Contains(oasPath, wandaProxyName) {
+		checkName = fmt.Sprintf(checkNameTpl, wandaCheckName)
+	}
+
+	// Build the health check URL:
+	// if it contains "/wandaProxyName/" in the path (like foo.example.com/wanda),
+	// then pre-append the "/wandaProxyName/" to the health check URL,
+	// (for example foo.example.com/wanda/api/healthz)
+	healthPath := serveOpts.HealthAPIPath
+	if strings.Contains(parsedOASPath.Path, fmt.Sprintf("/%s/", wandaProxyName)) {
+		healthPath = fmt.Sprintf("/%s%s", wandaProxyName, serveOpts.HealthAPIPath)
+	}
+
+	// Use the OAS path scheme and host and build the health check URL
+	baseURL := fmt.Sprintf("%s://%s", parsedOASPath.Scheme, parsedOASPath.Host)
+	healthURL := strings.TrimRight(baseURL, "/") + healthPath
+
+	slog.InfoContext(ctx, "creating health check for OAS path",
+		"checkName", checkName,
+		"healthURL", healthURL,
+		"oasPath", oasPath,
+	)
+
+	return health.Check{
+		Name: checkName,
+		Check: func(ctx context.Context) error {
+			return checkAPIServiceHealth(ctx, healthURL, oasPath, serveOpts, httpClient)
+		},
+	}, nil
 }
 
 // checkMCPServer checks if the MCP server can connect using an MCP client.
@@ -124,53 +234,43 @@ func checkMCPServer(ctx context.Context, serveOpts *ServeOptions) error {
 	return nil
 }
 
-// checkAPIServerConnectivity checks if a single API server is reachable.
-func checkAPIServerConnectivity(
+// checkAPIServiceHealth checks if an API server is reachable using the provided health URL.
+func checkAPIServiceHealth(
 	ctx context.Context,
+	healthURL string,
+	oasPath string,
 	serveOpts *ServeOptions,
-	client *http.Client,
+	httpClient *http.Client,
 ) error {
-	if serveOpts.TrentoURL == "" {
-		return errors.New("the Trento server URL is empty")
-	}
-
-	// Sanitize the URL and create the health check URL
-	healthzURL := fmt.Sprintf("%s/api/healthz", strings.TrimSuffix(serveOpts.TrentoURL, "/"))
-
-	// Create a health check request with timeout
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthzURL, nil)
+	// Create the HTTP request
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
 	if err != nil {
-		return fmt.Errorf("failed to create request to the Trento server health endpoint (%s): %w",
-			healthzURL, err,
-		)
+		return fmt.Errorf("failed to create request for %s: %w", healthURL, err)
 	}
 
-	// Set the UA to track the version.
+	// Set User-Agent header
 	req.Header.Set("User-Agent", fmt.Sprintf("%s/%s", serveOpts.Name, serveOpts.Version))
 
-	// Perform the request
-	resp, err := client.Do(req)
+	// Make the request
+	resp, err := httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("the Trento server health endpoint (%s) is unreachable: %w",
-			healthzURL, err,
-		)
+		return fmt.Errorf("failed to connect to %s (derived from OAS path %s): %w", healthURL, oasPath, err)
 	}
 
 	defer func() {
-		err := resp.Body.Close()
+		err = resp.Body.Close()
 		if err != nil {
-			slog.WarnContext(ctx, "failed to close response body",
+			slog.DebugContext(ctx, "failed to close response body",
 				"error", err,
-				"trento.url", healthzURL,
+				"path", healthURL,
 			)
 		}
 	}()
 
-	// The health check must return 200 OK.
+	// Check the response status code
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf(
-			"the Trento server health endpoint (%s) returned a non-200 status code (%d) %s",
-			healthzURL, resp.StatusCode, resp.Status,
+		return fmt.Errorf("API server at %s (derived from OAS path %s) returned a non-200 status code (%d)",
+			healthURL, oasPath, resp.StatusCode,
 		)
 	}
 
@@ -184,8 +284,8 @@ func startHealthServer(
 	errChan chan<- error,
 ) *http.Server {
 	// Create separate handlers for liveness and readiness following Kubernetes best practices
-	livenessHandler := createLivenessChecker(serveOpts)
-	readinessHandler := createReadinessChecker(serveOpts)
+	livenessHandler := createLivenessChecker(ctx, serveOpts)
+	readinessHandler := createReadinessChecker(ctx, serveOpts)
 
 	livenessEndpoint := "/livez"
 	readinessEndpoint := "/readyz"
