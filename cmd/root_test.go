@@ -401,7 +401,7 @@ func TestServeOpts(t *testing.T) {
 		TagFilter:             []string{},
 		InsecureSkipTLSVerify: false,
 		EnableHealthCheck:     false,
-		Name:                  "trento-mcp-server",
+		Name:                  "mcp-server-trento",
 		Version:               "devel",
 	}
 

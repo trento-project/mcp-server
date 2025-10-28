@@ -40,7 +40,7 @@ var (
 )
 
 const (
-	name = "trento-mcp-server"
+	name = "mcp-server-trento"
 
 	// Default values.
 	defaultVerbosity             = "info"

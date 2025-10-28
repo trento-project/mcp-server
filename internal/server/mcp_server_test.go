@@ -534,7 +534,7 @@ func TestHandleToolsRegistrationWithURL(t *testing.T) {
 			defer testServer.Close()
 
 			serveOpts := &server.ServeOptions{
-				Name:                  "trento-mcp-server",
+				Name:                  "mcp-server-trento",
 				Version:               "1.0.0",
 				OASPath:               []string{testServer.URL + "/openapi.json"},
 				TrentoURL:             tt.trentoURL,
@@ -961,7 +961,7 @@ func TestLoadOpenAPISpec(t *testing.T) {
 			t.Parallel()
 
 			serveOpts := &server.ServeOptions{
-				Name:                  "trento-mcp-server",
+				Name:                  "mcp-server-trento",
 				Version:               "1.0.0",
 				OASPath:               []string{tt.oasPath},
 				InsecureSkipTLSVerify: false,
@@ -1069,7 +1069,7 @@ func TestLoadOpenAPISpecFromURL(t *testing.T) {
 			testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				// Verify User-Agent header is set
 				userAgent := r.Header.Get("User-Agent")
-				assert.Contains(t, userAgent, "trento-mcp-server")
+				assert.Contains(t, userAgent, "mcp-server-trento")
 
 				w.WriteHeader(tt.statusCode)
 				_, _ = w.Write([]byte(tt.oasContent))
@@ -1077,7 +1077,7 @@ func TestLoadOpenAPISpecFromURL(t *testing.T) {
 			defer testServer.Close()
 
 			serveOpts := &server.ServeOptions{
-				Name:                  "trento-mcp-server",
+				Name:                  "mcp-server-trento",
 				Version:               "1.0.0",
 				OASPath:               []string{""},
 				InsecureSkipTLSVerify: tt.InsecureSkipTLSVerify,

@@ -42,7 +42,7 @@ func TestMainExec(t *testing.T) {
 			name:           "should show help with --help flag",
 			args:           []string{"--help"},
 			expectErr:      false,
-			outputContains: "trento-mcp-server",
+			outputContains: "mcp-server-trento",
 		},
 		{
 			name:           "should return error for invalid flag",

@@ -38,7 +38,7 @@ ARG GOOS
 ARG VERSION
 ARG PORT
 
-COPY --from=builder /go/src/github.com/trento-project/mcp-server/bin/${GOOS}-${GOARCH}/trento-mcp-server /trento-mcp-server
+COPY --from=builder /go/src/github.com/trento-project/mcp-server/bin/${GOOS}-${GOARCH}/mcp-server-trento /mcp-server-trento
 
 LABEL org.opencontainers.image.title="Trento MCP Server"
 LABEL org.opencontainers.image.source="https://github.com/trento-project/mcp-server"
@@ -52,4 +52,4 @@ USER 1001
 
 EXPOSE ${PORT}/tcp
 
-ENTRYPOINT [ "/trento-mcp-server" ]
+ENTRYPOINT [ "/mcp-server-trento" ]
