@@ -101,7 +101,7 @@ To build the project binary:
 make build
 ----
 
-The compiled binary will be located in the `bin/` directory as `trento-mcp-server`.
+The compiled binary will be located in the `bin/` directory as `mcp-server-trento`.
 
 == Running the Project Locally
 
@@ -123,14 +123,14 @@ make run
 
 [source,console]
 ----
-./bin/trento-mcp-server --port 8080 --transport sse --verbosity info
+./bin/mcp-server-trento --port 8080 --transport sse --verbosity info
 ----
 
 For a complete list of available flags:
 
 [source,console]
 ----
-./bin/trento-mcp-server --help
+./bin/mcp-server-trento --help
 ----
 
 === Testing
@@ -191,7 +191,7 @@ Run the server with debug logging enabled:
 
 [source,console]
 ----
-./bin/trento-mcp-server --verbosity debug
+./bin/mcp-server-trento --verbosity debug
 ----
 
 Log levels:
@@ -218,13 +218,13 @@ To build the container image:
 make build-container
 ----
 
-This creates a container image named `ghcr.io/trento-project/trento-mcp-server:latest`.
+This creates a container image named `ghcr.io/trento-project/mcp-server-trento:latest`.
 
 == Running the Container
 
 [source,console]
 ----
-IMAGE=my-registry/trento-mcp-server:dev make build-container
+IMAGE=my-registry/mcp-server-trento:dev make build-container
 ----
 
 === Running the Container
@@ -240,7 +240,7 @@ To run with custom environment variables:
 
 [source,console]
 ----
-docker run -p 5000:5000 ghcr.io/trento-project/trento-mcp-server:latest --trento-url https://your-trento-instance.com
+docker run -p 5000:5000 ghcr.io/trento-project/mcp-server-trento:latest --trento-url https://your-trento-instance.com
 ----
 
 ==== Pushing Container Images

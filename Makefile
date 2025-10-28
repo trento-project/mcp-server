@@ -6,11 +6,11 @@
 # Directory to save the binaries to
 BIN ?= ${CURDIR}/bin
 
-# trento-mcp-server binary name
-BIN_NAME = trento-mcp-server
+# mcp-server-trento binary name
+BIN_NAME = mcp-server-trento
 
 IMAGE_REGISTRY ?= ghcr.io/trento-project
-IMAGE_NAME ?= trento-mcp-server
+IMAGE_NAME ?= mcp-server-trento
 IMAGE_TAG ?= latest
 IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 
@@ -51,9 +51,9 @@ help: ## Display this help.
 
 ##@ Development
 
-build: trento-mcp-server ## Build the entire project.
+build: mcp-server-trento ## Build the entire project.
 
-trento-mcp-server: ## Build the main project.
+mcp-server-trento: ## Build the main project.
 	$(GO_BUILD) -o $(BUILD_OUTPUT)
 
 .PHONY: cross-compiled
@@ -83,15 +83,15 @@ test: ## Test the project.
 ##@ Container
 
 .PHONY: build-container
-build-container: ## Build container image (eg. IMAGE=ghcr.io/trento-project/trento-mcp-server:dev make build-container).
+build-container: ## Build container image (eg. IMAGE=ghcr.io/trento-project/mcp-server-trento:dev make build-container).
 	$(DOCKER) build --build-arg VERSION=${VERSION} --build-arg GOOS=${GOOS} --build-arg GOARCH=${GOARCH} --build-arg PORT=${PORT} -t ${IMAGE} -f Dockerfile .
 
 .PHONY: push-container
-push-container: ## Push container image (eg. IMAGE=ghcr.io/trento-project/trento-mcp-server:dev make push-container).
+push-container: ## Push container image (eg. IMAGE=ghcr.io/trento-project/mcp-server-trento:dev make push-container).
 	$(DOCKER) push ${IMAGE}
 
 .PHONY: run-container
-run-container: ## Push container image (eg. IMAGE=ghcr.io/trento-project/trento-mcp-server:dev make run-container).
+run-container: ## Push container image (eg. IMAGE=ghcr.io/trento-project/mcp-server-trento:dev make run-container).
 	$(DOCKER) run -p ${PORT}:${PORT} ${IMAGE}
 
 ##@ Linters

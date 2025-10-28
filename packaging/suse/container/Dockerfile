@@ -21,9 +21,9 @@ ARG PORT=5000
 FROM registry.suse.com/bci/golang:${GO_VERSION} AS builder
 
 # Add the tarball as the build context root
-ADD trento-mcp-server.tar.gz /build/
-ADD vendor.tar.gz /build/trento-mcp-server/
-WORKDIR /build/trento-mcp-server
+ADD mcp-server-trento.tar.gz /build/
+ADD vendor.tar.gz /build/mcp-server-trento/
+WORKDIR /build/mcp-server-trento
 
 ARG GOARCH
 ARG GOOS
@@ -43,7 +43,7 @@ ARG GOOS
 ARG VERSION
 ARG PORT
 
-COPY --from=builder /build/trento-mcp-server/bin/${GOOS}-${GOARCH}/trento-mcp-server /trento-mcp-server
+COPY --from=builder /build/mcp-server-trento/bin/${GOOS}-${GOARCH}/mcp-server-trento /mcp-server-trento
 
 LABEL org.opencontainers.image.title="Trento MCP Server"
 LABEL org.opencontainers.image.source="https://github.com/trento-project/mcp-server"
@@ -57,4 +57,4 @@ USER 1001
 
 EXPOSE ${PORT}/tcp
 
-ENTRYPOINT [ "/trento-mcp-server" ]
+ENTRYPOINT [ "/mcp-server-trento" ]
