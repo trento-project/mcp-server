@@ -17,7 +17,7 @@ env:
   IMG_PLATFORMS: "linux/amd64"
   IMG_PREFIX: "ghcr.io/trento-project/"
   IMG_PREFIX_FOR_FORKS: "your-registry-username/"
-  IMAGES_TO_PUSH: "trento-mcp-server"
+  IMAGES_TO_PUSH: "mcp-server-trento"
 
 jobs:
   # Set up environment variables and outputs for downstream jobs.
@@ -158,7 +158,7 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - trento-mcp-server
+          - mcp-server-trento
     steps:
       # Setup building process and output image name and file.
       - name: Setup building process
@@ -199,7 +199,7 @@ jobs:
           cache-to: type=gha,mode=max
           outputs: type=docker,dest=${{ steps.setup.outputs.img_file }}
       # Upload the built image as an artifact.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         name: Upload artifacts
         with:
           name: ${{matrix.image}}-image
@@ -245,7 +245,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       # Download built image artifacts.
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         name: Download artifacts
       # Push container images to the registry.
       - name: Push container images to the registry

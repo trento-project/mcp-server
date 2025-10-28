@@ -1,5 +1,5 @@
 #
-# spec file for package trento-mcp-server
+# spec file for package mcp-server-trento
 #
 # Copyright 2025 SUSE LLC
 # SPDX-License-Identifier: Apache-2.0
@@ -16,7 +16,7 @@
 # Please submit bugfixes or comments via https://bugs.opensuse.org/
 #
 
-Name:           trento-mcp-server
+Name:           mcp-server-trento
 Version:        0
 Release:        0
 License:        Apache-2.0
@@ -27,6 +27,7 @@ Source:         %{name}-%{version}.tar.gz
 Source1:        vendor.tar.gz
 ExclusiveArch:  x86_64 ppc64le s390x
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
+BuildRequires:  make
 BuildRequires:  golang(API) = 1.25
 Provides:       %{name} = %{version}-%{release}
 
@@ -39,7 +40,7 @@ Trento Model Context Protocol (MCP) server is a wrapper around the Trento API to
 %setup -q            # unpack project sources
 %setup -q -T -D -a 1 # unpack go dependencies in vendor.tar.gz, which was prepared by the source services
 
-%define binaryname trento-mcp-server
+%define binaryname mcp-server-trento
 
 %build
 # Use the Makefile to build the binary
@@ -57,26 +58,26 @@ find . -type f \( -name '*.adoc' -o -name '*.md' -o -name '*.yaml' -o -name 'LIC
 install -D -m 0755 %{binaryname} "%{buildroot}%{_bindir}/%{binaryname}"
 
 # Install the systemd unit
-install -D -m 0644 packaging/suse/rpm/systemd/trento-mcp-server.service %{buildroot}%{_unitdir}/trento-mcp-server.service
+install -D -m 0644 packaging/suse/rpm/systemd/mcp-server-trento.service %{buildroot}%{_unitdir}/mcp-server-trento.service
 
 # Install example configuration file
-install -D -m 0600 packaging/suse/rpm/systemd/trento-mcp-server.example %{buildroot}%{_distconfdir}/trento/trento-mcp-server.example
+install -D -m 0600 packaging/suse/rpm/systemd/mcp-server-trento.example %{buildroot}%{_sysconfdir}/trento/mcp-server-trento.example
 
 # Add rc symlink
 mkdir -p %{buildroot}/usr/sbin
 ln -sf /usr/sbin/service %{buildroot}/usr/sbin/rc%{binaryname}
 
 %pre
-%service_add_pre trento-mcp-server.service
+%service_add_pre mcp-server-trento.service
 
 %post
-%service_add_post trento-mcp-server.service
+%service_add_post mcp-server-trento.service
 
 %preun
-%service_del_preun trento-mcp-server.service
+%service_del_preun mcp-server-trento.service
 
 %postun
-%service_del_postun trento-mcp-server.service
+%service_del_postun mcp-server-trento.service
 
 %files
 %defattr(-,root,root)
@@ -84,8 +85,8 @@ ln -sf /usr/sbin/service %{buildroot}/usr/sbin/rc%{binaryname}
 %{_bindir}/%{binaryname}
 %{_unitdir}/%{binaryname}.service
 %{_sbindir}/rc%{binaryname}
-%dir %{_distconfdir}/trento
-%config %{_distconfdir}/trento/trento-mcp-server.example
+%dir %{_sysconfdir}/trento
+%config %{_sysconfdir}/trento/mcp-server-trento.example
 
 %license LICENSE
 

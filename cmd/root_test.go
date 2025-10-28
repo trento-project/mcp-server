@@ -443,7 +443,7 @@ func TestServeOpts(t *testing.T) {
 		HealthAPIPath:         "/api/healthz",
 		HealthPort:            8080,
 		InsecureSkipTLSVerify: false,
-		Name:                  "trento-mcp-server",
+		Name:                  "mcp-server-trento",
 		OASPath:               []string{},
 		Port:                  5000,
 		TagFilter:             []string{"MCP"},
@@ -550,7 +550,7 @@ func TestGetConfigDescription(t *testing.T) {
 	description := cmd.GetConfigDescription()
 
 	// The description should contain the expected format
-	expectedPaths := "/etc/trento/trento-mcp-server or /usr/etc/trento/trento-mcp-server"
+	expectedPaths := "/etc/trento/mcp-server-trento or /usr/etc/trento/mcp-server-trento"
 	expectedDescription := fmt.Sprintf("Configuration file path (default search: %s)", expectedPaths)
 
 	assert.Equal(t, expectedDescription, description)

@@ -119,7 +119,7 @@ jobs:
       - name: Update sources
         run: |
           cp -r $SOURCE_DIR/* $CHECKOUT_DIR
-          tar --transform 's,^./,/trento-mcp-server/,' -zcvf $CHECKOUT_DIR/trento-mcp-server.tar.gz --exclude=.git --exclude=vendor .
+          tar --transform 's,^./,/mcp-server-trento/,' -zcvf $CHECKOUT_DIR/mcp-server-trento.tar.gz --exclude=.git --exclude=vendor .
           cp vendor.tar.gz $CHECKOUT_DIR
       # Commit changes to OBS.
       - name: Commit to OBS
