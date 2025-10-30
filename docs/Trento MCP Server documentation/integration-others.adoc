@@ -153,7 +153,7 @@ How you use the Trento MCP Server depends on the specific MCP Host application y
 . Select or attach the MCP server to your assistant/model/workspace, if your host requires it:
 .. Some hosts let you choose which MCP servers are available per model or project - Make sure the *Trento MCP Server* is enabled for the target model/session.
 . Start a new chat or session with your assistant and verify that tools are available:
-.. Try a simple action, such as: "List SAP systems" or "Show HANA clusters".
+.. Try a simple action, such as: "List SAP systems", "Show HANA clusters", "What is the health status of my SAP landscape?", or "Are there any critical alerts I need to address?".
 
 For detailed guidance on leveraging MCP capabilities in different tools, refer to the following official documentation:
 

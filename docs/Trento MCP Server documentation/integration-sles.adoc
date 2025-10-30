@@ -138,6 +138,11 @@ image::img/mcphost-initial.png[MCPHost initial screen, width=900]
 * "List all SAP systems managed."
 * "Show my HANA clusters."
 * "Are my SAP systems compliant?"
+* "What is the health status of my SAP landscape?"
+* "Show me all hosts running SAP applications."
+* "Are there any critical alerts I need to address?"
+* "Get details about the latest check execution results."
+* "Which SAP systems are currently running?"
 +
 .Example MCPHost session querying Trento about SAP systems
 image::img/example-mcphost.png[Example MCPHost session with Trento,width=900]

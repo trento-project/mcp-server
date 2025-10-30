@@ -22,6 +22,8 @@ The link:https://modelcontextprotocol.io/introduction[Model Context Protocol] (M
 
 link:https://www.youtube.com/watch?v=7kDVc3YUR-U[Watch this video] demonstrating how the Trento MCP Server transforms complex SAP monitoring tasks into simple natural language conversations.
 
+link:https://www.youtube.com/watch?v=7kDVc3YUR-U[image:https://img.youtube.com/vi/7kDVc3YUR-U/maxresdefault.jpg[Video thumbnail]]
+
 *Demo Highlights:*
 
 * Query SAP system health status conversationally
