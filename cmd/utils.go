@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -178,13 +179,7 @@ func getConfigDescription() string {
 	paths := make([]string, len(defaultConfigPaths))
 
 	for i, path := range defaultConfigPaths {
-		// Trim trailing slashes to avoid double slashes
-		cleanPath := strings.TrimSuffix(path, "/")
-		if cleanPath == "." {
-			paths[i] = fmt.Sprintf("./%s", configFileName)
-		} else {
-			paths[i] = fmt.Sprintf("%s/%s", cleanPath, configFileName)
-		}
+		paths[i] = filepath.Join(path, configFileName)
 	}
 
 	return fmt.Sprintf("Configuration file path (default search: %s)", strings.Join(paths, " or "))
