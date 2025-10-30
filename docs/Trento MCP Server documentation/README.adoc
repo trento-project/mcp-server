@@ -10,8 +10,9 @@ A high-level overview of how the documentation pages are organized.
 [width="100%",options="header",]
 |===
 |Section |Description
-|link:./installation.adoc[Installation Guide] |Comprehensive guide for installing the Trento MCP Server in Kubernetes, systemd, and containerized environments
-|link:./integration-mcp-clients.adoc[Integrating the Trento MCP Server with MCP Clients] |Information on how to configure and use the Trento MCP Server with MCP clients like VS Code, Claude Desktop, and others
-|link:./integration-suse-ai.adoc[SUSE AI integration] |Information on how to integrate this project into SUSE-AI
-|link:./configuration-options.adoc[Configuration options] |Complete reference of all configuration options, flags, and environment variables
+|link:installation.adoc[Installation Guide] |Comprehensive guide for installing the Trento MCP Server in Kubernetes, systemd, and containerized environments
+|link:integration-sles.adoc[Integrating the Trento MCP Server with SLES 16] |Guide for connecting the Trento MCP Server to SUSE Linux Enterprise Server 16 using MCPHost
+|link:integration-suse-ai.adoc[Integrating the Trento MCP Server with SUSE AI] |Information on how to integrate this project into SUSE AI Platform
+|link:integration-others.adoc[Integrating the Trento MCP Server with other MCP Hosts] |Information on how to configure and use the Trento MCP Server with MCP clients like VS Code, Claude Desktop, and others
+|link:configuration-options.adoc[Configuration Options] |Complete reference of all configuration options, flags, and environment variables
 |===

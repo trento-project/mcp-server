@@ -9,27 +9,35 @@ The Trento MCP Server can be deployed in several ways depending on your infrastr
 
 Before installing the Trento MCP Server, ensure you have:
 
-* A running Trento Server installation (Web and Wanda components)
-* Network connectivity between the MCP Server and Trento Server components
-* Access to the Trento Server URL (especially important when deployed behind NGINX or other reverse proxies)
+* A running Trento Server installation (Web and Wanda components).
++
+The Trento Server consists of multiple components:
++
+** *Web component*: Provides the user interface and API endpoints for managing SAP systems
+** *Wanda component*: Handles automated checks and compliance validation for SAP landscapes
++
+Both components must be running and accessible for the MCP Server to function properly.
+
+* Network connectivity between the MCP Server and Trento Server components.
+* Access to the Trento Server URL (especially important when deployed behind NGINX or other reverse proxies).
 
 == Configuration Overview
 
-The Trento MCP Server requires minimal configuration but needs to know how to reach your Trento Server. The key configuration parameters are:
+The Trento MCP Server requires minimal configuration, but needs to know how to reach your Trento Server. The key configuration parameters are:
 
 * `TRENTO_URL`: The URL where your Trento Server is accessible. This is particularly important when Trento is deployed behind NGINX or other reverse proxies. Use the externally accessible URL (e.g., `https://trento.example.com`) rather than internal service URLs. When set, the server will use this URL for OpenAPI specification autodiscovery.
 
 * `OAS_PATH`: Explicit paths to OpenAPI specification files. Use this when you want to directly specify the location of the API specifications instead of relying on autodiscovery. This is particularly useful when you want to connect to internal services (such as `localhost` or Kubernetes service names) instead of going through a reverse proxy.
 
 [[sec-mcp-k8s-deployment]]
-== {k8s} Deployment
+== Kubernetes Deployment
 
 The Trento MCP Server is included as a sub-chart in the main Trento Server Helm chart and can be deployed alongside other Trento components.
 
 [[sec-mcp-install-with-trento-server]]
-=== Installing MCP Server with Trento Server
+=== Installing Trento MCP Server with Trento Server
 
-When installing the complete Trento Server using Helm, the MCP Server is disabled by default. You need to manually enable it by passing `--set trento-mcp-server.enabled=true`. The MCP Server will automatically connect to the Trento Web and Wanda internal services within the Kubernetes cluster.
+When installing the complete Trento Server using Helm, the MCP Server is disabled by default. You must manually enable it by passing `--set trento-mcp-server.enabled=true`. The MCP Server will automatically connect to the Trento Web and Wanda internal services within the Kubernetes cluster.
 
 [NOTE]
 ====
@@ -45,33 +53,39 @@ helm upgrade --install trento-server oci://registry.suse.com/trento/trento-serve
 ----
 ====
 
-. Install or upgrade the Trento Server with MCP Server enabled:
+. Install or upgrade the Trento Server with Trento MCP Server enabled:
 +
 ====
 [source,bash,subs="attributes"]
 ----
 helm upgrade --install trento-server oci://registry.suse.com/trento/trento-server \
-  --set trento-web.trentoWebOrigin=TRENTO_SERVER_HOSTNAME \
-  --set trento-web.adminUser.password=ADMIN_PASSWORD \
+  --set trento-web.trentoWebOrigin=https://trento.example.com \
+  --set trento-web.adminUser.password=SecurePassword123 \
   --set trento-mcp-server.enabled=true
 ----
 ====
 +
+This example installs Trento Server with:
++
+* Web interface accessible at `https://trento.example.com`.
+* Admin user with password `SecurePassword123`.
+* Trento MCP Server component enabled.
++
 [IMPORTANT]
 ====
-Replace placeholders like `TRENTO_SERVER_HOSTNAME` and `ADMIN_PASSWORD` with your actual values.
+Replace `https://trento.example.com` with your actual domain and `SecurePassword123` with a secure password.
 ====
 
 +
 [NOTE]
 ====
-By default, the MCP Server connects to internal Kubernetes services. For advanced use cases where you need the MCP Server to connect through an external URL (e.g., when behind NGINX), you can configure it with `--set trento-mcp-server.mcpServer.trentoURL=https://TRENTO_SERVER_HOSTNAME`. Ensure the URL is accessible from within the Kubernetes cluster.
+By default, the MCP Server connects to internal Kubernetes services. For advanced use cases where you need the MCP Server to connect through an external URL (e.g., when behind NGINX), configure it with `--set trento-mcp-server.mcpServer.trentoURL=https://TRENTO_SERVER_HOSTNAME`. Ensure that the URL is accessible from within the Kubernetes cluster.
 ====
 
 [[sec-mcp-advanced-configuration]]
 === Advanced Configuration Options
 
-The MCP Server Helm chart supports various configuration options. Here are some common scenarios:
+The Trento MCP Server Helm chart supports various configuration options. Here are some common scenarios:
 
 [NOTE]
 ====
@@ -80,7 +94,7 @@ For detailed information on all available configuration options, refer to the li
 
 ==== Enabling Ingress Access
 
-By default, ingress is enabled for the MCP Server. To customize the ingress configuration:
+By default, ingress is enabled for the Trento MCP Server. To customize the ingress configuration:
 
 
 ====
@@ -89,7 +103,6 @@ By default, ingress is enabled for the MCP Server. To customize the ingress conf
 helm upgrade --install trento-server oci://registry.suse.com/trento/trento-server \
   --set trento-mcp-server.enabled=true \
   --set trento-mcp-server.ingress.enabled=true \
-  --set trento-mcp-server.ingress.className=traefik \
   --set trento-mcp-server.ingress.hosts[0].host=trento.example.com \
   --set trento-mcp-server.ingress.hosts[0].paths[0].path=/mcp-server-trento \
   --set trento-mcp-server.ingress.hosts[0].paths[0].pathType=ImplementationSpecific
@@ -101,13 +114,14 @@ helm upgrade --install trento-server oci://registry.suse.com/trento/trento-serve
 ====
 The Trento MCP Server endpoint will be:
 
-  http://trento.example.com/mcp-server-trento/mcp
+  https://trento.example.com/mcp-server-trento/mcp
 
 When integrating with your preferred AI tool, make sure to use the full URL above, including the trailing "/mcp". This ensures proper connectivity and access to the MCP API.
 ====
 
 ==== Disabling Tag Filtering
-By default, only operations tagged with `MCP` are exposed. To expose all operations (remove tag filtering):
+
+By default, only operations tagged with `MCP` are exposed. To expose all operations and remove tag filtering:
 
 ====
 [source,bash]
@@ -186,7 +200,7 @@ helm upgrade --install trento-server oci://registry.suse.com/trento/trento-serve
 [[sec-mcp-verify-installation]]
 === Verifying the Installation
 
-. Check that the MCP Server pod is running:
+. Check that the Trento MCP Server pod is running:
 +
 ====
 [source,bash]
@@ -205,7 +219,7 @@ trento-server-mcp-server-xxxxxxxxxx-xxxxx  1/1     Running   0          2m
 ----
 ====
 +
-. Check the MCP Server logs:
+. Check the Trento MCP Server logs:
 +
 ====
 [source,bash]
@@ -243,9 +257,9 @@ The Trento MCP Server can be installed as a systemd service using RPM packages o
 [[sec-mcp-systemd-requirements]]
 === Requirements
 
-* SUSE Linux Enterprise Server for SAP Applications 15 SP3 or later
-* A running Trento Server installation (accessible via network)
-* Root or sudo access for installation
+* SUSE Linux Enterprise Server for SAP Applications 15 SP3 or later.
+* A running Trento Server installation (accessible via network).
+* Root or sudo access for installation.
 
 [[sec-mcp-systemd-installation]]
 === Installation Steps
@@ -277,25 +291,41 @@ vi /etc/trento/mcp-server-trento
 ----
 ====
 +
-Modify the following key settings. There are two approaches: using `TRENTO_URL` so that the MCP Server connects to the public URLs that are behind NGINX or other reverse proxies; or 'OAS_PATH' for directly specifying the location of the API specifications, this way the MCP Server can connect to internal services instead of going through a reverse proxy.
+Modify the following key settings. There are two approaches for connecting to your Trento Server:
 +
 ====
-.TRENTO_URL approach (MCP access via public URLs)
+.TRENTO_URL approach (Recommended for most deployments)
 [source,env]
 ----
-## Set this to your Trento Server URL
+## Set this to your Trento Server's external/public URL
+## Use this when Trento is behind a reverse proxy (like NGINX) or when accessing from outside the local network
 TRENTO_URL=https://trento.example.com
 PORT=5000
 ----
 
-.OAS_PATH approach (MCP access via local endpoints)
+.OAS_PATH approach (For direct internal connections)
 [source,env]
 ----
-## Explicitly specify OpenAPI paths for internal or local services
-OAS_PATH=http://localhost:5000/api/all/openapi,http://localhost:5001/wanda/api/all/openapi
+## Use this when connecting directly to Trento components without going through a reverse proxy
+## Useful when MCP Server runs on the same network as Trento components
+OAS_PATH=http://localhost:4000/api/all/openapi,http://localhost:4001/wanda/api/all/openapi
 PORT=5000
 ----
+====
 
+[NOTE]
+====
+**When to use TRENTO_URL:**
+* Trento Server is deployed behind a reverse proxy (NGINX, etc.).
+* MCP Server runs on a different host/network than Trento.
+* You want to use external/public URLs.
+
+**When to use OAS_PATH:**
+* MCP Server runs on the same host as Trento components.
+* You want to connect directly to internal services.
+* You need to bypass reverse proxy configurations.
+
+The TRENTO_URL approach is recommended for most production deployments.
 ====
 
 [NOTE]
@@ -378,7 +408,7 @@ firewall-cmd --reload
 ----
 ====
 
-If health checks are enabled, and want them to be exposed, also allow the health check port:
+If health checks are enabled, and you want them to be exposed, also allow the health check port:
 
 ====
 [source,bash]
@@ -392,8 +422,8 @@ firewall-cmd --reload
 ====
 Use the ports you configured. Replace the example values `5000` and `8080` with your actual settings:
 
-- `PORT`: MCP Server listening port (default: 5000)
-- `HEALTH_PORT`: Health check server port (default: 8080)
+- `PORT`: MCP Server listening port (default: 5000).
+- `HEALTH_PORT`: Health check server port (default: 8080).
 
 Adjust all commands and firewall rules accordingly.
 ====
@@ -468,7 +498,7 @@ If running Trento components in containers on the same host, use Docker networks
 # Create a network
 docker network create trento-net
 
-# Run MCP Server connected to the network
+# Run the MCP Server connected to the network
 docker run -d \
   --name mcp-server-trento \
   --network trento-net \
@@ -569,7 +599,7 @@ docker logs mcp-server-trento
 curl http://localhost:8080/livez
 curl http://localhost:8080/readyz
 
-# You can also inspect the healh check in Docker Compose
+# You can also inspect the health check in Docker Compose
 docker inspect --format "{{json .State.Health }}" mcp-server-trento | jq
 ----
 ====
@@ -587,7 +617,7 @@ When using environment variables, prefix each configuration key with `TRENTO_MCP
 - `TRENTO_URL` → `TRENTO_MCP_TRENTO_URL`
 - `ENABLE_HEALTH_CHECK` → `TRENTO_MCP_ENABLE_HEALTH_CHECK`
 
-For the complete reference including command-line flags and detailed examples, see the link:configuration-options.adoc[Configuration Options] page.
+For the complete reference, including command-line flags and detailed examples, see the link:configuration-options.adoc[Configuration Options] page.
 ====
 
 [cols="25%,15%,60%",options="header"]
@@ -595,12 +625,12 @@ For the complete reference including command-line flags and detailed examples, s
 |Configuration Key |Default Value |Description
 
 |`TRENTO_URL`
-|_empty_
-|URL of the Trento Server. *Important:* Use the externally accessible URL when behind NGINX or reverse proxy. If empty along with `OAS_PATH`, falls back to demo instance.
+|(empty)
+|URL for the target Trento server. Required for autodiscovery if `oas-path` is not set.
 
 |`OAS_PATH`
-|_empty_
-|Comma-separated list of OpenAPI specification paths. If empty, autodiscovery is used with `TRENTO_URL` and `AUTODISCOVERY_PATHS`.
+|[]
+|Path to OpenAPI specification file(s). Can be specified multiple times.
 
 |`AUTODISCOVERY_PATHS`
 |`/api/all/openapi,/wanda/api/all/openapi`
@@ -608,39 +638,39 @@ For the complete reference including command-line flags and detailed examples, s
 
 |`PORT`
 |`5000`
-|Port for the MCP Server to listen on.
+|The port on which the MCP server runs.
 
 |`TRANSPORT`
 |`streamable`
-|Transport protocol: `streamable` or `sse`. Determines the MCP endpoint path (`/mcp` for streamable, `/sse` for Server-Sent Events). Choose based on your MCP client's requirements.
+|The protocol to use: "streamable" or "sse".
 
 |`TAG_FILTER`
-|_empty_
-|Comma-separated list of tags to filter operations. Only operations with matching tags are exposed.
+|`["MCP"]`
+|Only include operations with at least one of these tags. If empty, all operations are included.
 
 |`HEADER_NAME`
 |`X-TRENTO-MCP-APIKEY`
-|HTTP header name for passing the Trento API key.
+|The header name used for passing the Trento API key to the MCP server.
 
 |`VERBOSITY`
 |`info`
-|Log level: `debug`, `info`, `warning`, or `error`.
+|Log level verbosity: debug, info, warning, or error.
 
 |`ENABLE_HEALTH_CHECK`
 |`false`
-|Enable health check endpoints.
+|Enable the health check server.
 
 |`HEALTH_PORT`
 |`8080`
-|Port for health check endpoints.
+|The port on which the health check server runs.
 
 |`HEALTH_API_PATH`
 |`/api/healthz`
-|API path for health checks on target servers.
+|The API path used for health checks on target servers.
 
 |`INSECURE_SKIP_TLS_VERIFY`
 |`false`
-|Skip TLS certificate verification (use only in development).
+|Skip TLS certificate verification when fetching OpenAPI specifications from HTTPS URLs.
 |===
 
 [[sec-mcp-troubleshooting]]
@@ -653,9 +683,9 @@ For the complete reference including command-line flags and detailed examples, s
 *Solutions:*
 
 . Verify `TRENTO_URL` is set correctly:
-  - Use the externally accessible URL if behind NGINX
-  - Ensure the URL is reachable from where the MCP Server is running
-  - Test with `curl https://your-trento-url/api/healthz`
+  - Use the externally accessible URL if behind NGINX.
+  - Ensure the URL is reachable from where the MCP Server is running.
+  - Test with `curl https://your-trento-url/api/healthz`.
 
 . Check network connectivity:
 +
@@ -703,7 +733,7 @@ curl https://your-trento-url/wanda/api/all/openapi
 *Solutions:*
 
 . Verify health checks are enabled: `ENABLE_HEALTH_CHECK=true`
-. Check the health check port is correctly exposed
+. Check that the health check port is correctly exposed
 . For Kubernetes, verify the health check probes configuration
 
 === Port Already in Use
@@ -723,7 +753,7 @@ lsof -i :5000
 ----
 ====
 
-. Change the port in configuration:
+. Change the port in the configuration:
 +
 ====
 [source,bash]

@@ -9,10 +9,10 @@ This guide provides everything you need to start developing with the `Trento MCP
 
 Before you begin development, ensure you have the following tools installed:
 
-* Go (see link:https://golang.org/doc/install[Go installation guide])
-* Docker or Podman (for containerization)
-* Make (for build automation)
-* Git (for version control)
+* Go (see link:https://golang.org/doc/install[Go installation guide]).
+* Docker or Podman (for containerization).
+* Make (for build automation).
+* Git (for version control).
 
 === Using asdf for Version Management
 
@@ -103,14 +103,7 @@ make build
 
 The compiled binary will be located in the `bin/` directory as `mcp-server-trento`.
 
-== Running the Project Locally
-
-[source,console]
-----
-make clean
-----
-
-=== 4. Running the Project Locally
+==== 4. Running the Project Locally
 
 To run the server locally with default settings:
 
@@ -119,7 +112,7 @@ To run the server locally with default settings:
 make run
 ----
 
-== Building the Container Image
+Or run the binary directly:
 
 [source,console]
 ----
@@ -163,8 +156,8 @@ go test ./... -v -cover
 
 ==== Test Structure
 
-* Unit tests are located alongside source files with `_test.go` suffix
-* Test exports are defined in `export_test.go` files for testing internal functionality
+* Unit tests are located alongside source files with `_test.go` suffix.
+* Test exports are defined in `export_test.go` files for testing internal functionality.
 
 === Linting
 
@@ -195,17 +188,17 @@ Run the server with debug logging enabled:
 ----
 
 Log levels:
-* `debug`: Debug (most verbose)
-* `info`: Info (default)
-* `warning`: Warning
-* `error`: Error (least verbose)
+* `debug`: Debug (most verbose).
+* `info`: Info (default).
+* `warning`: Warning.
+* `error`: Error (least verbose).
 
 ==== Common Debugging Scenarios
 
 1. **OpenAPI Specification Issues**: Verify OAS documentation provided via `--oas-path` flag is valid and contains operations tagged with the tag selected via `--tag-filter` flag.
-2. **Authentication Problems**: Check that the provided Trento API key is correct
-3. **Transport Issues**: Try switching between `streamable` and `sse` transports
-4. **Port Conflicts**: Use `--port` flag to specify a different port
+2. **Authentication Problems**: Check that the provided Trento API key is correct.
+3. **Transport Issues**: Try switching between `streamable` and `sse` transports.
+4. **Port Conflicts**: Use `--port` flag to specify a different port.
 
 === Container Development
 
@@ -218,16 +211,16 @@ To build the container image:
 make build-container
 ----
 
-This creates a container image named `ghcr.io/trento-project/mcp-server-trento:latest`.
-
-== Running the Container
+To build with a custom image name:
 
 [source,console]
 ----
 IMAGE=my-registry/mcp-server-trento:dev make build-container
 ----
 
-=== Running the Container
+This creates a container image named `ghcr.io/trento-project/mcp-server-trento:latest` (or your custom name).
+
+==== Running the Container
 
 To run the server in a container:
 
