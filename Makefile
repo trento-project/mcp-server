@@ -71,8 +71,7 @@ clean:
 
 .PHONY: run
 run: build ## Compile and run the project.
-	$(GO) run main.go --port ${PORT} --verbosity=info --enable-health-check --oas-path https://www.trento-project.io/web/swaggerui/openapi.json --oas-path https://www.trento-project.io/wanda/swaggerui/openapi.json
-# 	$(GO) run main.go --port ${PORT} --verbosity=info --enable-health-check --trento-url https://demo.trento-project.io
+	$(GO) run main.go --port ${PORT} --verbosity=info --trento-url https://trentoserverrolling.westeurope.cloudapp.azure.com --header-name Authorization
 
 ##@ Test
 
