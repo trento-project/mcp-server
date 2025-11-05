@@ -17,7 +17,7 @@ AUTODISCOVERY_PATHS=/api/all/openapi,/wanda/api/all/openapi
 ENABLE_HEALTH_CHECK=false
 
 ## The HTTP header name used to pass the Trento API key for authentication with the Trento server.
-HEADER_NAME=X-TRENTO-MCP-APIKEY
+HEADER_NAME=Authorization
 
 ## The API path used for health checks on target servers.
 HEALTH_API_PATH=/api/healthz

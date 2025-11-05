@@ -64,7 +64,7 @@ func TestExecute(t *testing.T) {
 			expConf: server.ServeOptions{
 				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				EnableHealthCheck:  false,
-				HeaderName:         "X-TRENTO-MCP-APIKEY",
+				HeaderName:         "Authorization",
 				HealthAPIPath:      "/api/healthz",
 				HealthPort:         8080,
 				OASPath:            []string{},
@@ -80,7 +80,7 @@ func TestExecute(t *testing.T) {
 			expConf: server.ServeOptions{
 				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				EnableHealthCheck:  false,
-				HeaderName:         "X-TRENTO-MCP-APIKEY",
+				HeaderName:         "Authorization",
 				HealthAPIPath:      "/api/healthz",
 				HealthPort:         8080,
 				OASPath:            []string{},
@@ -209,7 +209,7 @@ func TestConfigureCLI(t *testing.T) {
 			expected: server.ServeOptions{
 				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				EnableHealthCheck:  false,
-				HeaderName:         "X-TRENTO-MCP-APIKEY",
+				HeaderName:         "Authorization",
 				HealthAPIPath:      "/api/healthz",
 				HealthPort:         8080,
 				OASPath:            []string{},
@@ -259,7 +259,7 @@ func TestConfigureCLI(t *testing.T) {
 			expected: server.ServeOptions{
 				AutodiscoveryPaths: []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 				EnableHealthCheck:  false,
-				HeaderName:         "X-TRENTO-MCP-APIKEY",
+				HeaderName:         "Authorization",
 				HealthAPIPath:      "/api/healthz",
 				HealthPort:         8080,
 				OASPath:            []string{},
@@ -441,7 +441,7 @@ func TestServeOpts(t *testing.T) {
 	expected := server.ServeOptions{
 		AutodiscoveryPaths:    []string{"/api/all/openapi", "/wanda/api/all/openapi"},
 		EnableHealthCheck:     false,
-		HeaderName:            "X-TRENTO-MCP-APIKEY",
+		HeaderName:            "Authorization",
 		HealthAPIPath:         "/api/healthz",
 		HealthPort:            8080,
 		InsecureSkipTLSVerify: false,

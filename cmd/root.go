@@ -45,7 +45,7 @@ const (
 	// Default values.
 	defaultConfig                = ""
 	defaultEnableHealthCheck     = false
-	defaultHeaderName            = "X-TRENTO-MCP-APIKEY"
+	defaultHeaderName            = "Authorization"
 	defaultHealthAPIPath         = "/api/healthz"
 	defaultHealthPort            = 8080
 	defaultInsecureSkipTLSVerify = false
