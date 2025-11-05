@@ -1,7 +1,7 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
-:badge-url: https://vscode.dev/redirect/mcp/install?name=trento&config=%7B%22servers%22%3A%7B%22mcp-server-trento%22%3A%7B%22type%22%3A%22http%22%2C%22url%22%3A%22http%3A//localhost%3A5000/mcp%22%2C%22headers%22%3A%7B%22X-TRENTO-MCP-APIKEY%22%3A%22your-actual-trento-api-key-here%22%7D%7D%7D%7D
+:badge-url: https://vscode.dev/redirect/mcp/install?name=trento&config=%7B%22servers%22%3A%7B%22mcp-server-trento%22%3A%7B%22type%22%3A%22http%22%2C%22url%22%3A%22http%3A//localhost%3A5000/mcp%22%2C%22headers%22%3A%7B%22Authorization%22%3A%22your-actual-trento-api-key-here%22%7D%7D%7D%7D
 :badge-img: https://img.shields.io/badge/VS_Code-Install_Server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white
 
 
@@ -53,7 +53,7 @@ This option is supported by most MCP Hosts, including VS Code. Check your MCP Ho
       "type": "http",
       "url": "https://trento.example.com/mcp-server-trento/mcp",
       "headers": {
-        "X-TRENTO-MCP-APIKEY": "${input:trento-api-key}"
+        "Authorization": "${input:trento-api-key}"
       }
     }
   },
@@ -91,7 +91,7 @@ When using this option, ensure your configuration file has appropriate permissio
       "type": "http",
       "url": "https://trento.example.com/mcp-server-trento/mcp",
       "headers": {
-        "X-TRENTO-MCP-APIKEY": "your-actual-trento-api-key-here"
+        "Authorization": "your-actual-trento-api-key-here"
       }
     }
   }
@@ -116,7 +116,7 @@ Replace `https://trento.example.com/mcp-server-trento/mcp` with your actual Tren
   ** For local or development setups, use `http://localhost:5000/mcp` (adjust the port as needed).
   ** If using Server-Sent Events (SSE) transport instead of the default streamable transport, change the path from `/mcp` to `/sse` - The transport type is configured on the Trento MCP Server using the `TRANSPORT` configuration key or `--transport` flag (see link:configuration-options.adoc[Configuration Options]).
 * Replace `your-actual-trento-api-key-here` with the API token you generated from your Trento instance.
-* If you configured a custom header name (using `HEADER_NAME` or `--header-name`), update `X-TRENTO-MCP-APIKEY` accordingly.
+* If you configured a custom header name (using `HEADER_NAME` or `--header-name`), update `Authorization` accordingly.
 
 === Troubleshooting
 
@@ -129,7 +129,7 @@ If you encounter issues connecting your MCP Host to the Trento MCP Server:
 
 . *Authentication Errors*:
 ** Verify that your API token is valid by testing it directly against your Trento Server API.
-** Check that the header name matches your server configuration (default: `X-TRENTO-MCP-APIKEY`).
+** Check that the header name matches your server configuration (default: `Authorization`).
 ** Ensure the token has the necessary permissions in Trento.
 
 . *General Issues*:

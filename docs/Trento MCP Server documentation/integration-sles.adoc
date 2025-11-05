@@ -71,7 +71,7 @@ mcpServers:
     type: "remote"
     url: https://trento.example.com/mcp-server-trento/mcp
     headers:
-      - "X-TRENTO-MCP-APIKEY: Bearer ${env://TRENTO_PAT}"
+      - "Authorization: Bearer ${env://TRENTO_PAT}"
 ----
 
 [NOTE]
@@ -93,7 +93,7 @@ export TRENTO_PAT=<your-trento-personal-access-token>
   ** For local or development setups, use `http://localhost:5000/mcp` (adjust the port as needed).
   ** If using Server-Sent Events (SSE) transport instead of the default streamable transport, change the path from `/mcp` to `/sse` - The transport type is configured on the Trento MCP Server using the `TRANSPORT` configuration key or `--transport` flag (see link:configuration-options.adoc[Configuration Options]).
 * Replace `<your-trento-personal-access-token>` with the API token you generated from your Trento instance.
-* If you configured a custom header name (using `HEADER_NAME` or `--header-name`), update `X-TRENTO-MCP-APIKEY` accordingly.
+* If you configured a custom header name (using `HEADER_NAME` or `--header-name`), update `Authorization` accordingly.
 
 [TIP]
 ====
@@ -160,7 +160,7 @@ If you encounter issues connecting MCPHost to the Trento MCP Server:
 . *Authentication Errors*
 ** Verify that your API token is valid by testing it directly against your Trento Server API.
 ** Ensure `TRENTO_PAT` is exported in the same shell session before running `mcphost`.
-** Check that the header name matches your server configuration (default: `X-TRENTO-MCP-APIKEY`).
+** Check that the header name matches your server configuration (default: `Authorization`).
 ** Ensure the token has the necessary permissions in Trento.
 
 . *LLM Provider Errors*

@@ -649,7 +649,7 @@ For the complete reference, including command-line flags and detailed examples, 
 |Only include operations with at least one of these tags. If empty, all operations are included.
 
 |`HEADER_NAME`
-|`X-TRENTO-MCP-APIKEY`
+|`Authorization`
 |The header name used for passing the Trento API key to the MCP server.
 
 |`VERBOSITY`
