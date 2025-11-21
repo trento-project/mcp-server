@@ -34,7 +34,7 @@ jobs:
       triggered_from_fork: ${{ steps.set-outputs.outputs.triggered_from_fork }}
     steps:
       # Checkout the repository.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         name: Checkout
       # Show the GitHub event context for debugging.
       - name: Show GitHub event
@@ -127,7 +127,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       # Checkout the repository.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         name: Checkout
       # Read tool versions for environment setup.
       - uses: endorama/asdf-parse-tool-versions@v1
