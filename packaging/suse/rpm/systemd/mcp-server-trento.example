@@ -25,6 +25,9 @@ HEALTH_API_PATH=/api/healthz
 ## The port on which the health check server listens for incoming connections.
 HEALTH_PORT=8080
 
+## Skip TLS certificate verification when fetching OpenAPI spec from HTTPS URLs.
+INSECURE_SKIP_TLS_VERIFY=false
+
 ## List of comma-separated paths to the OpenAPI specification files (local or remote URLs).
 ## If not provided, the server will attempt autodiscovery using the Trento URL and autodiscovery paths.
 OAS_PATH=http://localhost:4000/api/all/openapi,http://localhost:4001/wanda/api/all/openapi

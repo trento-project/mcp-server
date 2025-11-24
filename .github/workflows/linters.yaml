@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       # Checkout the repository.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         name: Checkout
       # Read tool versions for environment setup.
       - uses: endorama/asdf-parse-tool-versions@v1
@@ -36,7 +36,7 @@ jobs:
         run: make fmt
       # Run golangci-lint for advanced linting.
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         with:
           version: latest
           skip-cache: true
@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       # Checkout the repository.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         name: Checkout
       # Run SkyWalking Eyes to check license headers.
       - uses: apache/skywalking-eyes/header@v0.8.0
@@ -60,7 +60,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       # Checkout the repository.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         name: Checkout
       # Install asciidoctor for linting .adoc files.
       - name: Install asciidoctor
@@ -77,7 +77,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       # Checkout the repository.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         name: Checkout
       # Run ShellCheck linter on shell scripts.
       - uses: ludeeus/action-shellcheck@2.0.0
