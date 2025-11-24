@@ -650,7 +650,7 @@ For the complete reference, including command-line flags and detailed examples, 
 
 |`HEADER_NAME`
 |`Authorization`
-|The header name used for passing the Trento API key to the MCP server.
+|The header name used for passing the Trento PAT to the MCP server.
 
 |`VERBOSITY`
 |`info`

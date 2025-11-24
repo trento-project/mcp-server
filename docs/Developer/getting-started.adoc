@@ -196,7 +196,7 @@ Log levels:
 ==== Common Debugging Scenarios
 
 1. **OpenAPI Specification Issues**: Verify OAS documentation provided via `--oas-path` flag is valid and contains operations tagged with the tag selected via `--tag-filter` flag.
-2. **Authentication Problems**: Check that the provided Trento API key is correct.
+2. **Authentication Problems**: Check that the provided Trento PAT is correct.
 3. **Transport Issues**: Try switching between `streamable` and `sse` transports.
 4. **Port Conflicts**: Use `--port` flag to specify a different port.
 

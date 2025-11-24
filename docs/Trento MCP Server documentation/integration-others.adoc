@@ -61,7 +61,7 @@ This option is supported by most MCP Hosts, including VS Code. Check your MCP Ho
     {
       "type": "promptString",
       "id": "trento-pat",
-      "description": "Trento API Key",
+      "description": "Trento PAT",
       "password": true
     }
   ]
@@ -76,7 +76,7 @@ Alternatively, you can use this link to install the server directly in VS Code: 
 
 === Option 2: Direct Header Configuration
 
-For MCP Hosts that don't support prompted input, or for testing purposes, you can set your Trento API key directly in the configuration file.
+For MCP Hosts that don't support prompted input, or for testing purposes, you can set your Trento PAT directly in the configuration file.
 
 [WARNING]
 ====
