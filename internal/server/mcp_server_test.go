@@ -406,11 +406,12 @@ func TestRegisterToolsFromSpec(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name             string
-		oasContent       string
-		tagFilter        []string
-		expectedTools    []string
-		notExpectedTools []string
+		name                  string
+		oasContent            string
+		tagFilter             []string
+		insecureSkipTLSVerify bool
+		expectedTools         []string
+		notExpectedTools      []string
 	}{
 		{
 			name: "should register tools with no tag filter",
@@ -421,8 +422,9 @@ func TestRegisterToolsFromSpec(t *testing.T) {
 					"/test2": {"get": {"operationId": "getTest2", "tags": ["B"], "responses": {"200": {"description": "OK"}}}}
 				}
 			}`,
-			tagFilter:     []string{},
-			expectedTools: []string{"getTest1", "getTest2", "info"},
+			tagFilter:             []string{},
+			insecureSkipTLSVerify: false,
+			expectedTools:         []string{"getTest1", "getTest2", "info"},
 		},
 		{
 			name: "should register only tools matching the tag filter",
@@ -433,9 +435,10 @@ func TestRegisterToolsFromSpec(t *testing.T) {
 					"/test2": {"get": {"operationId": "getTest2", "tags": ["B"], "responses": {"200": {"description": "OK"}}}}
 				}
 			}`,
-			tagFilter:        []string{"A"},
-			expectedTools:    []string{"getTest1", "info"},
-			notExpectedTools: []string{"getTest2"},
+			tagFilter:             []string{"A"},
+			insecureSkipTLSVerify: false,
+			expectedTools:         []string{"getTest1", "info"},
+			notExpectedTools:      []string{"getTest2"},
 		},
 		{
 			name: "should register tools if any of their tags match the filter",
@@ -446,9 +449,10 @@ func TestRegisterToolsFromSpec(t *testing.T) {
 					"/test2": {"get": {"operationId": "getTest2", "tags": ["B"], "responses": {"200": {"description": "OK"}}}}
 				}
 			}`,
-			tagFilter:        []string{"A", "B"},
-			expectedTools:    []string{"getTest1", "getTest2", "info"},
-			notExpectedTools: []string{},
+			tagFilter:             []string{"A", "B"},
+			insecureSkipTLSVerify: false,
+			expectedTools:         []string{"getTest1", "getTest2", "info"},
+			notExpectedTools:      []string{},
 		},
 		{
 			name: "should correctly format operation names",
@@ -460,8 +464,29 @@ func TestRegisterToolsFromSpec(t *testing.T) {
 					"/test3": {"get": {"operationId": "NoPrefixControllerAction", "tags": ["A"], "responses": {"200": {"description": "OK"}}}}
 				}
 			}`,
-			tagFilter:     []string{"A"},
-			expectedTools: []string{"Some_action", "Another_action", "NoPrefixAction", "info"},
+			tagFilter:             []string{"A"},
+			insecureSkipTLSVerify: false,
+			expectedTools:         []string{"Some_action", "Another_action", "NoPrefixAction", "info"},
+		},
+		{
+			name: "should configure HTTP client with TLS ignore verification enabled",
+			oasContent: `{
+				"openapi": "3.0.0",
+				"info": {"title": "Test API", "version": "1.0"},
+				"servers": [{"url": "https://test.example.com"}],
+				"paths": {
+					"/test": {
+						"get": {
+							"operationId": "testOperation",
+							"tags": ["Test"],
+							"responses": {"200": {"description": "OK"}}
+						}
+					}
+				}
+			}`,
+			tagFilter:             []string{},
+			insecureSkipTLSVerify: true,
+			expectedTools:         []string{"testOperation", "info"},
 		},
 	}
 
@@ -471,7 +496,8 @@ func TestRegisterToolsFromSpec(t *testing.T) {
 
 			srv := server.CreateMCPServer(t.Context(), &server.ServeOptions{Name: "test", Version: "v1"})
 			serveOpts := &server.ServeOptions{
-				TagFilter: tt.tagFilter,
+				TagFilter:             tt.tagFilter,
+				InsecureSkipTLSVerify: tt.insecureSkipTLSVerify,
 			}
 
 			tmpFile := createTempOASFile(t, tt.oasContent)

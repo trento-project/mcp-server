@@ -247,9 +247,23 @@ func registerToolsFromSpec(srv *mcp.Server, oasDoc *openapi3.T, serveOpts *Serve
 		operations = filteredOperations
 	}
 
+	// Create an HTTP client with TLS configuration for tool execution
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: serveOpts.InsecureSkipTLSVerify, //nolint:gosec // Allow insecure TLS when explicitly requested
+			},
+		},
+		Timeout: 30 * time.Second,
+	}
+
 	opts := &openapi2mcp.ToolGenOptions{
 		TagFilter:               nil, // TODO(agamez): revert back to "serveOpts.TagFilter," once we can.
 		ConfirmDangerousActions: true,
+		RequestHandler: func(req *http.Request) (*http.Response, error) {
+			return httpClient.Do(req)
+		},
 		NameFormat: func(oldOperationID string) string {
 			// Convert dots to underscores first
 			operationID := strings.ReplaceAll(oldOperationID, ".", "_")
