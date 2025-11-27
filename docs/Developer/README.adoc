@@ -10,5 +10,5 @@ A high-level overview of how the documentation pages are organized.
 [width="100%",options="header",]
 |===
 |Section |Description
-|xref:getting-started.adoc[Getting started] |Information on how to set up a dev environment and to contribute to the project
+|xref:getting-started.adoc[Getting started] [Getting started] |Information on how to set up a dev environment and to contribute to the project
 |===

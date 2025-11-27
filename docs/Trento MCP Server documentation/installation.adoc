@@ -619,7 +619,7 @@ When using environment variables, prefix each configuration key with `TRENTO_MCP
 - `TRENTO_URL` → `TRENTO_MCP_TRENTO_URL`
 - `ENABLE_HEALTH_CHECK` → `TRENTO_MCP_ENABLE_HEALTH_CHECK`
 
-For the complete reference, including command-line flags and detailed examples, see the xref:configuration-options.adoc[Configuration Options] page.
+For the complete reference, including command-line flags and detailed examples, see the xref:./configuration-options.adoc[Configuration Options] page.
 ====
 
 [cols="25%,15%,60%",options="header"]
