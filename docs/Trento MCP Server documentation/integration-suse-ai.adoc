@@ -128,7 +128,7 @@ Once you have the Ollama model running on Google Cloud Run, you can add it to Op
 
 === Deploying the Trento MCP Server
 
-To deploy the Trento MCP Server in your SUSE AI cluster, install it via the Trento Server Helm chart. Follow the step-by-step instructions in xref:Trento MCP Server documentation/installation.adoc#sec-mcp-install-with-trento-server[Installing MCP Server with Trento Server]. The Trento MCP Server is packaged as a sub-chart and can be enabled during the Trento Server installation.
+To deploy the Trento MCP Server in your SUSE AI cluster, install it via the Trento Server Helm chart. Follow the step-by-step instructions in xref:./installation.adoc#sec-mcp-install-with-trento-server[Installing MCP Server with Trento Server]. The Trento MCP Server is packaged as a sub-chart and can be enabled during the Trento Server installation.
 
 For chart sources and values, see the link:https://github.com/trento-project/helm-charts[Trento helm-charts repository].
 
@@ -203,6 +203,6 @@ image::example-suseai.png[Using Trento MCP Server in Open Web UI,width=900]
 
 == Additional Resources
 
-* xref:Trento MCP Server documentation/installation.adoc[Trento MCP Server Installation Guide] - For deploying and configuring the Trento MCP Server.
-* xref:Trento MCP Server documentation/configuration-options.adoc[Configuration Options] - For detailed Trento MCP Server configuration reference.
+* xref:./installation.adoc[Trento MCP Server Installation Guide] - For deploying and configuring the Trento MCP Server.
+* xref:./configuration-options.adoc[Configuration Options] - For detailed Trento MCP Server configuration reference.
 * link:https://modelcontextprotocol.io[Model Context Protocol Documentation] - For general MCP information and client compatibility.

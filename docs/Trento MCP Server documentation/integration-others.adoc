@@ -18,7 +18,7 @@ This guide uses Visual Studio Code with GitHub Copilot as the primary example, b
 Before configuring your MCP Host, ensure you have:
 
 . *A running Trento Server installation* with the Trento MCP Server component enabled:
-** Follow the xref:Trento MCP Server documentation/installation.adoc[Installation Guide] to deploy the Trento Server and enable the Trento MCP Server.
+** Follow the xref:./installation.adoc[Installation Guide] to deploy the Trento Server and enable the Trento MCP Server.
 ** Note the Trento MCP Server endpoint URL (e.g., `https://trento.example.com/mcp-server-trento/mcp`).
 
 . *A Trento API token (Personal Access Token)*:
@@ -116,7 +116,7 @@ Replace `https://trento.example.com/mcp-server-trento/mcp` with your actual Tren
 * Replace `https://trento.example.com/mcp-server-trento/mcp` with the actual URL where your Trento MCP Server is accessible:
   ** For Kubernetes deployments with ingress, use the ingress URL (e.g., `https://trento.example.com/mcp-server-trento/mcp`).
   ** For local or development setups, use `http://localhost:5000/mcp` (adjust the port as needed).
-  ** If using Server-Sent Events (SSE) transport instead of the default streamable transport, change the path from `/mcp` to `/sse` - The transport type is configured on the Trento MCP Server using the `TRANSPORT` configuration key or `--transport` flag (see xref:Trento MCP Server documentation/configuration-options.adoc[Configuration Options]).
+  ** If using Server-Sent Events (SSE) transport instead of the default streamable transport, change the path from `/mcp` to `/sse` - The transport type is configured on the Trento MCP Server using the `TRANSPORT` configuration key or `--transport` flag (see xref:./configuration-options.adoc[Configuration Options]).
 * Replace `your-trento-pat` with the API token you generated from your Trento instance.
 * If you configured a custom header name (using `HEADER_NAME` or `--header-name`), update `Authorization` accordingly.
 
@@ -140,7 +140,7 @@ If you encounter issues connecting your MCP Host to the Trento MCP Server:
 *** Claude Desktop: Check application logs.
 *** Other clients: Refer to your client's documentation for log locations.
 ** Review the Trento MCP Server logs for connection attempts and errors.
-** Refer to the xref:Trento MCP Server documentation/installation.adoc#sec-mcp-troubleshooting[Installation Guide Troubleshooting section] for additional help.
+** Refer to the xref:./installation.adoc#sec-mcp-troubleshooting[Installation Guide Troubleshooting section] for additional help.
 
 == Using the Trento MCP Server
 
@@ -187,6 +187,6 @@ image::example-copilot.png[VS Code Copilot using Trento MCP Server,width=900]
 
 == Additional Resources
 
-* xref:Trento MCP Server documentation/installation.adoc[Trento MCP Server Installation Guide] - For deploying and configuring the MCP Server.
-* xref:Trento MCP Server documentation/configuration-options.adoc[Configuration Options] - For detailed MCP Server configuration reference.
+* xref:./installation.adoc[Trento MCP Server Installation Guide] - For deploying and configuring the MCP Server.
+* xref:./configuration-options.adoc[Configuration Options] - For detailed MCP Server configuration reference.
 * link:https://modelcontextprotocol.io[Model Context Protocol Documentation] - For general MCP information and client compatibility.
