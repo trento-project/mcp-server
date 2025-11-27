@@ -32,7 +32,7 @@ link:https://www.youtube.com/watch?v=7kDVc3YUR-U[image:https://img.youtube.com/v
 
 == Quick Start
 
-Get started with the Trento MCP Server in minutes. For detailed instructions, see the xref:docs/Trento%20MCP%20Server%20documentation/README.adoc[full documentation index].
+Get started with the Trento MCP Server in minutes. For detailed instructions, see the xref:Trento MCP Server documentation/README.adoc[full documentation index].
 
 === Prerequisites
 
@@ -114,18 +114,18 @@ The AI assistant will use the Trento MCP Server to execute these requests and pr
 
 == Documentation
 
-For comprehensive documentation, see the xref:docs/Trento%20MCP%20Server%20documentation/README.adoc[full documentation index].
+For comprehensive documentation, see the xref:Trento MCP Server documentation/README.adoc[full documentation index].
 
 **Installation and Configuration:**
 
-* xref:docs/Trento%20MCP%20Server%20documentation/installation.adoc[Installation Guide] - Deploy on Kubernetes, systemd, or containers
-* xref:docs/Trento%20MCP%20Server%20documentation/configuration-options.adoc[Configuration Options] - Complete reference of all settings, flags, and environment variables
+* xref:Trento MCP Server documentation/installation.adoc[Installation Guide] - Deploy on Kubernetes, systemd, or containers
+* xref:Trento MCP Server documentation/configuration-options.adoc[Configuration Options] - Complete reference of all settings, flags, and environment variables
 
 **Integration Guides:**
 
-* xref:docs/Trento%20MCP%20Server%20documentation/integration-sles.adoc[SLES 16 Integration] - Connect using MCPHost on SUSE Linux Enterprise Server 16
-* xref:docs/Trento%20MCP%20Server%20documentation/integration-suse-ai.adoc[SUSE AI Platform Integration] - Integrate with SUSE AI for private, on-premises AI deployments
-* xref:docs/Trento%20MCP%20Server%20documentation/integration-others.adoc[Other MCP Hosts] - Configure with VS Code, Claude Desktop, Cursor, and more
+* xref:Trento MCP Server documentation/integration-sles.adoc[SLES 16 Integration] - Connect using MCPHost on SUSE Linux Enterprise Server 16
+* xref:Trento MCP Server documentation/integration-suse-ai.adoc[SUSE AI Platform Integration] - Integrate with SUSE AI for private, on-premises AI deployments
+* xref:Trento MCP Server documentation/integration-others.adoc[Other MCP Hosts] - Configure with VS Code, Claude Desktop, Cursor, and more
 
 **External Resources:**
 
@@ -160,7 +160,7 @@ make test
 make lint
 ----
 
-For comprehensive documentation, see the xref:docs/Developer/README.adoc[developer documentation index].
+For comprehensive documentation, see the xref:Developer/README.adoc[developer documentation index].
 
 We welcome contributions! Report bugs, request features, or ask questions via link:https://github.com/trento-project/mcp-server/issues[GitHub Issues].
 
