@@ -18,7 +18,7 @@ This guide uses Visual Studio Code with GitHub Copilot as the primary example, b
 Before configuring your MCP Host, ensure you have:
 
 . *A running Trento Server installation* with the Trento MCP Server component enabled:
-** Follow the xref:installation.adoc[Installation Guide] to deploy the Trento Server and enable the Trento MCP Server.
+** Follow the xref:../Trento MCP Server documentation/installation.adoc[Installation Guide] to deploy the Trento Server and enable the Trento MCP Server.
 ** Note the Trento MCP Server endpoint URL (e.g., `https://trento.example.com/mcp-server-trento/mcp`).
 
 . *A Trento API token (Personal Access Token)*:
