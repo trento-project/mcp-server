@@ -1,6 +1,8 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
+ifndef::imagesdir[:imagesdir: ./images]
+
 = Integrating the Trento MCP Server with SLES 16
 
 This guide explains how to connect the Trento MCP Server to https://www.suse.com/news/suse-linux-enterprise-server-16-ai-ready-long-term-support/[SUSE Linux Enterprise Server 16] (SLES 16) using https://github.com/mark3labs/mcphost[MCPHost], a lightweight CLI tool for the Model Context Protocol (MCP).
@@ -33,7 +35,7 @@ Before configuring your MCP Host, ensure you have:
 ** *Important:* Copy the generated token immediately and store it securely - it will not be shown again.
 
 .Generate a Personal Access Token in Trento
-image::img/generate-pat.png[Generate a Personal Access Token in Trento,width=800]
+image::generate-pat.png[Generate a Personal Access Token in Trento,width=800]
 
 == Install MCPHost on SLES 16
 
@@ -131,7 +133,7 @@ If no servers appear on startup, confirm your configuration file exists at `~/.m
 ----
 +
 .MCPHost initial screen with the Trento MCP Server connected
-image::img/mcphost-initial.png[MCPHost initial screen, width=900]
+image::mcphost-initial.png[MCPHost initial screen, width=900]
 +
 . Ask the model to invoke Trento tools using natural language prompts, such as:
 +
@@ -145,7 +147,7 @@ image::img/mcphost-initial.png[MCPHost initial screen, width=900]
 * "Which SAP systems are currently running?"
 +
 .Example MCPHost session querying Trento about SAP systems
-image::img/example-mcphost.png[Example MCPHost session with Trento,width=900]
+image::example-mcphost.png[Example MCPHost session with Trento,width=900]
 
 == Troubleshooting
 

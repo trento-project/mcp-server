@@ -1,6 +1,8 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
+ifndef::imagesdir[:imagesdir: ./images]
+
 = Integrating the Trento MCP Server with SUSE AI
 
 This guide explains how to integrate the Trento MCP Server with SUSE AI, including configuration and deployment instructions.
@@ -142,7 +144,7 @@ Once Trento is installed, ensure you have created a *Trento API token (Personal 
 ** *Important:* Copy the generated token immediately and store it securely - it will not be shown again.
 
 .Generate a Personal Access Token in Trento
-image::img/generate-pat.png[Generate a Personal Access Token in Trento,width=800]
+image::generate-pat.png[Generate a Personal Access Token in Trento,width=800]
 
 === Adding the Trento MCP Server to Open Web UI
 
@@ -162,7 +164,7 @@ Refer to the official Open Web UI MCP feature guide for screenshots and advanced
 . Click *Save*.
 
 .Open Web UI - Add the Trento MCP Server as a tool
-image::img/owui-add-tool.png[Add the Trento MCP Server as a tool,width=600]
+image::owui-add-tool.png[Add the Trento MCP Server as a tool,width=600]
 
 ==== Enable the Trento MCP Server for a Model
 
@@ -174,7 +176,7 @@ image::img/owui-add-tool.png[Add the Trento MCP Server as a tool,width=600]
 .. Confirm that tools from `Trento MCP Server` are available and can be invoked (for example, try listing SAP systems)
 
 .Open Web UI - Enable Trento MCP Server for a model
-image::img/owui-add-model.png[Enable Trento MCP Server for model,width=600]
+image::owui-add-model.png[Enable Trento MCP Server for model,width=600]
 
 == Using the Trento MCP Server
 
@@ -196,7 +198,7 @@ Once the Trento MCP Server is configured and enabled for your model, you can sta
 The AI model will use the Trento MCP Server tools to query your Trento installation and provide detailed, contextual responses about your SAP infrastructure.
 
 .Open Web UI - Using Trento MCP Server in conversations
-image::img/example-suseai.png[Using Trento MCP Server in Open Web UI,width=900]
+image::example-suseai.png[Using Trento MCP Server in Open Web UI,width=900]
 
 
 == Additional Resources

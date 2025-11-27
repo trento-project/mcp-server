@@ -1,6 +1,8 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
+ifndef::imagesdir[:imagesdir: ./images]
+
 = Installing the Trento MCP Server
 
 The Trento MCP Server can be deployed in several ways depending on your infrastructure and requirements. This guide covers three main deployment methods: Kubernetes (using Helm charts), systemd (using RPM packages), and containerized deployment (using Docker/Podman).

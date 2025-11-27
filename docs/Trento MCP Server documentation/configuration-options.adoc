@@ -1,6 +1,8 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
+ifndef::imagesdir[:imagesdir: ./images]
+
 = Configuration Options
 
 This document provides an overview of how to configure the `mcp-server-trento` using command-line parameters, configuration files, and environment variables.

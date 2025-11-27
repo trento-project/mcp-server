@@ -1,6 +1,8 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
+ifndef::imagesdir[:imagesdir: ./images]
+
 :badge-url: https://vscode.dev/redirect/mcp/install?name=trento&config=%7B%22servers%22%3A%7B%22mcp-server-trento%22%3A%7B%22type%22%3A%22http%22%2C%22url%22%3A%22http%3A//localhost%3A5000/mcp%22%2C%22headers%22%3A%7B%22Authorization%22%3A%22your-trento-pat%22%7D%7D%7D%7D
 :badge-img: https://img.shields.io/badge/VS_Code-Install_Server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white
 
@@ -30,7 +32,7 @@ Before configuring your MCP Host, ensure you have:
 ** *Important:* Copy the generated token immediately and store it securely - it will not be shown again.
 
 .Generate a Personal Access Token in Trento
-image::img/generate-pat.png[Generate a Personal Access Token in Trento,width=800]
+image::generate-pat.png[Generate a Personal Access Token in Trento,width=800]
 
 == Configuring Your MCP Host
 
@@ -174,14 +176,14 @@ Find below a few example screenshots from different MCP Hosts using the Trento M
 The Claude Desktop app can attach the Trento MCP Server and expose its tools directly in conversations. After configuring your server in Claude's MCP settings, start a new chat and look for the available tools.
 
 .Claude Desktop using Trento MCP Server
-image::img/example-claude.png[Claude Desktop using Trento MCP Server,width=900]
+image::example-claude.png[Claude Desktop using Trento MCP Server,width=900]
 
 === Example: Visual Studio Code with GitHub Copilot
 
 VS Code lets you register external MCP servers and make their tools available to Copilot Chat. Once configured, start a chat and pick the Trento MCP Server tools to run common operations.
 
 .Visual Studio Code with GitHub Copilot using Trento MCP Server
-image::img/example-copilot.png[VS Code Copilot using Trento MCP Server,width=900]
+image::example-copilot.png[VS Code Copilot using Trento MCP Server,width=900]
 
 == Additional Resources
 
