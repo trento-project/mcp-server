@@ -18,10 +18,10 @@ Before configuring your MCP Host, ensure you have:
 . A SLES 16 system with network access
 . An LLM provider and credentials:
 ** Public hosted options, such as https://aistudio.google.com/app/apikey[Google Gemini], https://platform.openai.com/[OpenAI], etc.
-** Private/on-premises option, such as https://documentation.suse.com/suse-ai/1.0/[SUSE AI Platform] - See the guide on xref:./integration-suse-ai.adoc[Integrating the Trento MCP Server with SUSE AI].
+** Private/on-premises option, such as https://documentation.suse.com/suse-ai/1.0/[SUSE AI Platform] - See the guide on xref:../Trento MCP Server documentation/integration-suse-ai.adoc[Integrating the Trento MCP Server with SUSE AI].
 
 . *A running Trento Server installation* with the Trento MCP Server component enabled:
-** Follow the xref:./installation.adoc[Installation Guide] to deploy Trento Server and enable the Trento MCP Server.
+** Follow the xref:../Trento MCP Server documentation/installation.adoc[Installation Guide] to deploy Trento Server and enable the Trento MCP Server.
 ** Note the Trento MCP Server endpoint URL (e.g., `https://trento.example.com/mcp-server-trento/mcp`).
 
 . *A Trento API token (Personal Access Token)*:
@@ -93,7 +93,7 @@ export TRENTO_PAT=<your-trento-personal-access-token>
 * Replace `https://trento.example.com/mcp-server-trento/mcp` with the actual URL where your Trento MCP Server is accessible:
   ** For Kubernetes deployments with ingress, use the ingress URL (e.g., `https://trento.example.com/mcp-server-trento/mcp`).
   ** For local or development setups, use `http://localhost:5000/mcp` (adjust the port as needed).
-  ** If using Server-Sent Events (SSE) transport instead of the default streamable transport, change the path from `/mcp` to `/sse` - The transport type is configured on the Trento MCP Server using the `TRANSPORT` configuration key or `--transport` flag (see xref:./configuration-options.adoc[Configuration Options]).
+  ** If using Server-Sent Events (SSE) transport instead of the default streamable transport, change the path from `/mcp` to `/sse` - The transport type is configured on the Trento MCP Server using the `TRANSPORT` configuration key or `--transport` flag (see xref:../Trento MCP Server documentation/configuration-options.adoc[Configuration Options]).
 * Replace `<your-trento-personal-access-token>` with the API token you generated from your Trento instance.
 * If you configured a custom header name (using `HEADER_NAME` or `--header-name`), update `Authorization` accordingly.
 
@@ -174,11 +174,11 @@ If you encounter issues connecting MCPHost to the Trento MCP Server:
 ** Check the MCPHost terminal output for detailed error messages during startup or operation.
 ** Review the Trento MCP Server logs for connection attempts and errors.
 ** Verify that your configuration file exists at `~/.mcphost.yml` and has correct YAML syntax.
-** Refer to the xref:./installation.adoc#sec-mcp-troubleshooting[Installation Guide Troubleshooting section] for additional help.
+** Refer to the xref:../Trento MCP Server documentation/installation.adoc#sec-mcp-troubleshooting[Installation Guide Troubleshooting section] for additional help.
 
 == Additional Resources
 
 * https://github.com/mark3labs/mcphost#configuration-file-support[MCPHost Configuration Documentation] - For comprehensive MCPHost configuration details.
-* xref:./installation.adoc[Trento MCP Server Installation Guide] - For deploying and configuring the Trento MCP Server.
-* xref:./configuration-options.adoc[Configuration Options] - For detailed Trento MCP Server configuration reference.
+* xref:../Trento MCP Server documentation/installation.adoc[Trento MCP Server Installation Guide] - For deploying and configuring the Trento MCP Server.
+* xref:../Trento MCP Server documentation/configuration-options.adoc[Configuration Options] - For detailed Trento MCP Server configuration reference.
 * https://modelcontextprotocol.io[Model Context Protocol Documentation] - For general MCP information and client compatibility.
