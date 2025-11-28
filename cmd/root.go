@@ -125,7 +125,7 @@ func flagConfigs() []utils.FlagConfig {
 			FlagType:     utils.FlagTypeString,
 			FlagName:     "header-name",
 			Short:        "H",
-			Description:  "The header name to be used for the passing the Trento API key to the MCP server",
+			Description:  "The header name to be used for the passing the Trento PAT to the MCP server",
 		},
 		{
 			Key:          configKeyHealthAPIPath,

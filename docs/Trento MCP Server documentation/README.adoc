@@ -1,6 +1,8 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
+ifndef::imagesdir[:imagesdir: ../images]
+
 = Trento MCP Server documentation
 
 == Documentation overview
@@ -10,7 +12,9 @@ A high-level overview of how the documentation pages are organized.
 [width="100%",options="header",]
 |===
 |Section |Description
-|xref:./integration-suse-ai.adoc[SUSE AI integration] |Information on how to integrate this project into SUSE-AI
-|xref:./integration-vscode.adoc[VS Code integration] |Information on how to use this project along with VS Code
-|xref:./configuration-options.adoc[Configuration options] |Information on how to configure the project
+|xref:../Trento MCP Server documentation/installation.adoc[Installation Guide] |Comprehensive guide for installing the Trento MCP Server in Kubernetes, systemd, and containerized environments
+|xref:../Trento MCP Server documentation/integration-sles.adoc[Integrating the Trento MCP Server with SLES 16] |Guide for connecting the Trento MCP Server to SUSE Linux Enterprise Server 16 using MCPHost
+|xref:../Trento MCP Server documentation/integration-suse-ai.adoc[Integrating the Trento MCP Server with SUSE AI] |Information on how to integrate this project into SUSE AI Platform
+|xref:../Trento MCP Server documentation/integration-others.adoc[Integrating the Trento MCP Server with other MCP Hosts] |Information on how to configure and use the Trento MCP Server with MCP clients like VS Code, Claude Desktop, and others
+|xref:../Trento MCP Server documentation/configuration-options.adoc[Configuration Options] |Complete reference of all configuration options, flags, and environment variables
 |===

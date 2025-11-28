@@ -1,44 +1,171 @@
 // Copyright 2025 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 ifndef::site-gen-antora[:relfileprefix: docs/]
-:badge-url: https://vscode.dev/redirect/mcp/install?name=trento&config=%7B%22servers%22%3A%7B%22mcp-server-trento%22%3A%7B%22type%22%3A%22http%22%2C%22url%22%3A%22http%3A//localhost%3A5000/mcp%22%2C%22headers%22%3A%7B%22X-TRENTO-MCP-APIKEY%22%3A%22your-actual-trento-api-key-here%22%7D%7D%7D%7D
+:badge-url: https://vscode.dev/redirect/mcp/install?name=trento&config=%7B%22servers%22%3A%7B%22mcp-server-trento%22%3A%7B%22type%22%3A%22http%22%2C%22url%22%3A%22http%3A//localhost%3A5000/mcp%22%2C%22headers%22%3A%7B%22Authorization%22%3A%22your-trento-pat%22%7D%7D%7D%7D
 :badge-img: https://img.shields.io/badge/VS_Code-Install_Server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white
 
 = Trento MCP Server
 
-link:{badge-url}[image:{badge-img}[Install in VS Code]]
+image:https://github.com/trento-project/mcp-server/actions/workflows/ci.yaml/badge.svg?branch=main[Continuous Integration,link=https://github.com/trento-project/mcp-server/actions/workflows/ci.yaml]
 
-____
-This project is still in very early stages of development and may not be fully functional or stable. For now, it serves as a proof of concept and a starting point for building MCP servers that integrate with the Trento API.
-____
+== Overview
 
-The `Trento MCP Server` project introduces a link:https://modelcontextprotocol.io/introduction[Model Context Protocol] (MCP) server implementation, enabling Trento to be used and configured as a tool for AI.
-Instead of interacting with the Trento server solely through the web UI, you can now interact with it directly from an AI, a chat interface, or an agent.
+The Trento MCP Server is a link:https://modelcontextprotocol.io/introduction[Model Context Protocol] (MCP) implementation that bridges the gap between AI assistants and the link:https://www.trento-project.io[Trento Project]. Instead of navigating through web interfaces, you can now manage and monitor your SAP systems by simply conversing with your AI assistant in natural language.
 
-== Features
+Whether you're checking cluster health, reviewing system configurations, or analyzing SAP landscapes, the Trento MCP Server enables you to work more efficiently by bringing Trento's powerful capabilities directly into your AI-powered workflow. It connects to SUSE Linux Enterprise Server (SLES), which provides native agentic AI support through MCPHost integration, and it is also supported by SUSE AI for private, on-premises AI deployments.
 
-* *OpenAPI-Driven Tool Generation:*
-** The server uses the provided OpenAPI specifications (`oas-path` flag) to automatically generate tools and endpoints, ensuring strong alignment between the API contract and implementation.
-* *Security & Authentication:*
-** Acts as a resource server, enforcing access control and protecting resources.
-** Requires a valid Trento API key token for authentication - users must generate this token from their Trento instance.
-** The server accepts the API key via HTTP header (default: `X-TRENTO-MCP-APIKEY`) and validates it against the target Trento server.
-** Delegates authorization to the Trento server, following best practices for secure, standards-based authentication flows.
-** Once authentication is successful, the server maintains a session to interact with the Trento API on behalf of the authenticated user.
-* *Container-Ready:*
-** Includes a Dockerfile for easy containerization and deployment.
+=== What is the Model Context Protocol?
+
+The link:https://modelcontextprotocol.io/introduction[Model Context Protocol] (MCP) is an open standard that allows AI applications to securely connect to external data sources and tools. Think of it as a universal adapter that lets your AI assistant - whether it's GitHub Copilot, Claude Desktop, or any other MCP-compatible tool - interact with enterprise systems like Trento in a consistent, secure way.
+
+== See It in Action
+
+link:https://www.youtube.com/watch?v=7kDVc3YUR-U[Watch this video] demonstrating how the Trento MCP Server transforms complex SAP monitoring tasks into simple natural language conversations.
+
+link:https://www.youtube.com/watch?v=7kDVc3YUR-U[image:https://img.youtube.com/vi/7kDVc3YUR-U/maxresdefault.jpg[Video thumbnail]]
+
+*Demo Highlights:*
+
+* Query SAP system health status conversationally
+* Retrieve cluster configuration details on demand
+* Analyze host information across your landscape
 
 == Quick Start
 
-. `git clone link:https://github.com/trento-project/mcp-server.git && cd mcp-server`
-. `make run`
-. Install link:https://code.visualstudio.com/download[VS Code] and the link:vscode:extension/GitHub.copilot[Copilot extension] (see xref:Trento MCP Server documentation/README.adoc[other alternatives here])
-. Install the Trento MCP Server by {badge-url}[clicking here]
+Get started with the Trento MCP Server in minutes. For detailed instructions, see the xref:Trento MCP Server documentation/README.adoc[full documentation index].
 
-== Getting Started
+=== Prerequisites
 
-Go to the xref:Trento MCP Server documentation/README.adoc[documentation] for detailed information on how to set up, configure, and use the `Trento MCP Server`. We recommend starting with the xref:Trento MCP Server documentation/integration-vscode.adoc[VS Code integration guide] to learn how to use it along with Visual Studio Code. Alternatively, you can refer to the xref:Trento MCP Server documentation/integration-suse-ai.adoc[SUSE AI integration guide] to understand how to deploy and use this project with SUSE AI.
+Before you begin, ensure you have:
+
+* **A running Trento Server** (version 3.x or later) - Check out the link:https://documentation.suse.com/sles-sap/trento/html/SLES-SAP-trento/sec-trento-installing-trentoserver.html[official documentation] for installation guidance.
+* **An MCP-compatible AI assistant**, such as public AI tools like link:https://code.visualstudio.com/[VS Code] with link:https://github.com/features/copilot[GitHub Copilot], link:https://claude.ai/download[Claude Desktop], or link:https://cursor.sh/[Cursor], or private AI platforms like link:https://www.suse.com/products/ai/[SUSE AI].
+* **A Trento Personal Access Token** - Generated from your Trento user profile for secure API access.
+
+=== Installation Options
+
+Choose the deployment method that best fits your environment:
+
+==== Systemd Service (Recommended for Linux servers)
+
+For traditional Linux deployments, such as SUSE Linux Enterprise Server:
+
+[source,bash]
+----
+# 1. Install the package
+sudo zypper install mcp-server-trento
+
+# 2. Configure the service
+sudo cp /usr/share/doc/packages/mcp-server-trento/mcp-server-trento.example /etc/trento/mcp-server-trento
+sudo vi /etc/trento/mcp-server-trento # Set your TRENTO_URL
+
+# 3. Start the service
+sudo systemctl enable --now mcp-server-trento
+
+# The Trento MCP server will be available at
+# http://localhost:5000/mcp
+----
+
+==== Container Deployment (For development/testing)
+
+For Docker or Podman environments:
+
+[source,bash]
+----
+docker run -d \
+  --name mcp-server-trento \
+  -p 5000:5000 \
+  -e TRENTO_MCP_TRENTO_URL=https://demo.trento-project.io/ \
+  -e TRENTO_MCP_TAG_FILTER=MCP \
+  registry.opensuse.org/devel/sap/trento/factory/containers/trento/mcp-server-trento:latest
+----
+
+==== Kubernetes Deployment (For production clusters)
+
+If you're deploying Trento on Kubernetes using Helm:
+
+[source,bash]
+----
+helm upgrade --install trento-server oci://registry.suse.com/trento/trento-server \
+  --set trento-mcp-server.enabled=true \
+  --set trento-mcp-server.mcpServer.trentoURL=https://demo.trento-project.io/
+  ... # other flags
+----
+
+The MCP Server will be deployed alongside your Trento installation.
+
+=== Usage Examples
+
+Once configured, you can interact with Trento through your AI assistant using natural language:
+
+**Ask questions conversationally:**
+* _"Show me all SAP systems in my landscape"_
+* _"What's the health status of cluster cluster-1?"_
+* _"List all hosts running HANA databases"_
+* _"Get details about the checks execution history"_
+* _"Are there any critical alerts I need to address?"_
+
+**Get instant insights:**
+* _"Summarize the overall health of my SAP environment"_
+* _"Which systems need attention today?"_
+* _"Show me the latest check results for production systems"_
+
+The AI assistant will use the Trento MCP Server to execute these requests and present the results in a conversational format.
+
+== Documentation
+
+For comprehensive documentation, see the xref:Trento MCP Server documentation/README.adoc[full documentation index].
+
+**Installation and Configuration:**
+
+* xref:Trento MCP Server documentation/installation.adoc[Installation Guide] - Deploy on Kubernetes, systemd, or containers
+* xref:Trento MCP Server documentation/configuration-options.adoc[Configuration Options] - Complete reference of all settings, flags, and environment variables
+
+**Integration Guides:**
+
+* xref:Trento MCP Server documentation/integration-sles.adoc[SLES 16 Integration] - Connect using MCPHost on SUSE Linux Enterprise Server 16
+* xref:Trento MCP Server documentation/integration-suse-ai.adoc[SUSE AI Platform Integration] - Integrate with SUSE AI for private, on-premises AI deployments
+* xref:Trento MCP Server documentation/integration-others.adoc[Other MCP Hosts] - Configure with VS Code, Claude Desktop, Cursor, and more
+
+**External Resources:**
+
+* link:https://www.trento-project.io[Trento Project Website]
+* link:https://modelcontextprotocol.io[Model Context Protocol Documentation]
+
+== For Developers
+
+The Trento MCP Server is built in Go and acts as a bridge between MCP clients and the Trento API, automatically generating MCP tools from OpenAPI specifications.
+
+**Architecture Overview:**
+
+```
+┌─────────────────┐         ┌──────────────────┐         ┌─────────────┐
+│   AI Assistant  │ ◄─────► │ Trento MCP Server│ ◄─────► │Trento Server│
+│  (VS Code, etc) │   MCP   │                  │  HTTP   │   (API)     │
+└─────────────────┘         └──────────────────┘         └─────────────┘
+```
+
+**Quick Development Setup:**
+
+[source,bash]
+----
+# Clone and run locally
+git clone https://github.com/trento-project/mcp-server.git
+cd mcp-server
+make run
+
+# Build and test
+make build
+make test
+make lint
+----
+
+For comprehensive documentation, see the xref:Developer/README.adoc[developer documentation index].
+
+We welcome contributions! Report bugs, request features, or ask questions via link:https://github.com/trento-project/mcp-server/issues[GitHub Issues].
 
 == License
 
-See the link:https://github.com/trento-project/mcp-server/blob/main/LICENSE[LICENSE] notice.
+Copyright 2025 SUSE LLC
+
+This project is licensed under the Apache License 2.0. See the link:https://github.com/trento-project/mcp-server/blob/main/LICENSE[LICENSE] file for details.
