@@ -1,14 +1,5 @@
 # Changelog
 
-## 1.0.0 - 2025-11-28
-
-### What's Changed
-
-* bump version 1.0.0 (#77) @nelsonkopliku
-* fix get_version_from_git.sh (#76) @nelsonkopliku
-
-**Full Changelog**: https://github.com/trento-project/mcp-server/compare/0.1.0...1.0.0
-
 ## 0.1.0 - 2025-11-28
 
 ### What's Changed
@@ -84,5 +75,6 @@
 * Bump actions/checkout from 4 to 5 (#15) @[dependabot[bot]](https://github.com/apps/dependabot)
 * Bump actions/download-artifact from 4 to 5 (#13) @[dependabot[bot]](https://github.com/apps/dependabot)
 * Bump github.com/mark3labs/mcp-go from 0.36.0 to 0.37.0 (#11) @[dependabot[bot]](https://github.com/apps/dependabot)
+
 </details>
 **Full Changelog**: https://github.com/trento-project/mcp-server/compare/...0.1.0
