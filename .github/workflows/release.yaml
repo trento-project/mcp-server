@@ -99,10 +99,15 @@ jobs:
     name: OBS Sync
     if: vars.OBS_ENABLED == 'true'
     uses: ./.github/workflows/obs.yaml
+    strategy:
+      matrix:
+        include:
+          - obs_project: ${{ vars.OBS_PROJECT_STABLE }}
+          - obs_project: ${{ vars.OBS_PROJECT_ROLLING }}
     needs:
       - release
     secrets: inherit
     with:
       # Update changelog and sync with OBS project.
       update_changelog: true
-      obs_project: ${{ vars.OBS_PROJECT_STABLE }}
+      obs_project: ${{ matrix.obs_project }}
