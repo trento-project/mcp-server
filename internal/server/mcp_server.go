@@ -255,7 +255,7 @@ func registerToolsFromSpec(srv *mcp.Server, oasDoc *openapi3.T, serveOpts *Serve
 				InsecureSkipVerify: serveOpts.InsecureSkipTLSVerify, //nolint:gosec // Allow insecure TLS when explicitly requested
 			},
 		},
-		Timeout: 30 * time.Second,
+		Timeout: 0 * time.Second,
 	}
 
 	opts := &openapi2mcp.ToolGenOptions{
