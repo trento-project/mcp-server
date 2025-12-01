@@ -259,8 +259,8 @@ func registerToolsFromSpec(srv *mcp.Server, oasDoc *openapi3.T, serveOpts *Serve
 	}
 
 	opts := &openapi2mcp.ToolGenOptions{
-		TagFilter:               nil, // TODO(agamez): revert back to "serveOpts.TagFilter," once we can.
-		ConfirmDangerousActions: true,
+		TagFilter:               nil,   // TODO(agamez): revert back to "serveOpts.TagFilter," once we can.
+		ConfirmDangerousActions: false, // TODO(agamez): not really working IRL, make it configurable?
 		RequestHandler: func(req *http.Request) (*http.Response, error) {
 			return httpClient.Do(req)
 		},
