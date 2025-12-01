@@ -417,7 +417,8 @@ func startServer(
 		Handler: handler,
 		// The WriteTimeout needs to be longer than the MCP KeepAlive interval (30s)
 		// to prevent the server from prematurely closing long-lived SSE/Streamable connections.
-		WriteTimeout: 0 * time.Second,
+		WriteTimeout:      0 * time.Second,
+		ReadHeaderTimeout: 0 * time.Second, //nolint:gosec // TODO(agamez): consider adding a timeout
 	}
 
 	go func() {
