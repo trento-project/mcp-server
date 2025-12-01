@@ -255,12 +255,12 @@ func registerToolsFromSpec(srv *mcp.Server, oasDoc *openapi3.T, serveOpts *Serve
 				InsecureSkipVerify: serveOpts.InsecureSkipTLSVerify, //nolint:gosec // Allow insecure TLS when explicitly requested
 			},
 		},
-		Timeout: 30 * time.Second,
+		Timeout: 0 * time.Second,
 	}
 
 	opts := &openapi2mcp.ToolGenOptions{
-		TagFilter:               nil, // TODO(agamez): revert back to "serveOpts.TagFilter," once we can.
-		ConfirmDangerousActions: true,
+		TagFilter:               nil,   // TODO(agamez): revert back to "serveOpts.TagFilter," once we can.
+		ConfirmDangerousActions: false, // TODO(agamez): not really working IRL, make it configurable?
 		RequestHandler: func(req *http.Request) (*http.Response, error) {
 			return httpClient.Do(req)
 		},
@@ -417,11 +417,8 @@ func startServer(
 		Handler: handler,
 		// The WriteTimeout needs to be longer than the MCP KeepAlive interval (30s)
 		// to prevent the server from prematurely closing long-lived SSE/Streamable connections.
-		// ReadTimeout and IdleTimeout are also increased to be more lenient.
-		ReadTimeout:       10 * time.Second,
-		WriteTimeout:      45 * time.Second,
-		IdleTimeout:       60 * time.Second,
-		ReadHeaderTimeout: 2 * time.Second,
+		WriteTimeout:      0 * time.Second,
+		ReadHeaderTimeout: 0 * time.Second, //nolint:gosec // TODO(agamez): consider adding a timeout
 	}
 
 	go func() {
