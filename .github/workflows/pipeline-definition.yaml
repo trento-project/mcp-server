@@ -245,7 +245,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       # Download built image artifacts.
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         name: Download artifacts
       # Push container images to the registry.
       - name: Push container images to the registry
