@@ -1,4 +1,4 @@
-// Copyright 2025 SUSE LLC
+// Copyright 2025-2026 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
 // Package server_test is the where the server logic is tested.
