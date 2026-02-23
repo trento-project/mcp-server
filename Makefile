@@ -15,6 +15,7 @@ IMAGE_TAG ?= latest
 IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 
 PORT ?= 5000
+DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 VERSION ?= $(shell ./hack/get_version_from_git.sh)
 GOOS ?= $(shell go env GOOS)
@@ -35,7 +36,7 @@ CGO_ENABLED ?= 0
 # -s -w: Strip debug and symbol tables, reducing binary size and removing potentially sensitive info.
 # -trimpath: Removes file system paths from the binary for reproducible builds and privacy.
 LDFLAGS += -s -w
-GO_BUILD ?= CGO_ENABLED=$(CGO_ENABLED) $(GO) build -buildmode=pie -ldflags "$(LDFLAGS) -extldflags=-Wl,-z,now,-z,relro" -trimpath
+GO_BUILD ?= DATE=$(date) CGO_ENABLED=$(CGO_ENABLED) $(GO) build -buildmode=pie -ldflags "$(LDFLAGS) -extldflags=-Wl,-z,now,-z,relro" -trimpath
 
 ifeq ($(DEBUG), 1)
 	GO_BUILD = CGO_ENABLED=$(CGO_ENABLED) $(GO) build -ldflags "$(LDFLAGS)"
@@ -83,7 +84,7 @@ test: ## Test the project.
 
 .PHONY: build-container
 build-container: ## Build container image (eg. IMAGE=ghcr.io/trento-project/mcp-server-trento:dev make build-container).
-	$(DOCKER) build --build-arg VERSION=${VERSION} --build-arg GOOS=${GOOS} --build-arg GOARCH=${GOARCH} --build-arg PORT=${PORT} -t ${IMAGE} -f Dockerfile .
+	$(DOCKER) build --build-arg VERSION=${VERSION} --build-arg GOOS=${GOOS} --build-arg GOARCH=${GOARCH} --build-arg PORT=${PORT} --build-arg DATE=${DATE} -t ${IMAGE} -f Dockerfile .
 
 .PHONY: push-container
 push-container: ## Push container image (eg. IMAGE=ghcr.io/trento-project/mcp-server-trento:dev make push-container).
