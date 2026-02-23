@@ -252,7 +252,7 @@ func TestWaitForShutdown(t *testing.T) {
 				require.NoError(t, err)
 
 				client := &http.Client{}
-				resp, err := client.Do(req)
+				resp, err := client.Do(req) // nolint:gosec // This is just a test, no SSRF risk
 				require.Error(t, err, "Server should be down")
 
 				if resp != nil && resp.Body != nil {

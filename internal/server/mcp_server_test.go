@@ -723,7 +723,7 @@ func waitForServerReady(t *testing.T, urlStr string, timeout time.Duration) {
 	for time.Now().Before(deadline) {
 		// Use client.Do to ensure the context is passed for cancellation
 		// and to avoid issues with client.Get's default redirect behavior
-		resp, err := client.Do(req)
+		resp, err := client.Do(req) // nolint:gosec // This is just a test, no SSRF risk
 		if err == nil {
 			_ = resp.Body.Close()
 			// Consider the server ready if it returns any non-5xx response.
@@ -788,7 +788,7 @@ func createTempOASFile(t *testing.T, oasContent string) string {
 
 	tmpFile, err := os.CreateTemp(t.TempDir(), "openapi-*.json")
 	require.NoError(t, err)
-	t.Cleanup(func() { err = os.Remove(tmpFile.Name()); require.NoError(t, err) })
+	t.Cleanup(func() { err = os.Remove(tmpFile.Name()); require.NoError(t, err) }) // nolint:gosec // This is just a test, no SSRF risk
 
 	_, err = tmpFile.WriteString(oasContent)
 	require.NoError(t, err)

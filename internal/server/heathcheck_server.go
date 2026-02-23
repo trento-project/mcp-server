@@ -284,8 +284,22 @@ func checkAPIServiceHealth(
 	serveOpts *ServeOptions,
 	httpClient *http.Client,
 ) error {
-	// Create the HTTP request
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
+	// Validate the health URL
+	parsedURL, err := url.Parse(healthURL)
+	if err != nil {
+		return fmt.Errorf("invalid health URL %s: %w", healthURL, err)
+	}
+
+	if parsedURL.Scheme != httpScheme && parsedURL.Scheme != httpsScheme {
+		return fmt.Errorf("unsupported protocol scheme %q", parsedURL.Scheme)
+	}
+
+	if parsedURL.Host == "" {
+		return fmt.Errorf("health URL must contain a host: %s", healthURL)
+	}
+
+	// Create the HTTP request using the validated parsedURL
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request for %s: %w", healthURL, err)
 	}
@@ -293,8 +307,14 @@ func checkAPIServiceHealth(
 	// Set User-Agent header
 	req.Header.Set("User-Agent", fmt.Sprintf("%s/%s", serveOpts.Name, serveOpts.Version))
 
-	// Make the request
-	resp, err := httpClient.Do(req)
+	// Make the request through the configured RoundTripper.
+	// This avoids automatic redirect handling and keeps the request path explicit.
+	transport := httpClient.Transport
+	if transport == nil {
+		transport = http.DefaultTransport
+	}
+
+	resp, err := transport.RoundTrip(req)
 	if err != nil {
 		return fmt.Errorf("failed to connect to %s (derived from OAS path %s): %w", healthURL, oasPath, err)
 	}
