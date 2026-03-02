@@ -32,11 +32,6 @@ const (
 	wandaCheckName = "wanda"
 	// wandaCheckName is the name for the web check.
 	webCheckName = "web"
-
-	// httpScheme is the HTTP scheme used for health checks.
-	httpScheme = "http"
-	// httpsScheme is the HTTPS scheme used for health checks.
-	httpsScheme = "https"
 )
 
 // createLivenessChecker creates and returns a liveness health check handler.
@@ -229,7 +224,7 @@ func checkMCPServer(ctx context.Context, serveOpts *ServeOptions) error {
 	case utils.TransportSSE:
 		mcpTransport = &mcp.SSEClientTransport{
 			Endpoint: (&url.URL{
-				Scheme: httpScheme,
+				Scheme: utils.HttpScheme,
 				Host:   fmt.Sprintf("localhost:%d", serveOpts.Port),
 				Path:   "/sse",
 			}).String(),
@@ -240,7 +235,7 @@ func checkMCPServer(ctx context.Context, serveOpts *ServeOptions) error {
 	case utils.TransportStreamable:
 		mcpTransport = &mcp.StreamableClientTransport{
 			Endpoint: (&url.URL{
-				Scheme: httpScheme,
+				Scheme: utils.HttpScheme,
 				Host:   fmt.Sprintf("localhost:%d", serveOpts.Port),
 				Path:   "/mcp",
 			}).String(),
@@ -290,12 +285,9 @@ func checkAPIServiceHealth(
 		return fmt.Errorf("invalid health URL %s: %w", healthURL, err)
 	}
 
-	if parsedURL.Scheme != httpScheme && parsedURL.Scheme != httpsScheme {
-		return fmt.Errorf("unsupported protocol scheme %q", parsedURL.Scheme)
-	}
-
-	if parsedURL.Host == "" {
-		return fmt.Errorf("health URL must contain a host: %s", healthURL)
+	err = utils.ValidateHTTPURL(parsedURL)
+	if err != nil {
+		return err
 	}
 
 	// Create the HTTP request using the validated parsedURL

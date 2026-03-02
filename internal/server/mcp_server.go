@@ -263,17 +263,13 @@ func registerToolsFromSpec(srv *mcp.Server, oasDoc *openapi3.T, serveOpts *Serve
 		ConfirmDangerousActions: false, // TODO(agamez): not really working IRL, make it configurable?
 		RequestHandler: func(req *http.Request) (*http.Response, error) {
 			// Validate the request URL to mitigate SSRF (gosec G704).
-			if req == nil || req.URL == nil {
-				return nil, fmt.Errorf("invalid request: missing URL")
+			if req == nil {
+				return nil, fmt.Errorf("invalid request: missing request")
 			}
 
-			parsed := req.URL
-			if parsed.Scheme != "http" && parsed.Scheme != "https" {
-				return nil, fmt.Errorf("unsupported protocol scheme %q", parsed.Scheme)
-			}
-
-			if parsed.Host == "" {
-				return nil, fmt.Errorf("request URL must contain a host: %s", parsed.String())
+			err := utils.ValidateHTTPURL(req.URL)
+			if err != nil {
+				return nil, err
 			}
 
 			// Use the client's transport RoundTrip to avoid opaque Do sinks and automatic redirects.
@@ -343,12 +339,9 @@ func loadOpenAPISpecFromURL(ctx context.Context, path string, serveOpts *ServeOp
 		return nil, fmt.Errorf("invalid OpenAPI spec URL %s: %w", path, err)
 	}
 
-	if parsedPath.Scheme != "http" && parsedPath.Scheme != "https" {
-		return nil, fmt.Errorf("unsupported protocol scheme %q", parsedPath.Scheme)
-	}
-
-	if parsedPath.Host == "" {
-		return nil, fmt.Errorf("OpenAPI spec URL must contain a host: %s", path)
+	err = utils.ValidateHTTPURL(parsedPath)
+	if err != nil {
+		return nil, err
 	}
 
 	// Generate the GET request using the validated URL.

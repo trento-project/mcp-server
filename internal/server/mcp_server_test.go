@@ -57,7 +57,7 @@ func TestStartSSEServer(t *testing.T) {
 			srv := server.CreateMCPServer(ctx, &server.ServeOptions{Name: "test", Version: "v1"})
 			port := getAvailablePort(t)
 			listenAddr := fmt.Sprintf(":%d", port)
-			checkURL := (&url.URL{Scheme: "http", Host: fmt.Sprintf("localhost:%d", port), Path: tt.checkPath}).String()
+			checkURL := (&url.URL{Scheme: utils.HttpScheme, Host: fmt.Sprintf("localhost:%d", port), Path: tt.checkPath}).String()
 
 			testServerShutdown(t, cancel, func() error {
 				serverErrChan := make(chan error, 1)
@@ -105,7 +105,7 @@ func TestStartStreamableHTTPServer(t *testing.T) {
 			srv := server.CreateMCPServer(ctx, &server.ServeOptions{Name: "test", Version: "v1"})
 			port := getAvailablePort(t)
 			listenAddr := fmt.Sprintf(":%d", port)
-			checkURL := (&url.URL{Scheme: "http", Host: fmt.Sprintf("localhost:%d", port), Path: tt.checkPath}).String()
+			checkURL := (&url.URL{Scheme: utils.HttpScheme, Host: fmt.Sprintf("localhost:%d", port), Path: tt.checkPath}).String()
 
 			testServerShutdown(t, cancel, func() error {
 				serverErrChan := make(chan error, 1)
@@ -165,7 +165,7 @@ func TestStartServer(t *testing.T) {
 
 			port := getAvailablePort(t)
 			listenAddr := fmt.Sprintf(":%d", port)
-			checkURL := (&url.URL{Scheme: "http", Host: fmt.Sprintf("localhost:%d", port)}).String()
+			checkURL := (&url.URL{Scheme: utils.HttpScheme, Host: fmt.Sprintf("localhost:%d", port)}).String()
 
 			testServerShutdown(t, cancel, func() error {
 				serverErrChan := make(chan error, 1)
@@ -677,7 +677,7 @@ func TestHandleMCPServerRun(t *testing.T) {
 					assert.Contains(t, err.Error(), tt.errContains)
 				}
 			} else {
-				checkURL := (&url.URL{Scheme: "http", Host: fmt.Sprintf("localhost:%d", port), Path: tt.path}).String()
+				checkURL := (&url.URL{Scheme: utils.HttpScheme, Host: fmt.Sprintf("localhost:%d", port), Path: tt.path}).String()
 				testServerShutdown(t, cancel, func() error {
 					serverErrChan := make(chan error, 1)
 
