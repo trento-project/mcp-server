@@ -48,7 +48,7 @@ ARG PORT
 
 COPY --from=builder /build/mcp-server-trento/bin/${GOOS}-${GOARCH}/mcp-server-trento /mcp-server-trento
 
-#labelprefix=com.suse.trento.mcp-server-trento
+# labelprefix=com.suse.trento
 LABEL org.opencontainers.image.authors="https://github.com/trento-project/mcp-server/graphs/contributors"
 LABEL org.opencontainers.image.title="Trento MCP Server"
 LABEL org.opencontainers.image.description="Model Context Protocol server wrapping Trento API"
