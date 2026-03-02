@@ -224,7 +224,7 @@ func checkMCPServer(ctx context.Context, serveOpts *ServeOptions) error {
 	case utils.TransportSSE:
 		mcpTransport = &mcp.SSEClientTransport{
 			Endpoint: (&url.URL{
-				Scheme: utils.HttpScheme,
+				Scheme: utils.HTTPScheme,
 				Host:   fmt.Sprintf("localhost:%d", serveOpts.Port),
 				Path:   "/sse",
 			}).String(),
@@ -235,7 +235,7 @@ func checkMCPServer(ctx context.Context, serveOpts *ServeOptions) error {
 	case utils.TransportStreamable:
 		mcpTransport = &mcp.StreamableClientTransport{
 			Endpoint: (&url.URL{
-				Scheme: utils.HttpScheme,
+				Scheme: utils.HTTPScheme,
 				Host:   fmt.Sprintf("localhost:%d", serveOpts.Port),
 				Path:   "/mcp",
 			}).String(),

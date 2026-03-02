@@ -1,7 +1,7 @@
 // Copyright 2026 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
-package utils
+package utils //nolint:revive
 
 import (
 	"fmt"
@@ -9,8 +9,10 @@ import (
 )
 
 const (
-	HttpScheme  = "http"
-	HttpsScheme = "https"
+	// HTTPScheme is the HTTPS scheme
+	HTTPScheme = "http"
+	// HTTPSScheme is the HTTP scheme
+	HTTPSScheme = "https"
 )
 
 // ValidateHTTPURL validates scheme and host constraints for outbound HTTP requests.
@@ -19,7 +21,7 @@ func ValidateHTTPURL(parsedURL *url.URL) error {
 		return fmt.Errorf("invalid URL: missing URL")
 	}
 
-	if parsedURL.Scheme != HttpScheme && parsedURL.Scheme != HttpsScheme {
+	if parsedURL.Scheme != HTTPScheme && parsedURL.Scheme != HTTPSScheme {
 		return fmt.Errorf("invalid URL: unsupported protocol scheme %q", parsedURL.Scheme)
 	}
 

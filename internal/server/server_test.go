@@ -93,7 +93,7 @@ func TestServe(t *testing.T) {
 				assert.Contains(t, err.Error(), tt.errContains)
 			} else {
 				checkURL := (&url.URL{
-					Scheme: utils.HttpScheme,
+					Scheme: utils.HTTPScheme,
 					Host:   fmt.Sprintf("localhost:%d", port),
 					Path:   tt.path,
 				}).String()
@@ -233,7 +233,7 @@ func TestWaitForShutdown(t *testing.T) {
 				}()
 
 				checkURL := (&url.URL{
-					Scheme: utils.HttpScheme,
+					Scheme: utils.HTTPScheme,
 					Host:   fmt.Sprintf("localhost:%d", port),
 					Path:   tt.checkPath,
 				}).String()
