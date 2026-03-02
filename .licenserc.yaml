@@ -8,7 +8,7 @@ header:
     copyright-owner: SUSE LLC
     software-name: mcp-server-trento
     content: |
-      Copyright 2025 SUSE LLC
+      Copyright 2026 SUSE LLC
       SPDX-License-Identifier: Apache-2.0
     pattern: |
       Copyright (?:\d{4}-\d{4}|\d{4}) SUSE LLC
@@ -19,4 +19,5 @@ header:
     - LICENSE
     - VERSION
     - go.sum
+    - packaging/suse/container/README.md
     - packaging/suse/rpm/systemd/mcp-server-trento.service
