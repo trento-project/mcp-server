@@ -1,4 +1,4 @@
-// Copyright 2025 SUSE LLC
+// Copyright 2025-2026 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
 package server
@@ -262,7 +262,23 @@ func registerToolsFromSpec(srv *mcp.Server, oasDoc *openapi3.T, serveOpts *Serve
 		TagFilter:               nil,   // TODO(agamez): revert back to "serveOpts.TagFilter," once we can.
 		ConfirmDangerousActions: false, // TODO(agamez): not really working IRL, make it configurable?
 		RequestHandler: func(req *http.Request) (*http.Response, error) {
-			return httpClient.Do(req)
+			// Validate the request URL to mitigate SSRF (gosec G704).
+			if req == nil {
+				return nil, fmt.Errorf("invalid request: missing request")
+			}
+
+			err := utils.ValidateHTTPURL(req.URL)
+			if err != nil {
+				return nil, err
+			}
+
+			// Use the client's transport RoundTrip to avoid opaque Do sinks and automatic redirects.
+			transport := httpClient.Transport
+			if transport == nil {
+				transport = http.DefaultTransport
+			}
+
+			return transport.RoundTrip(req)
 		},
 		NameFormat: func(oldOperationID string) string {
 			// Convert dots to underscores first
@@ -317,8 +333,19 @@ func loadOpenAPISpecFromURL(ctx context.Context, path string, serveOpts *ServeOp
 		Timeout: 30 * time.Second,
 	}
 
-	// Generate the GET request.
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, nil)
+	// Validate and parse the path URL
+	parsedPath, err := url.Parse(path)
+	if err != nil {
+		return nil, fmt.Errorf("invalid OpenAPI spec URL %s: %w", path, err)
+	}
+
+	err = utils.ValidateHTTPURL(parsedPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Generate the GET request using the validated URL.
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedPath.String(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
 	}
@@ -326,8 +353,13 @@ func loadOpenAPISpecFromURL(ctx context.Context, path string, serveOpts *ServeOp
 	// Set the UA to track the version.
 	req.Header.Set("User-Agent", fmt.Sprintf("%s/%s", serveOpts.Name, serveOpts.Version))
 
-	// Perform the request.
-	resp, err := client.Do(req)
+	// Perform the request via the client's transport to avoid opaque Do sinks and automatic redirects.
+	transport := client.Transport
+	if transport == nil {
+		transport = http.DefaultTransport
+	}
+
+	resp, err := transport.RoundTrip(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch OpenAPI spec from URL: %w", err)
 	}

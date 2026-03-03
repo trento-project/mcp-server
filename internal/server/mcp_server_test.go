@@ -1,4 +1,4 @@
-// Copyright 2025 SUSE LLC
+// Copyright 2025-2026 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
 //nolint:lll
@@ -57,7 +57,7 @@ func TestStartSSEServer(t *testing.T) {
 			srv := server.CreateMCPServer(ctx, &server.ServeOptions{Name: "test", Version: "v1"})
 			port := getAvailablePort(t)
 			listenAddr := fmt.Sprintf(":%d", port)
-			checkURL := (&url.URL{Scheme: "http", Host: fmt.Sprintf("localhost:%d", port), Path: tt.checkPath}).String()
+			checkURL := (&url.URL{Scheme: utils.HTTPScheme, Host: fmt.Sprintf("localhost:%d", port), Path: tt.checkPath}).String()
 
 			testServerShutdown(t, cancel, func() error {
 				serverErrChan := make(chan error, 1)
@@ -105,7 +105,7 @@ func TestStartStreamableHTTPServer(t *testing.T) {
 			srv := server.CreateMCPServer(ctx, &server.ServeOptions{Name: "test", Version: "v1"})
 			port := getAvailablePort(t)
 			listenAddr := fmt.Sprintf(":%d", port)
-			checkURL := (&url.URL{Scheme: "http", Host: fmt.Sprintf("localhost:%d", port), Path: tt.checkPath}).String()
+			checkURL := (&url.URL{Scheme: utils.HTTPScheme, Host: fmt.Sprintf("localhost:%d", port), Path: tt.checkPath}).String()
 
 			testServerShutdown(t, cancel, func() error {
 				serverErrChan := make(chan error, 1)
@@ -165,7 +165,7 @@ func TestStartServer(t *testing.T) {
 
 			port := getAvailablePort(t)
 			listenAddr := fmt.Sprintf(":%d", port)
-			checkURL := (&url.URL{Scheme: "http", Host: fmt.Sprintf("localhost:%d", port)}).String()
+			checkURL := (&url.URL{Scheme: utils.HTTPScheme, Host: fmt.Sprintf("localhost:%d", port)}).String()
 
 			testServerShutdown(t, cancel, func() error {
 				serverErrChan := make(chan error, 1)
@@ -677,7 +677,7 @@ func TestHandleMCPServerRun(t *testing.T) {
 					assert.Contains(t, err.Error(), tt.errContains)
 				}
 			} else {
-				checkURL := (&url.URL{Scheme: "http", Host: fmt.Sprintf("localhost:%d", port), Path: tt.path}).String()
+				checkURL := (&url.URL{Scheme: utils.HTTPScheme, Host: fmt.Sprintf("localhost:%d", port), Path: tt.path}).String()
 				testServerShutdown(t, cancel, func() error {
 					serverErrChan := make(chan error, 1)
 
@@ -723,7 +723,7 @@ func waitForServerReady(t *testing.T, urlStr string, timeout time.Duration) {
 	for time.Now().Before(deadline) {
 		// Use client.Do to ensure the context is passed for cancellation
 		// and to avoid issues with client.Get's default redirect behavior
-		resp, err := client.Do(req)
+		resp, err := client.Do(req) // nolint:gosec // This is just a test, no SSRF risk
 		if err == nil {
 			_ = resp.Body.Close()
 			// Consider the server ready if it returns any non-5xx response.
@@ -788,7 +788,7 @@ func createTempOASFile(t *testing.T, oasContent string) string {
 
 	tmpFile, err := os.CreateTemp(t.TempDir(), "openapi-*.json")
 	require.NoError(t, err)
-	t.Cleanup(func() { err = os.Remove(tmpFile.Name()); require.NoError(t, err) })
+	t.Cleanup(func() { err = os.Remove(tmpFile.Name()); require.NoError(t, err) }) // nolint:gosec // This is just a test, no SSRF risk
 
 	_, err = tmpFile.WriteString(oasContent)
 	require.NoError(t, err)
