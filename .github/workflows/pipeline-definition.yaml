@@ -199,7 +199,7 @@ jobs:
           cache-to: type=gha,mode=max
           outputs: type=docker,dest=${{ steps.setup.outputs.img_file }}
       # Upload the built image as an artifact.
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         name: Upload artifacts
         with:
           name: ${{matrix.image}}-image
@@ -245,7 +245,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       # Download built image artifacts.
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         name: Download artifacts
       # Push container images to the registry.
       - name: Push container images to the registry
