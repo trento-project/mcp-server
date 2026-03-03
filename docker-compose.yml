@@ -30,3 +30,5 @@ services:
 volumes:
   pgvector_data:
     driver: local
+
+# go run . agui --gemini-api-key $GEMINI_API_KEY --pg-url "postgres://postgres:postgres@localhost:5434/trento_rag?sslmode=disable"
