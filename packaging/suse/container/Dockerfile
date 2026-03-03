@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Note: This file should be the same as the one in the root of the repository
+# Ref: https://openbuildservice.org/help/manuals/obs-user-guide/cha-obs-supported-formats
+# Ref: https://github.com/bmwiedemann/openSUSE/tree/master/packages/o/obs-service-kiwi_metainfo_helper
+# Ref: https://github.com/bmwiedemann/openSUSE/tree/master/packages/o/obs-service-docker_label_helper
 
 #!BuildTag: trento/mcp-server-trento:latest
 #!BuildTag: trento/mcp-server-trento:%%VERSION%%
