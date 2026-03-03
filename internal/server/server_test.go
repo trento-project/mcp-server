@@ -1,4 +1,4 @@
-// Copyright 2025 SUSE LLC
+// Copyright 2025-2026 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
 // Package server_test is the where the server logic is tested.
@@ -93,7 +93,7 @@ func TestServe(t *testing.T) {
 				assert.Contains(t, err.Error(), tt.errContains)
 			} else {
 				checkURL := (&url.URL{
-					Scheme: "http",
+					Scheme: utils.HTTPScheme,
 					Host:   fmt.Sprintf("localhost:%d", port),
 					Path:   tt.path,
 				}).String()
@@ -233,7 +233,7 @@ func TestWaitForShutdown(t *testing.T) {
 				}()
 
 				checkURL := (&url.URL{
-					Scheme: "http",
+					Scheme: utils.HTTPScheme,
 					Host:   fmt.Sprintf("localhost:%d", port),
 					Path:   tt.checkPath,
 				}).String()
@@ -252,7 +252,7 @@ func TestWaitForShutdown(t *testing.T) {
 				require.NoError(t, err)
 
 				client := &http.Client{}
-				resp, err := client.Do(req)
+				resp, err := client.Do(req) // nolint:gosec // This is just a test, no SSRF risk
 				require.Error(t, err, "Server should be down")
 
 				if resp != nil && resp.Body != nil {

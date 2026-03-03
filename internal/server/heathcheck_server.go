@@ -1,4 +1,4 @@
-// Copyright 2025 SUSE LLC
+// Copyright 2025-2026 SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
 package server
@@ -66,24 +66,25 @@ func createReadinessChecker(ctx context.Context, serveOpts *ServeOptions) http.H
 		Timeout: 5 * time.Second,
 	}
 
-	// Start with the MCP server check
-	checks := []health.Check{
-		{
-			Name: "mcp-server",
-			Check: func(ctx context.Context) error {
-				// Check connectivity to the MCP server using an MCP client.
-				return checkMCPServer(ctx, serveOpts)
-			},
+	// Precompute OAS checks so we can preallocate capacity
+	oasChecks := createOASPathHealthChecks(ctx, serveOpts, httpClient)
+
+	// Start with the MCP server check and preallocate capacity for all checks
+	checks := make([]health.Check, 0, 1+len(oasChecks))
+	checks = append(checks, health.Check{
+		Name: "mcp-server",
+		Check: func(ctx context.Context) error {
+			return checkMCPServer(ctx, serveOpts)
 		},
-	}
+	})
 
 	slog.InfoContext(ctx, "creating health check for MCP server")
 
 	// Add individual health checks for each OAS path
-	checks = append(checks, createOASPathHealthChecks(ctx, serveOpts, httpClient)...)
+	checks = append(checks, oasChecks...)
 
-	// Build the checker options
-	options := []health.CheckerOption{}
+	// Build the checker options and preallocate based on number of checks
+	options := make([]health.CheckerOption, 0, len(checks))
 	for _, check := range checks {
 		options = append(options, health.WithCheck(check))
 	}
@@ -223,7 +224,7 @@ func checkMCPServer(ctx context.Context, serveOpts *ServeOptions) error {
 	case utils.TransportSSE:
 		mcpTransport = &mcp.SSEClientTransport{
 			Endpoint: (&url.URL{
-				Scheme: "http",
+				Scheme: utils.HTTPScheme,
 				Host:   fmt.Sprintf("localhost:%d", serveOpts.Port),
 				Path:   "/sse",
 			}).String(),
@@ -234,7 +235,7 @@ func checkMCPServer(ctx context.Context, serveOpts *ServeOptions) error {
 	case utils.TransportStreamable:
 		mcpTransport = &mcp.StreamableClientTransport{
 			Endpoint: (&url.URL{
-				Scheme: "http",
+				Scheme: utils.HTTPScheme,
 				Host:   fmt.Sprintf("localhost:%d", serveOpts.Port),
 				Path:   "/mcp",
 			}).String(),
@@ -278,8 +279,19 @@ func checkAPIServiceHealth(
 	serveOpts *ServeOptions,
 	httpClient *http.Client,
 ) error {
-	// Create the HTTP request
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
+	// Validate the health URL
+	parsedURL, err := url.Parse(healthURL)
+	if err != nil {
+		return fmt.Errorf("invalid health URL %s: %w", healthURL, err)
+	}
+
+	err = utils.ValidateHTTPURL(parsedURL)
+	if err != nil {
+		return err
+	}
+
+	// Create the HTTP request using the validated parsedURL
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request for %s: %w", healthURL, err)
 	}
@@ -287,8 +299,14 @@ func checkAPIServiceHealth(
 	// Set User-Agent header
 	req.Header.Set("User-Agent", fmt.Sprintf("%s/%s", serveOpts.Name, serveOpts.Version))
 
-	// Make the request
-	resp, err := httpClient.Do(req)
+	// Make the request through the configured RoundTripper.
+	// This avoids automatic redirect handling and keeps the request path explicit.
+	transport := httpClient.Transport
+	if transport == nil {
+		transport = http.DefaultTransport
+	}
+
+	resp, err := transport.RoundTrip(req)
 	if err != nil {
 		return fmt.Errorf("failed to connect to %s (derived from OAS path %s): %w", healthURL, oasPath, err)
 	}
