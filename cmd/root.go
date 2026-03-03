@@ -5,15 +5,19 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/carlmjohnson/versioninfo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/trento-project/mcp-server/internal/agent"
+	"github.com/trento-project/mcp-server/internal/agui"
 	"github.com/trento-project/mcp-server/internal/server"
+	"github.com/trento-project/mcp-server/internal/telemetry"
 	"github.com/trento-project/mcp-server/internal/utils"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var (
@@ -51,7 +55,7 @@ const (
 	defaultInsecureSkipTLSVerify = false
 	defaultPort                  = 5000
 	defaultTrentoURL             = ""
-	defaultVerbosity             = "info"
+	defaultVerbosity             = "debug"
 
 	// Configuration keys.
 	configKeyAutodiscoveryPaths    = "AUTODISCOVERY_PATHS"
@@ -76,6 +80,78 @@ func init() {
 	setFlags(rootCmd)
 	rootCmd.SetVersionTemplate(`{{printf "%s" .Version}}
 `)
+	rootCmd.AddCommand(newAGUICmd())
+}
+
+func newAGUICmd() *cobra.Command {
+	var addr string
+	var mcpURL string
+	var mcpToken string
+	var systemPrompt string
+	var geminiAPIKey string
+	var pgURL string
+	var otelEndpoint string
+	cmd := &cobra.Command{
+		Use:   "agui",
+		Short: "Run an AG-UI compatible server",
+		Long:  "Run an AG-UI protocol compliant server with SSE streaming and RAG support",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx := cmd.Context()
+
+			// Get Gemini API key from env if not provided
+			if geminiAPIKey == "" {
+				geminiAPIKey = os.Getenv("GEMINI_API_KEY")
+			}
+			if geminiAPIKey == "" {
+				return fmt.Errorf("Gemini API key required: use --gemini-api-key flag or GEMINI_API_KEY environment variable")
+			}
+
+			// Initialize OTEL providers for metrics and tracing
+			endpoint := otelEndpoint
+			if endpoint == "" {
+				endpoint = os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+			}
+			var metrics *telemetry.Metrics
+			var tracer trace.Tracer
+			if endpoint != "" {
+				provider, err := telemetry.InitializeOTLP(ctx, endpoint)
+				if err != nil {
+					slog.WarnContext(ctx, "OTEL init failed; continuing without telemetry", "error", err)
+				} else {
+					defer func() {
+						if err := provider.Shutdown(ctx); err != nil {
+							slog.WarnContext(ctx, "OTEL shutdown failed", "error", err)
+						}
+					}()
+					meter := provider.MetricProvider.Meter("trento-agent")
+					metrics, err = telemetry.InitializeMetrics(ctx, meter)
+					if err != nil {
+						slog.WarnContext(ctx, "OTEL metrics init failed; continuing without metrics", "error", err)
+					}
+					tracer = provider.TraceProvider.Tracer("trento-agent")
+				}
+			}
+
+			// Initialize agent service with RAG support
+			service, err := agent.NewAgentService(ctx, mcpURL, mcpToken, systemPrompt, geminiAPIKey, pgURL, metrics, tracer)
+			if err != nil {
+				return err
+			}
+			defer service.Close()
+
+			// Run SSE-based AG-UI server (preferred)
+			s := agui.NewSSEServer(service, addr)
+			return s.Run(ctx)
+		},
+	}
+	cmd.Flags().StringVar(&addr, "addr", ":8081", "address to bind the AG-UI server")
+	cmd.Flags().StringVar(&mcpURL, "mcp-url", "http://localhost:5000", "MCP server URL")
+	cmd.Flags().StringVar(&mcpToken, "mcp-token", "trento_pat_pT7P0Mk8ScOuWSaNHAzGrXDwQ08QdBEE7p9648kg_bEwXNodY_PIRqvw1Thu5kK3F_DFPJRtJV6ngDxdjfv9Lw", "Bearer token to use as Authorization header when connecting to MCP server (optional)")
+	cmd.Flags().StringVar(&systemPrompt, "system-prompt", "", "Optional system prompt override for the agent (defaults to Trento assistant prompt)")
+	cmd.Flags().StringVar(&geminiAPIKey, "gemini-api-key", "", "Gemini API key for LLM and embeddings (or set GEMINI_API_KEY env var)")
+	cmd.Flags().StringVar(&pgURL, "pg-url", "postgres://postgres:postgres@localhost:5434/trento_rag?sslmode=disable", "PostgreSQL connection URL for RAG vector store")
+	cmd.Flags().StringVar(&otelEndpoint, "otel-endpoint", "localhost:4317", "OTEL gRPC endpoint (host:port); set empty to disable")
+	return cmd
 }
 
 func newRootCmd() *cobra.Command {
@@ -236,10 +312,10 @@ func configureCLI(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
-	// If no TrentoURL or no OASPaths are provided, just error
-	if serveOpts.TrentoURL == "" && len(serveOpts.OASPath) == 0 {
-		return errors.New("either a Trento URL or at least one OAS path must be provided")
-	}
+	// // If no TrentoURL or no OASPaths are provided, just error
+	// if serveOpts.TrentoURL == "" && len(serveOpts.OASPath) == 0 {
+	// 	return errors.New("either a Trento URL or at least one OAS path must be provided")
+	// }
 
 	return nil
 }
