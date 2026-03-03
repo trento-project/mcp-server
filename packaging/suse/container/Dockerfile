@@ -51,6 +51,7 @@ ARG PORT
 
 COPY --from=builder /build/mcp-server-trento/bin/${GOOS}-${GOARCH}/mcp-server-trento /mcp-server-trento
 
+# Define labels according to https://en.opensuse.org/Building_derived_containers
 # labelprefix=com.suse.trento
 LABEL org.opencontainers.image.authors="https://github.com/trento-project/mcp-server/graphs/contributors"
 LABEL org.opencontainers.image.title="Trento MCP Server"

@@ -44,6 +44,7 @@ ARG VERSION
 
 COPY --from=builder /go/src/github.com/trento-project/mcp-server/bin/${GOOS}-${GOARCH}/mcp-server-trento /mcp-server-trento
 
+# Define labels according to https://en.opensuse.org/Building_derived_containers
 # labelprefix=com.suse.trento
 LABEL org.opencontainers.image.authors="https://github.com/trento-project/mcp-server/graphs/contributors"
 LABEL org.opencontainers.image.title="Trento MCP Server"
@@ -53,7 +54,7 @@ LABEL org.opencontainers.image.version="${VERSION}"
 LABEL org.opencontainers.image.url="https://www.suse.com/products/base-container-images/"
 LABEL org.opencontainers.image.created="${DATE}"
 LABEL org.opencontainers.image.vendor="SUSE LLC"
-LABEL org.opencontainers.image.source="https://sources.suse.com/SUSE:SLE-15-SP7:Update:CR/micro-image"
+LABEL org.opencontainers.image.source="https://github.com/trento-project/mcp-server"
 LABEL org.opencontainers.image.ref.name="${OS_VER}-${VERSION}"
 LABEL org.opensuse.reference="registry.suse.com/bci/bci-micro:${OS_VER}"
 LABEL org.openbuildservice.disturl="https://github.com/trento-project/mcp-server/pkgs/container/mcp-server-trento"
