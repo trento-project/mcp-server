@@ -168,7 +168,7 @@ jobs:
           echo "img_name=${{matrix.image}}" >> $GITHUB_OUTPUT
           echo "img_file=/tmp/${{matrix.image}}-image.tar" >> $GITHUB_OUTPUT
       # Set container image metadata for tagging.
-      - uses: docker/metadata-action@v5
+      - uses: docker/metadata-action@v6
         name: Set container image metadata
         id: meta
         with:
