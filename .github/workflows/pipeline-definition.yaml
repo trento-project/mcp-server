@@ -35,18 +35,18 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       # Checkout the repository.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         name: Checkout
       # Read tool versions for environment setup.
-      - uses: endorama/asdf-parse-tool-versions@v1
+      - uses: endorama/asdf-parse-tool-versions@c981d1f09f7fad3a91bc97b6d28ce6ec0c93ded5
         name: Read .tool-versions
         id: tool-versions
       # Setup Go environment.
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417
         with:
           go-version: ${{ env.GOLANG_VERSION }}
       # Cache Go modules for faster builds.
-      - uses: actions/cache@v5
+      - uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
         name: Cache Go modules
         id: go-cache
         with:
@@ -90,7 +90,7 @@ jobs:
       - linters-result
     steps:
       # Trigger docs update in Go registries.
-      - uses: essentialkaos/godoc-action@v1
+      - uses: essentialkaos/godoc-action@1d99db5d7f1c4fc42d26c9910ea374053d6961fb
         name: Trigger docs update in sum.golang.org and pkg.go.dev
 
   # Sync the project with OBS (Open Build Service).

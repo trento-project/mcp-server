@@ -11,18 +11,18 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       # Checkout the repository.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         name: Checkout
       # Read tool versions for environment setup.
-      - uses: endorama/asdf-parse-tool-versions@v1
+      - uses: endorama/asdf-parse-tool-versions@c981d1f09f7fad3a91bc97b6d28ce6ec0c93ded5
         name: Read .tool-versions
         id: tool-versions
       # Setup Go environment.
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417
         with:
           go-version: ${{ env.GOLANG_VERSION }}
       # Cache Go modules for faster builds.
-      - uses: actions/cache@v5
+      - uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
         name: Cache Go modules
         id: go-cache
         with:
@@ -36,7 +36,7 @@ jobs:
         run: make fmt
       # Run golangci-lint for advanced linting.
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9
+        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20
         with:
           version: latest
           skip-cache: true
@@ -48,10 +48,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       # Checkout the repository.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         name: Checkout
       # Run SkyWalking Eyes to check license headers.
-      - uses: apache/skywalking-eyes/header@v0.8.0
+      - uses: apache/skywalking-eyes/header@61275cc80d0798a405cb070f7d3a8aaf7cf2c2c1
         name: Check license Headers
 
   # Lint all AsciiDoc documentation files using asciidoctor and a custom script.
@@ -60,11 +60,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       # Checkout the repository.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         name: Checkout
       # Install asciidoctor for linting .adoc files.
       - name: Install asciidoctor
-        uses: awalsh128/cache-apt-pkgs-action@v1
+        uses: awalsh128/cache-apt-pkgs-action@2c09a5e66da6c8016428a2172bd76e5e4f14bb17
         with:
           packages: asciidoctor
       # Run the custom AsciiDoc linter script.
@@ -77,8 +77,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       # Checkout the repository.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         name: Checkout
       # Run ShellCheck linter on shell scripts.
-      - uses: ludeeus/action-shellcheck@2.0.0
+      - uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38
         name: Run ShellCheck
