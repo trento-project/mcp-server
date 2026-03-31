@@ -35,18 +35,18 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       # Checkout the repository.
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         name: Checkout
       # Read tool versions for environment setup.
-      - uses: endorama/asdf-parse-tool-versions@c981d1f09f7fad3a91bc97b6d28ce6ec0c93ded5
+      - uses: endorama/asdf-parse-tool-versions@c981d1f09f7fad3a91bc97b6d28ce6ec0c93ded5 # v1
         name: Read .tool-versions
         id: tool-versions
       # Setup Go environment.
-      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version: ${{ env.GOLANG_VERSION }}
       # Cache Go modules for faster builds.
-      - uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
+      - uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         name: Cache Go modules
         id: go-cache
         with:
@@ -71,7 +71,7 @@ jobs:
         include:
           - mix_env: prod
             tag: "${{ (github.event_name == 'push' && github.ref_name == 'main' && 'rolling') || github.sha }}"
-    uses: trento-project/.github/.github/workflows/publish-containers.yaml@v1.0.0
+    uses: trento-project/.github/.github/workflows/publish-containers.yaml@98e2a3d821253d603d16fd53fb10bcf85f64b395 # v1.0.0
     with:
       image_name: mcp-server-trento
       tag: ${{ matrix.tag }}
@@ -90,7 +90,7 @@ jobs:
       - linters-result
     steps:
       # Trigger docs update in Go registries.
-      - uses: essentialkaos/godoc-action@1d99db5d7f1c4fc42d26c9910ea374053d6961fb
+      - uses: essentialkaos/godoc-action@1d99db5d7f1c4fc42d26c9910ea374053d6961fb # v1
         name: Trigger docs update in sum.golang.org and pkg.go.dev
 
   # Sync the project with OBS (Open Build Service).

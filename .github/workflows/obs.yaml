@@ -42,12 +42,12 @@ jobs:
     steps:
       # Checkout the repository with full history for versioning.
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
       # Read tool versions for environment setup.
       - name: Read .tool-versions
-        uses: endorama/asdf-parse-tool-versions@c981d1f09f7fad3a91bc97b6d28ce6ec0c93ded5
+        uses: endorama/asdf-parse-tool-versions@c981d1f09f7fad3a91bc97b6d28ce6ec0c93ded5 # v1
         id: tool-versions
       # Configure git for safe operations inside the container.
       - name: Configure git for in-container operations
@@ -69,11 +69,11 @@ jobs:
           VERSION=$(./hack/get_version_from_git.sh)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       # Setup Go environment for dependency management.
-      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version: ${{ env.GOLANG_VERSION }}
       # Cache Go modules for faster builds.
-      - uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
+      - uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         id: go-cache
         with:
           path: ~/go/pkg/mod
@@ -143,12 +143,12 @@ jobs:
       options: -u 0:0
     steps:
       # Checkout the repository with full history for versioning.
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
       # Read tool versions for environment setup.
       - name: Read .tool-versions
-        uses: endorama/asdf-parse-tool-versions@c981d1f09f7fad3a91bc97b6d28ce6ec0c93ded5
+        uses: endorama/asdf-parse-tool-versions@c981d1f09f7fad3a91bc97b6d28ce6ec0c93ded5 # v1
         id: tool-versions
       # Configure git for safe operations inside the container.
       - name: Configure git for in-container operations
@@ -170,11 +170,11 @@ jobs:
           VERSION=$(./hack/get_version_from_git.sh)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       # Setup Go environment for dependency management.
-      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version: ${{ env.GOLANG_VERSION }}
       # Cache Go modules for faster builds.
-      - uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
+      - uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         id: go-cache
         with:
           path: ~/go/pkg/mod
