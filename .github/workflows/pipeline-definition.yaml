@@ -32,6 +32,7 @@ jobs:
       img_prod_tag: ${{ steps.set-outputs.outputs.img_prod_tag }}
       running_on_main: ${{ steps.set-outputs.outputs.running_on_main }}
       triggered_from_fork: ${{ steps.set-outputs.outputs.triggered_from_fork }}
+      version: ${{ steps.set-outputs.outputs.version }}
     steps:
       # Checkout the repository.
       - uses: actions/checkout@v6
@@ -191,6 +192,7 @@ jobs:
           file: Dockerfile
           platforms: ${{ env.IMG_PLATFORMS }}
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             GOARCH=${{ env.TARGETARCH }}
             GOOS=${{ env.TARGETOS }}
