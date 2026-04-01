@@ -1,4 +1,4 @@
-# Copyright 2025 SUSE LLC
+# Copyright 2025-2026 SUSE LLC
 ---
 name: Lib - Pipeline definition
 on:
@@ -9,102 +9,11 @@ on:
         type: boolean
         default: true
 
-env:
-  BRANCH_TRENTO_REPO: "main"
-  TRENTO_REPO: "trento-project/mcp-server"
-  IMG_DEV_TAG: "build-${{ github.sha }}"
-  IMG_MODIFIER: "-ci"
-  IMG_PLATFORMS: "linux/amd64"
-  IMG_PREFIX: "ghcr.io/trento-project/"
-  IMG_PREFIX_FOR_FORKS: "your-registry-username/"
-  IMAGES_TO_PUSH: "mcp-server-trento"
-
 jobs:
-  # Set up environment variables and outputs for downstream jobs.
-  setup:
-    name: Setup
-    runs-on: ubuntu-24.04
-    outputs:
-      # Output variables for use in other jobs.
-      img_modifier: ${{ steps.set-outputs.outputs.img_modifier }}
-      img_prefix: ${{ steps.set-outputs.outputs.img_prefix }}
-      img_dev_tag: ${{ steps.set-outputs.outputs.img_dev_tag }}
-      img_prod_tag: ${{ steps.set-outputs.outputs.img_prod_tag }}
-      running_on_main: ${{ steps.set-outputs.outputs.running_on_main }}
-      triggered_from_fork: ${{ steps.set-outputs.outputs.triggered_from_fork }}
-      version: ${{ steps.set-outputs.outputs.version }}
-    steps:
-      # Checkout the repository.
-      - uses: actions/checkout@v6
-        name: Checkout
-      # Show the GitHub event context for debugging.
-      - name: Show GitHub event
-        env:
-          EVENT_CONTEXT: ${{ toJSON(github.event) }}
-        run: echo $EVENT_CONTEXT | jq
-      # Show the pull request context for debugging.
-      - name: Show PR context
-        env:
-          PR_CONTEXT: ${{ toJSON(github.event.pull_request) }}
-        run: echo $PR_CONTEXT | jq
-      # Set output variables for downstream jobs.
-      - name: Set outputs
-        id: set-outputs
-        env:
-          PR_CONTEXT: ${{ toJSON(github.event.pull_request) }}
-          PR_SOURCE_REPO_NAME: ${{ github.event.pull_request.head.repo.full_name }}
-        run: |
-          set -euo pipefail
-
-          if [[ "${GITHUB_REPOSITORY}" == "${TRENTO_REPO}" ]]; then
-            echo "img_prefix=${IMG_PREFIX}" >> $GITHUB_OUTPUT
-          else
-            # When running in forks, push the images to a personal namespace if configured.
-            echo "img_prefix=${IMG_PREFIX_FOR_FORKS}" >> $GITHUB_OUTPUT
-          fi;
-
-          # Check if the workflow is triggered due to a PR from an external fork.
-          if [[ ("${PR_CONTEXT}" != "" && "${PR_CONTEXT}" != null) && "${PR_SOURCE_REPO_NAME}" != "${GITHUB_REPOSITORY}" ]]; then
-            echo "triggered_from_fork=true" >> $GITHUB_OUTPUT
-          else
-            echo "triggered_from_fork=false" >> $GITHUB_OUTPUT
-          fi
-
-          if [[ ${GITHUB_REF_TYPE} == "tag" ]]; then
-            echo "img_prod_tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
-            echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
-          else
-            echo "img_prod_tag=latest" >> $GITHUB_OUTPUT
-            echo "version=${GITHUB_SHA}" >> $GITHUB_OUTPUT
-          fi;
-
-          if [[ ${GITHUB_REF_NAME} == ${BRANCH_TRENTO_REPO} ]]; then
-            echo "running_on_main=true" >> $GITHUB_OUTPUT
-          else
-            echo "running_on_main=false" >> $GITHUB_OUTPUT
-          fi
-
-          echo "img_modifier=${IMG_MODIFIER}" >> $GITHUB_OUTPUT
-          echo "img_dev_tag=${IMG_DEV_TAG}" >> $GITHUB_OUTPUT
-          # Set it directly in GitHub repository variables:
-      # Display the output variables for debugging.
-      - name: Show outputs
-        run: |
-          set -euo pipefail
-          echo "IMG_MODIFIER: ${{steps.set-outputs.outputs.img_modifier}}"
-          echo "IMG_PREFIX: ${{steps.set-outputs.outputs.img_prefix}}"
-          echo "IMG_DEV_TAG: ${{steps.set-outputs.outputs.img_dev_tag}}"
-          echo "IMG_PROD_TAG: ${{steps.set-outputs.outputs.img_prod_tag}}"
-          echo "RUNNING_ON_MAIN: ${{steps.set-outputs.outputs.running_on_main}}"
-          echo "TRIGGERED_FROM_FORK: ${{steps.set-outputs.outputs.triggered_from_fork}}"
-          echo "VERSION: ${{steps.set-outputs.outputs.version}}"
-
   # Run all the linters.
   linters-run:
     name: Run all linters
     if: inputs.run_linters
-    needs:
-      - setup
     uses: ./.github/workflows/linters.yaml
     secrets: inherit
 
@@ -123,23 +32,21 @@ jobs:
   # Check go unit tests.
   test-with-go:
     name: Check Go test suite
-    needs:
-      - setup
     runs-on: ubuntu-24.04
     steps:
       # Checkout the repository.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         name: Checkout
       # Read tool versions for environment setup.
-      - uses: endorama/asdf-parse-tool-versions@v1
+      - uses: endorama/asdf-parse-tool-versions@c981d1f09f7fad3a91bc97b6d28ce6ec0c93ded5 # v1
         name: Read .tool-versions
         id: tool-versions
       # Setup Go environment.
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version: ${{ env.GOLANG_VERSION }}
       # Cache Go modules for faster builds.
-      - uses: actions/cache@v5
+      - uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         name: Cache Go modules
         id: go-cache
         with:
@@ -149,142 +56,42 @@ jobs:
       - name: Run go unit tests
         run: make test
 
-  # Build the container images.
-  build-container-images:
-    name: "Build ${{matrix.image}} image"
+  publish-containers:
+    name: Publish GHCR Containers
     needs:
-      - setup
-    runs-on: ubuntu-24.04
+      - test-with-go
+      - linters-result
+    if: |
+      (
+        (github.event_name == 'push' && github.ref_name == 'main') ||
+        github.event_name == 'workflow_dispatch'
+      )
     strategy:
-      fail-fast: false
       matrix:
-        image:
-          - mcp-server-trento
-    steps:
-      # Setup building process and output image name and file.
-      - name: Setup building process
-        id: setup
-        run: |
-          set -euo pipefail
-          echo "img_name=${{matrix.image}}" >> $GITHUB_OUTPUT
-          echo "img_file=/tmp/${{matrix.image}}-image.tar" >> $GITHUB_OUTPUT
-      # Set container image metadata for tagging.
-      - uses: docker/metadata-action@v6
-        name: Set container image metadata
-        id: meta
-        with:
-          images: ${{needs.setup.outputs.img_prefix}}${{steps.setup.outputs.img_name}}${{needs.setup.outputs.img_modifier}}
-          flavor: latest=true
-          tags: ${{needs.setup.outputs.img_dev_tag}}
-      # Setup QEMU for multi-architecture builds.
-      - uses: docker/setup-qemu-action@v4
-        name: Setup QEMU
-      # Setup Docker buildx for builds.
-      - uses: docker/setup-buildx-action@v4
-        name: Setup buildx
-      # Build the container image using Docker.
-      - uses: docker/build-push-action@v7
-        name: Build container image
-        env:
-          DOCKER_BUILD_SUMMARY: false
-          DOCKER_BUILD_RECORD_UPLOAD: false
-        with:
-          file: Dockerfile
-          platforms: ${{ env.IMG_PLATFORMS }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GOARCH=${{ env.TARGETARCH }}
-            GOOS=${{ env.TARGETOS }}
-            VERSION=${{ needs.setup.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          outputs: type=docker,dest=${{ steps.setup.outputs.img_file }}
-      # Upload the built image as an artifact.
-      - uses: actions/upload-artifact@v7
-        name: Upload artifacts
-        with:
-          name: ${{matrix.image}}-image
-          path: ${{ steps.setup.outputs.img_file }}
+        include:
+          - mix_env: prod
+            tag: "${{ (github.event_name == 'push' && github.ref_name == 'main' && 'rolling') || github.sha }}"
+    uses: trento-project/.github/.github/workflows/publish-containers.yaml@98e2a3d821253d603d16fd53fb10bcf85f64b395 # v1.0.0
+    with:
+      image_name: mcp-server-trento
+      tag: ${{ matrix.tag }}
+    secrets:
+      gh_token: ${{ secrets.TRENTOBOT_GH_PAT }}
+      ssh_key: ${{ secrets.TRENTOBOT_SSH_KEY }}
 
   # Update sum.golang.org and pkg.go.dev.
   generate-docs:
     name: Update Go docs site
-    if: needs.setup.outputs.running_on_main == 'true' || inputs.trigger_release
+    if: github.ref_name == 'main' || inputs.trigger_release
     runs-on: ubuntu-24.04
     needs:
-      - setup
-      - build-container-images
+      - publish-containers
       - test-with-go
       - linters-result
     steps:
       # Trigger docs update in Go registries.
-      - uses: essentialkaos/godoc-action@v1
+      - uses: essentialkaos/godoc-action@1d99db5d7f1c4fc42d26c9910ea374053d6961fb # v1
         name: Trigger docs update in sum.golang.org and pkg.go.dev
-
-  # Push the container images to the registry.
-  push_images:
-    name: Push container images
-    if: needs.setup.outputs.running_on_main == 'true' || inputs.trigger_release
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      packages: write # required for creating ghcr.io packages.
-    needs:
-      - setup
-      - build-container-images
-      - test-with-go
-      - linters-result
-    env:
-      IMG_PROD_TAG: ${{ needs.setup.outputs.img_prod_tag }}
-      IMG_PREFIX: ${{ needs.setup.outputs.img_prefix }}
-    steps:
-      # Log into the container image registry.
-      - uses: docker/login-action@v4
-        name: Log into the container image registry
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      # Download built image artifacts.
-      - uses: actions/download-artifact@v8
-        name: Download artifacts
-      # Push container images to the registry.
-      - name: Push container images to the registry
-        run: |
-          set -euo pipefail
-          echo "IMAGES_TO_PUSH=\"${IMAGES_TO_PUSH}\"" >> $GITHUB_ENV
-          upload_count=0
-          for artifact in *; do
-            # Only process files ending with -image.tar
-            if [[ "$artifact" != *-image.tar ]]; then
-              echo "::notice ::Skipping artifact ${artifact}, it's not a container image"
-              continue
-            fi
-
-            image=${artifact/-image.tar/}
-            if [[ "${IMAGES_TO_PUSH}" != *"${image}"* ]]; then
-              echo "::notice ::Skipping image ${image}, it's not an image to push"
-              continue
-            fi
-
-            echo "::notice ::Loading image ${image}"
-            docker load --input "${artifact}"
-
-            dev_image=${IMG_PREFIX}${image}${IMG_MODIFIER}:${IMG_DEV_TAG}
-            prod_image=${IMG_PREFIX}${image}:${IMG_PROD_TAG}
-            docker tag ${dev_image} ${prod_image}
-
-            echo "::notice ::Pushing image ${prod_image}"
-            docker push $prod_image
-            upload_count=$((upload_count+1))
-          done
-
-          echo "::notice ::Total container images uploaded: $upload_count"
-          if [[ $upload_count -eq 0 ]]; then
-            echo "::error ::No container images found to upload. Failing the job."
-            exit 1
-          fi
 
   # Sync the project with OBS (Open Build Service).
   obs-sync:
@@ -292,24 +99,9 @@ jobs:
     if: vars.OBS_ENABLED == 'true' && (github.event_name == 'push' && github.ref_name == 'main') || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/obs.yaml
     needs:
-      - setup
-      - build-container-images
+      - publish-containers
       - test-with-go
       - linters-result
     secrets: inherit
     with:
       obs_project: ${{ vars.OBS_PROJECT_ROLLING }}
-
-  # Delete image artifacts, as they are not needed anymore.
-  cleanup:
-    name: Cleanup
-    needs:
-      - push_images
-    runs-on: ubuntu-24.04
-    steps:
-      # Delete image artifacts after pushing to the registry.
-      - uses: geekyeggo/delete-artifact@v6
-        name: Delete artifacts
-        with:
-          name: |
-            *-image
