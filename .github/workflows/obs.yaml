@@ -47,7 +47,7 @@ jobs:
           fetch-depth: 0
       # Read tool versions for environment setup.
       - name: Read .tool-versions
-        uses: endorama/asdf-parse-tool-versions@c981d1f09f7fad3a91bc97b6d28ce6ec0c93ded5 # v1
+        uses: endorama/asdf-parse-tool-versions@23a7edd74b0f97626c857c48e32ebbe4ba596a23 # v1.5.1
         id: tool-versions
       # Configure git for safe operations inside the container.
       - name: Configure git for in-container operations
@@ -148,7 +148,7 @@ jobs:
           fetch-depth: 0
       # Read tool versions for environment setup.
       - name: Read .tool-versions
-        uses: endorama/asdf-parse-tool-versions@c981d1f09f7fad3a91bc97b6d28ce6ec0c93ded5 # v1
+        uses: endorama/asdf-parse-tool-versions@23a7edd74b0f97626c857c48e32ebbe4ba596a23 # v1.5.1
         id: tool-versions
       # Configure git for safe operations inside the container.
       - name: Configure git for in-container operations
