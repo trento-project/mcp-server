@@ -16,40 +16,25 @@
 #!UseOBSRepositories
 #!ExclusiveArch: x86_64
 
-ARG GO_VERSION=1.25
-ARG OS_VER=15.7
+FROM registry.suse.com/bci/bci-base:15.7
 
-ARG GOARCH
-ARG GOOS
-ARG PORT=5000
+# See https://github.com/SUSE/BCI-dockerfile-generator for more details on how this file is generated and used.
 
-# Base build image
-FROM registry.suse.com/bci/golang:${GO_VERSION} AS builder
+RUN set -euo pipefail; \
+    zypper -n install --no-recommends mcp-server-trento
 
-# Add the tarball as the build context root
-ADD mcp-server-trento.tar.gz /build/
-ADD vendor.tar.gz /build/mcp-server-trento/
-WORKDIR /build/mcp-server-trento
+# cleanup logs and temporary files
+RUN set -euo pipefail; zypper -n clean -a; \
+    rm -rf {/target,}/var/log/{alternatives.log,lastlog,tallylog,zypper.log,zypp/history,YaST2}; \
+    rm -rf {/target,}/run/*; \
+    rm -f {/target,}/etc/{shadow-,group-,passwd-,.pwd.lock}; \
+    rm -f {/target,}/usr/lib/sysimage/rpm/.rpm.lock; \
+    rm -f {/target,}/var/lib/zypp/AnonymousUniqueId; \
+    rm -f {/target,}/var/lib/zypp/AutoInstalled; \
+    rm -f {/target,}/var/cache/ldconfig/aux-cache
 
-ARG GOARCH
-ARG GOOS
-
-ENV GOARCH=${GOARCH}
-ENV GOOS=${GOOS}
-
-# Build the binary using the Makefile
-RUN make build
-
-FROM registry.suse.com/bci/bci-micro:${OS_VER}
-
-# See https://github.com/SUSE/BCI-dockerfile-generator/blob/main/src/bci_build/templates.py
-
-ARG GOARCH
-ARG GOOS
-ARG OS_VER
-ARG PORT
-
-COPY --from=builder /build/mcp-server-trento/bin/${GOOS}-${GOARCH}/mcp-server-trento /mcp-server-trento
+# set the day of last password change to empty
+RUN set -euo pipefail; sed -i 's/^\([^:]*:[^:]*:\)[^:]*\(:.*\)$/\1\2/' /etc/shadow
 
 # Define labels according to https://en.opensuse.org/Building_derived_containers
 # labelprefix=com.suse.trento
@@ -78,6 +63,6 @@ LABEL io.artifacthub.package.readme-url="%SOURCEURL_WITH(README.md)%"
 
 USER 1001
 
-EXPOSE ${PORT}/tcp
+EXPOSE 5000/tcp
 
 ENTRYPOINT [ "/mcp-server-trento" ]
