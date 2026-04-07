@@ -65,4 +65,4 @@ USER 1001
 
 EXPOSE 5000/tcp
 
-ENTRYPOINT [ "/mcp-server-trento" ]
+ENTRYPOINT [ "/usr/bin/mcp-server-trento" ]
