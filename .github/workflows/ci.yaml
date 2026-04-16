@@ -16,16 +16,99 @@ on:
       - main
     paths-ignore:
       - "VERSION"
-  workflow_dispatch:
-  workflow_call:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  CI:
-    uses: ./.github/workflows/pipeline-definition.yaml
+  # Run all the linters.
+  linters-run:
+    name: Run all linters
+    uses: ./.github/workflows/linters.yaml
     secrets: inherit
+
+  # Check the result of all linters and fail if any linter failed.
+  linters-result:
+    name: Check linters result
+    if: always()
+    needs: linters-run
+    runs-on: ubuntu-24.04
+    steps:
+      # Fail the job if any linter did not succeed.
+      - name: Check all linters result
+        if: needs.linters-run.result != 'success'
+        run: exit 1
+
+  # Check go unit tests.
+  test-with-go:
+    name: Check Go test suite
+    runs-on: ubuntu-24.04
+    steps:
+      # Checkout the repository.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        name: Checkout
+      # Read tool versions for environment setup.
+      - uses: endorama/asdf-parse-tool-versions@23a7edd74b0f97626c857c48e32ebbe4ba596a23 # v1.5.1
+        name: Read .tool-versions
+        id: tool-versions
+      # Setup Go environment.
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version: ${{ env.GOLANG_VERSION }}
+      # Cache Go modules for faster builds.
+      - uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        name: Cache Go modules
+        id: go-cache
+        with:
+          path: ~/go/pkg/mod
+          key: go-${{ env.GOLANG_VERSION }}-${{ hashFiles('**/go.sum') }}
+      # Run Go unit tests.
+      - name: Run go unit tests
+        run: make test
+
+  publish-containers:
+    name: Publish GHCR Containers
+    needs:
+      - test-with-go
+      - linters-result
+    if: github.event_name == 'push'
+    uses: trento-project/.github/.github/workflows/publish-containers.yaml@406be0972195864a87ed454458eaa0856d0c5457 # v1.6.0
     with:
-      run_linters: true
+      image_name: mcp-server-trento
+      tag: rolling
+    secrets:
+      gh_token: ${{ secrets.TRENTOBOT_GH_PAT }}
+      ssh_key: ${{ secrets.TRENTOBOT_SSH_KEY }}
+
+  # Update sum.golang.org and pkg.go.dev.
+  generate-docs:
+    name: Update Go docs site
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    needs:
+      - publish-containers
+      - test-with-go
+      - linters-result
+    steps:
+      # Trigger docs update in Go registries.
+      - uses: essentialkaos/godoc-action@1d99db5d7f1c4fc42d26c9910ea374053d6961fb # v1
+        name: Trigger docs update in sum.golang.org and pkg.go.dev
+
+  # Sync the project with OBS (Open Build Service).
+  obs-sync:
+    name: Update OBS packages
+    if: fromJSON(vars.OBS_ENABLED) && github.event_name == 'push'
+    uses: trento-project/.github/.github/workflows/obs-sync.yaml@406be0972195864a87ed454458eaa0856d0c5457 # v1.6.0
+    needs:
+      - publish-containers
+      - test-with-go
+      - linters-result
+    with:
+      obs_project: ${{ vars.OBS_PROJECT_ROLLING }}
+      obs_package: ${{ vars.OBS_PACKAGE }}
+    secrets:
+      gh_token: ${{ secrets.TRENTOBOT_GH_PAT }}
+      obs_user: ${{ secrets.OBS_USER }}
+      obs_pass: ${{ secrets.OBS_PASS }}
+      obs_ssh_key: ${{ secrets.OBS_SSH_KEY }}
