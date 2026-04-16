@@ -73,7 +73,7 @@ jobs:
       - test-with-go
       - linters-result
     if: github.event_name == 'push'
-    uses: trento-project/.github/.github/workflows/publish-containers.yaml@98e2a3d821253d603d16fd53fb10bcf85f64b395 # v1.0.0
+    uses: trento-project/.github/.github/workflows/publish-containers.yaml@406be0972195864a87ed454458eaa0856d0c5457 # v1.6.0
     with:
       image_name: mcp-server-trento
       tag: rolling
