@@ -1,4 +1,4 @@
-# Copyright 2025-2026 SUSE LLC
+# SPDX-FileCopyrightText: SUSE LLC
 # SPDX-License-Identifier: Apache-2.0
 
 ARG GO_VERSION=1.25

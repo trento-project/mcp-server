@@ -1,6 +1,7 @@
-// Copyright 2025 SUSE LLC
+// SPDX-FileCopyrightText: SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
+//nolint:goconst
 package utils_test
 
 import (

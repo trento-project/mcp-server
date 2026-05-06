@@ -1,4 +1,4 @@
-# Copyright 2025-2026 SUSE LLC
+# SPDX-FileCopyrightText: SUSE LLC
 # SPDX-License-Identifier: Apache-2.0
 
 # Note: This file should be the same as the one in the root of the repository

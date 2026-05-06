@@ -1,4 +1,4 @@
-// Copyright 2025-2026 SUSE LLC
+// SPDX-FileCopyrightText: SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
 //nolint:lll
@@ -25,7 +25,7 @@ import (
 	"github.com/trento-project/mcp-server/internal/utils"
 )
 
-//nolint:dupl
+//nolint:dupl,goconst
 func TestStartSSEServer(t *testing.T) {
 	t.Parallel()
 
@@ -73,7 +73,7 @@ func TestStartSSEServer(t *testing.T) {
 	}
 }
 
-//nolint:dupl
+//nolint:dupl,goconst
 func TestStartStreamableHTTPServer(t *testing.T) {
 	t.Parallel()
 
@@ -212,6 +212,7 @@ func TestWithLogger(t *testing.T) {
 	}
 }
 
+//nolint:goconst
 func TestCreateMCPServer(t *testing.T) {
 	t.Parallel()
 
@@ -248,6 +249,7 @@ func TestCreateMCPServer(t *testing.T) {
 	assert.Empty(t, tools.Tools)
 }
 
+//nolint:goconst
 func TestHandleToolsRegistration(t *testing.T) {
 	t.Parallel()
 
@@ -402,6 +404,7 @@ func TestHandleToolsRegistration(t *testing.T) {
 	}
 }
 
+//nolint:goconst
 func TestRegisterToolsFromSpec(t *testing.T) {
 	t.Parallel()
 
@@ -520,6 +523,7 @@ func TestRegisterToolsFromSpec(t *testing.T) {
 	}
 }
 
+//nolint:goconst
 func TestHandleToolsRegistrationWithURL(t *testing.T) {
 	t.Parallel()
 
@@ -586,7 +590,7 @@ func TestHandleToolsRegistrationWithURL(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest
+//nolint:paralleltest,goconst
 func TestHandleMCPServerRun(t *testing.T) {
 	t.Parallel()
 
@@ -945,6 +949,7 @@ func TestSetAPIKeyInContext(t *testing.T) {
 	}
 }
 
+//nolint:goconst
 func TestLoadOpenAPISpec(t *testing.T) {
 	t.Parallel()
 
@@ -1029,6 +1034,7 @@ func TestLoadOpenAPISpec(t *testing.T) {
 	}
 }
 
+//nolint:goconst
 func TestLoadOpenAPISpecFromURL(t *testing.T) {
 	t.Parallel()
 
@@ -1132,6 +1138,7 @@ func TestLoadOpenAPISpecFromURL(t *testing.T) {
 	}
 }
 
+//nolint:goconst
 func TestHandleToolsRegistrationAutodiscovery(t *testing.T) {
 	t.Parallel()
 
@@ -1370,6 +1377,7 @@ func TestHandleToolsRegistrationAutodiscovery(t *testing.T) {
 	}
 }
 
+//nolint:goconst
 func TestHandleToolsRegistrationMixedScenarios(t *testing.T) {
 	t.Parallel()
 
@@ -1446,6 +1454,7 @@ func TestHandleToolsRegistrationMixedScenarios(t *testing.T) {
 	}
 }
 
+//nolint:goconst
 func TestServerURLBehavior(t *testing.T) {
 	t.Parallel()
 
