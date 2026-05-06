@@ -1,4 +1,4 @@
-// Copyright 2025 SUSE LLC
+// SPDX-FileCopyrightText: SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
 // main package for this project.

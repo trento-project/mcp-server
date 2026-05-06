@@ -1,7 +1,7 @@
 #
 # spec file for package mcp-server-trento
 #
-# Copyright 2025 SUSE LLC
+# SPDX-FileCopyrightText: SUSE LLC
 # SPDX-License-Identifier: Apache-2.0
 #
 # All modifications and additions to the file contributed by third parties
