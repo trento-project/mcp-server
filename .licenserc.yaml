@@ -22,7 +22,7 @@ header:
     - ".github/CODEOWNERS"
     - ".github/dependabot.yml"
     - ".tool-versions"
+    - "CHANGELOG.md"
     - "LICENSE"
     - "VERSION"
-    - CHANGELOG.md
-    - go.sum
+    - "go.sum"
