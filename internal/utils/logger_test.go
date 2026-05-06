@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//nolint:tparallel,paralleltest
+//nolint:tparallel,paralleltest,goconst
 package utils_test
 
 import (

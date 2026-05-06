@@ -32,7 +32,7 @@ func waitForShutdownSingle(ctx context.Context, t *testing.T, srv utils.Stoppabl
 	return server.WaitForShutdown(ctx, serverGroup, serverErrChan)
 }
 
-//nolint:paralleltest
+//nolint:paralleltest,goconst
 func TestServe(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -105,7 +105,7 @@ func TestServe(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest
+//nolint:paralleltest,goconst
 func TestWaitForShutdown(t *testing.T) {
 	t.Parallel()
 
