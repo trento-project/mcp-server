@@ -1,4 +1,4 @@
-// Copyright 2025 SUSE LLC
+// SPDX-FileCopyrightText: SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
 //nolint:lll
@@ -18,6 +18,7 @@ import (
 	"github.com/trento-project/mcp-server/internal/utils"
 )
 
+//nolint:goconst
 func TestHealthCheckers(t *testing.T) {
 	t.Parallel()
 
@@ -96,6 +97,7 @@ func TestHealthCheckers(t *testing.T) {
 	}
 }
 
+//nolint:goconst
 func TestCheckAPIServiceHealth(t *testing.T) {
 	t.Parallel()
 
@@ -261,6 +263,7 @@ func TestStartHealthServer(t *testing.T) {
 	}
 }
 
+//nolint:goconst
 func TestCreateOASPathHealthChecks(t *testing.T) {
 	t.Parallel()
 
@@ -420,6 +423,7 @@ func TestCreateOASPathHealthChecks(t *testing.T) {
 	}
 }
 
+//nolint:goconst
 func TestCreateSingleOASHealthCheck(t *testing.T) {
 	t.Parallel()
 
@@ -652,6 +656,7 @@ func TestCreateSingleOASHealthCheck(t *testing.T) {
 	}
 }
 
+//nolint:goconst
 func TestCheckMCPServer(t *testing.T) {
 	t.Parallel()
 

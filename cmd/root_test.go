@@ -1,4 +1,4 @@
-// Copyright 2025 SUSE LLC
+// SPDX-FileCopyrightText: SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
 package cmd_test
@@ -21,7 +21,7 @@ import (
 	"github.com/trento-project/mcp-server/internal/utils"
 )
 
-//nolint:paralleltest
+//nolint:paralleltest,goconst
 func TestExecute(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -127,7 +127,7 @@ func TestExecute(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest
+//nolint:paralleltest,goconst
 func TestInitLogger(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -170,6 +170,7 @@ func TestInitLogger(t *testing.T) {
 	}
 }
 
+//nolint:goconst
 func TestConfigureCLI(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -317,7 +318,7 @@ func TestConfigureCLI(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest
+//nolint:paralleltest,goconst
 func TestReadConfigFile(t *testing.T) {
 	tests := []struct {
 		name          string

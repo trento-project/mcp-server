@@ -1,4 +1,4 @@
-// Copyright 2025-2026 SUSE LLC
+// SPDX-FileCopyrightText: SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
 // Package server_test is the where the server logic is tested.
@@ -32,7 +32,7 @@ func waitForShutdownSingle(ctx context.Context, t *testing.T, srv utils.Stoppabl
 	return server.WaitForShutdown(ctx, serverGroup, serverErrChan)
 }
 
-//nolint:paralleltest
+//nolint:paralleltest,goconst
 func TestServe(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -105,7 +105,7 @@ func TestServe(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest
+//nolint:paralleltest,goconst
 func TestWaitForShutdown(t *testing.T) {
 	t.Parallel()
 
