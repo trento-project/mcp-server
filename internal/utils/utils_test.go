@@ -1,9 +1,6 @@
 // SPDX-FileCopyrightText: SUSE LLC
 // SPDX-License-Identifier: Apache-2.0
 
-// Copyright 2026 SUSE LLC
-// SPDX-License-Identifier: Apache-2.0
-
 package utils_test
 
 import (
