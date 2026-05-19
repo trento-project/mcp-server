@@ -1,5 +1,59 @@
 # Changelog
 
+## 1.1.0 - 2026-05-19
+
+### What's Changed
+
+* Release trigger 1.1.0 (#122) @skrech
+* [TRNT-4358] Update license headers (#118) @antgamdia
+* [TRNT-4317] Pin GHA to SHA instead of tags (#109) @antgamdia
+* [TRNT-4227] Pass metadata labels in GHA (#107) @antgamdia
+* Implements dependabot cooldown (#110) @gagandeepb
+* [TRNT-4227] Update container readme (#106) @antgamdia
+
+#### Features
+
+* [TNRT-4326] Use prebuilt RPM in the OBS container image (#113) @antgamdia
+* [TRNT-4227] Add additional labels to the container image (#92) @antgamdia
+
+#### Maintenance
+
+* Updated ci.yaml to use common workflows (#114) @skrech
+
+#### Dependencies
+
+<details>
+<summary>26 changes</summary>
+* Bump the common-workflows group across 1 directory with 3 updates (#119) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump github.com/getkin/kin-openapi from 0.135.0 to 0.137.0 (#120) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump github.com/getkin/kin-openapi from 0.134.0 to 0.135.0 (#116) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump actions/cache from 5.0.4 to 5.0.5 (#117) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump github.com/modelcontextprotocol/go-sdk from 1.4.1 to 1.5.0 (#115) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump endorama/asdf-parse-tool-versions from 1.0.0 to 1.5.1 (#112) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump awalsh128/cache-apt-pkgs-action from 1.5.3 to 1.6.0 (#111) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump github.com/getkin/kin-openapi from 0.133.0 to 0.134.0 (#104) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump release-drafter/release-drafter from 6 to 7 (#105) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump geekyeggo/delete-artifact from 5 to 6 (#103) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump github.com/modelcontextprotocol/go-sdk from 1.4.0 to 1.4.1 (#102) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump docker/metadata-action from 5 to 6 (#101) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump docker/build-push-action from 6 to 7 (#100) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump docker/setup-buildx-action from 3 to 4 (#99) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump docker/setup-qemu-action from 3 to 4 (#98) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump docker/login-action from 3 to 4 (#97) @[dependabot[bot]](https://github.com/apps/dependabot)
+* [TRNT-4230] Update base container image to 15.7 (#93) @antgamdia
+* Bump github.com/modelcontextprotocol/go-sdk from 1.2.0 to 1.4.0 (#96) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump actions/download-artifact from 7 to 8 (#94) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump actions/upload-artifact from 6 to 7 (#95) @[dependabot[bot]](https://github.com/apps/dependabot)
+* [TRNT-4228] Fix linter issues (#91) @antgamdia
+* Bump github.com/modelcontextprotocol/go-sdk from 1.1.0 to 1.2.0 (#88) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump actions/download-artifact from 6 to 7 (#87) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump actions/upload-artifact from 5 to 6 (#86) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump actions/cache from 4 to 5 (#85) @[dependabot[bot]](https://github.com/apps/dependabot)
+* Bump github.com/spf13/cobra from 1.10.1 to 1.10.2 (#84) @[dependabot[bot]](https://github.com/apps/dependabot)
+
+</details>
+**Full Changelog**: https://github.com/trento-project/mcp-server/compare/1.0.0...1.1.0
+
 ## 1.0.0 - 2025-12-01
 
 ### What's Changed
@@ -83,6 +137,5 @@
 * Bump actions/checkout from 4 to 5 (#15) @[dependabot[bot]](https://github.com/apps/dependabot)
 * Bump actions/download-artifact from 4 to 5 (#13) @[dependabot[bot]](https://github.com/apps/dependabot)
 * Bump github.com/mark3labs/mcp-go from 0.36.0 to 0.37.0 (#11) @[dependabot[bot]](https://github.com/apps/dependabot)
-
 </details>
 **Full Changelog**: https://github.com/trento-project/mcp-server/compare/...1.0.0
