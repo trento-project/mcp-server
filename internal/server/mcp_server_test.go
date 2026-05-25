@@ -1602,6 +1602,8 @@ func createOASContentWithServer(t *testing.T, operationID, tag, serverURL string
 // See https://spec.openapis.org/oas/latest#style-examples
 // TODO(TRNT-4420): the openapi-mcp library should support all styles/explode combinations,
 // but currently we added FixArrayQueryParameters to convert to exploded format before reaching the upstream API.
+//
+//nolint:goconst
 func TestComplexQueryParameters(t *testing.T) {
 	t.Parallel()
 
