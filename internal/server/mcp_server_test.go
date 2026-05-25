@@ -1597,3 +1597,221 @@ func createOASContentWithServer(t *testing.T, operationID, tag, serverURL string
 	}
 }`, tag, serverURL, operationID, tag, tag)
 }
+
+// TestComplexQueryParameters ensures the serialization for query parameters is the proper one.
+// See https://spec.openapis.org/oas/latest#style-examples
+// TODO(TRNT-4420): the openapi-mcp library should support all styles/explode combinations,
+// but currently we added FixArrayQueryParameters to convert to exploded format before reaching the upstream API.
+func TestComplexQueryParameters(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name             string
+		arrayParamValues []string
+		style            string // empty = default (form), "spaceDelimited", "pipeDelimited", "deepObject"
+		explode          *bool  // nil = default (true)
+		expectedRawQuery string
+	}{
+		// Array serialization - default style/explode cases (form + explode=true)
+		{
+			name:             "array form explode=true - multiple values",
+			arrayParamValues: []string{"debug", "info", "warning", "critical"},
+			expectedRawQuery: "severity=debug&severity=info&severity=warning&severity=critical",
+		},
+		{
+			name:             "array form explode=true - single value",
+			arrayParamValues: []string{"error"},
+			expectedRawQuery: "level=error",
+		},
+		// Array serialization - other styles (regression tests: openapi-mcp currently encodes all as form+explode=true)
+		{
+			name:             "array form explode=false (currently: form explode=true, future: comma-separated)",
+			arrayParamValues: []string{"blue", "black", "brown"},
+			style:            "form",
+			explode:          ptr(false),
+			expectedRawQuery: "color=blue&color=black&color=brown", // TODO: change to "color=blue,black,brown" when supported
+		},
+		{
+			name:             "array spaceDelimited (currently: form explode=true, future: space-separated)",
+			arrayParamValues: []string{"blue", "black", "brown"},
+			style:            "spaceDelimited",
+			expectedRawQuery: "color=blue&color=black&color=brown", // TODO: change to "color=blue%20black%20brown" when supported
+		},
+		{
+			name:             "array pipeDelimited (currently: form explode=true, future: pipe-separated)",
+			arrayParamValues: []string{"blue", "black", "brown"},
+			style:            "pipeDelimited",
+			expectedRawQuery: "color=blue&color=black&color=brown", // TODO: change to "color=blue%7Cblack%7Cbrown" when supported
+		},
+		{
+			name:             "array spaceDelimited explode=true (spec: n/a, currently: form explode=true)",
+			arrayParamValues: []string{"blue", "black", "brown"},
+			style:            "spaceDelimited",
+			explode:          ptr(true),
+			expectedRawQuery: "color=blue&color=black&color=brown", // Undefined by spec, handled as form explode=true
+		},
+		{
+			name:             "array pipeDelimited explode=true (spec: n/a, currently: form explode=true)",
+			arrayParamValues: []string{"blue", "black", "brown"},
+			style:            "pipeDelimited",
+			explode:          ptr(true),
+			expectedRawQuery: "color=blue&color=black&color=brown", // Undefined by spec, handled as form explode=true
+		},
+		// Object serialization (passed as arrays, openapi-mcp encodes as form+explode=true)
+		{
+			name:             "object form explode=true - key-value pairs",
+			arrayParamValues: []string{"R", "100", "G", "200", "B", "150"},
+			style:            "form",
+			explode:          ptr(true),
+			expectedRawQuery: "color=R&color=100&color=G&color=200&color=B&color=150",
+		},
+		{
+			name:             "object form explode=false (currently: form explode=true, future: comma-separated)",
+			arrayParamValues: []string{"R", "100", "G", "200", "B", "150"},
+			style:            "form",
+			explode:          ptr(false),
+			expectedRawQuery: "color=R&color=100&color=G&color=200&color=B&color=150", // TODO: change to "color=R,100,G,200,B,150" when supported
+		},
+		{
+			name:             "object spaceDelimited (currently: form explode=true, future: space-separated)",
+			arrayParamValues: []string{"R", "100", "G", "200"},
+			style:            "spaceDelimited",
+			expectedRawQuery: "color=R&color=100&color=G&color=200", // TODO: change to "color=R%20100%20G%20200" when supported
+		},
+		{
+			name:             "object pipeDelimited (currently: form explode=true, future: pipe-separated)",
+			arrayParamValues: []string{"R", "100", "G", "200"},
+			style:            "pipeDelimited",
+			expectedRawQuery: "color=R&color=100&color=G&color=200", // TODO: change to "color=R%7C100%7CG%7C200" when supported
+		},
+		{
+			name:             "object spaceDelimited explode=true (spec: n/a, currently: form explode=true)",
+			arrayParamValues: []string{"R", "100", "G", "200"},
+			style:            "spaceDelimited",
+			explode:          ptr(true),
+			expectedRawQuery: "color=R&color=100&color=G&color=200", // Undefined by spec, handled as form explode=true
+		},
+		{
+			name:             "object pipeDelimited explode=true (spec: n/a, currently: form explode=true)",
+			arrayParamValues: []string{"R", "100", "G", "200"},
+			style:            "pipeDelimited",
+			explode:          ptr(true),
+			expectedRawQuery: "color=R&color=100&color=G&color=200", // Undefined by spec, handled as form explode=true
+		},
+		{
+			name:             "object deepObject (currently: form explode=true, future: bracket notation)",
+			arrayParamValues: []string{"R", "100", "G", "200"},
+			style:            "deepObject",
+			expectedRawQuery: "color=R&color=100&color=G&color=200", // TODO: change to "color%5BR%5D=100&color%5BG%5D=200" when supported
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			toolName := strings.ReplaceAll(tt.name, " ", "_")
+
+			// Extract parameter name from expectedRawQuery (the part before the first '=')
+			paramName, _, _ := strings.Cut(tt.expectedRawQuery, "=")
+
+			var capturedRequest *http.Request
+			mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				capturedRequest = r.Clone(r.Context())
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": []}`))
+			}))
+			defer mockServer.Close()
+
+			// Build OAS content as a complete JSON object (no tabs)
+			paramDef := fmt.Sprintf(`{"name":"%s","in":"query"`, paramName)
+			if tt.style != "" {
+				paramDef += fmt.Sprintf(`,"style":"%s"`, tt.style)
+			}
+			if tt.explode != nil {
+				paramDef += fmt.Sprintf(`,"explode":%v`, *tt.explode)
+			}
+			paramDef += `,"schema":{"type":"array","items":{"type":"string"}}}`
+
+			oasContent := fmt.Sprintf(`
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Test API", "version": "1.0.0"},
+  "servers": [{ "url": "%s" }],
+  "paths": {
+    "/test": {
+      "get": {
+        "operationId": "%s",
+        "tags": ["Test"],
+        "parameters": [%s],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          }
+        }
+      }
+    }
+  }
+}
+`, mockServer.URL, toolName, paramDef)
+
+			tmpFile := createTempOASFile(t, oasContent)
+			srv := server.CreateMCPServer(t.Context(), &server.ServeOptions{Name: "test", Version: "v1"})
+			serveOpts := &server.ServeOptions{
+				Name:      "test-server",
+				Version:   "1.0.0",
+				OASPath:   []string{tmpFile},
+				TrentoURL: mockServer.URL,
+			}
+
+			srv, tools, err := server.HandleToolsRegistration(t.Context(), srv, serveOpts)
+			require.NoError(t, err)
+			require.Contains(t, tools, toolName, "Tool should be registered")
+
+			clientTransport, serverTransport := mcp.NewInMemoryTransports()
+			_, err = srv.Connect(t.Context(), serverTransport, nil)
+			require.NoError(t, err)
+
+			clientImpl := &mcp.Implementation{Name: "test-client", Version: "0.1.0"}
+			client := mcp.NewClient(clientImpl, nil)
+			cs, err := client.Connect(t.Context(), clientTransport, nil)
+			require.NoError(t, err)
+			defer func() { _ = cs.Close() }()
+
+			ctxWithTimeout, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer cancel()
+
+			// Call tool with array parameter
+			result, err := cs.CallTool(ctxWithTimeout, &mcp.CallToolParams{
+				Name: toolName,
+				Arguments: map[string]any{
+					paramName: tt.arrayParamValues,
+				},
+			})
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+
+			require.NotNil(t, capturedRequest, tt.name)
+
+			// Validate query string doesn't contain stringified array format
+			rawQuery := capturedRequest.URL.RawQuery
+			require.NotContains(t, rawQuery, "%5B", "Should not contain encoded [")
+			require.NotContains(t, rawQuery, "%5D", "Should not contain encoded ]")
+			require.NotContains(t, rawQuery, "[", "Should not contain [")
+			require.NotContains(t, rawQuery, "]", "Should not contain ]")
+			require.Contains(t, rawQuery, tt.expectedRawQuery, "Query should match expected format")
+
+			// Validate array values are present in query
+			queryValues := capturedRequest.URL.Query()
+			actualArrayValues := queryValues[paramName]
+			require.Equal(t, tt.arrayParamValues, actualArrayValues, "Array parameter values should match")
+		})
+	}
+}
+
+func ptr[T any](v T) *T {
+	return &v
+}
