@@ -218,6 +218,45 @@ func handleToolsRegistration(
 	return srv, allTools, nil
 }
 
+// FixArrayQueryParameters corrects array query parameters from stringified format to exploded format.
+// TODO(TRNT-4420): this fix belongs to openapi-mcp library, but in the meantime we apply it here
+//
+// Query parameters default to style=form with explode=true, which means:
+// - Correct format: severity=debug&severity=info&severity=warning&severity=critical
+// - Incorrect format: severity=%5Bdebug+info+warning+critical%5D (stringified as [debug info warning critical])
+//
+// Examples:
+// - Input (wrong):  severity=%5Bdebug+info+warning+critical%5D
+// - Output (fixed): severity=debug&severity=info&severity=warning&severity=critical
+//
+// See https://spec.openapis.org/oas/latest#style-examples
+func FixArrayQueryParameters(u *url.URL) {
+	query := u.Query()
+	newQuery := url.Values{}
+
+	for key, values := range query {
+		// Check if this is a single value that looks like a stringified array: [value1 value2 value3]
+		if len(values) == 1 && strings.HasPrefix(values[0], "[") && strings.HasSuffix(values[0], "]") {
+			// Remove the brackets and split by whitespace
+			content := strings.TrimPrefix(strings.TrimSuffix(values[0], "]"), "[")
+			if content != "" {
+				// Split by whitespace and add as exploded parameters
+				items := strings.FieldsSeq(content)
+				for item := range items {
+					newQuery.Add(key, item)
+				}
+			}
+		} else {
+			// Keep non-array parameters as-is
+			for _, v := range values {
+				newQuery.Add(key, v)
+			}
+		}
+	}
+
+	u.RawQuery = newQuery.Encode()
+}
+
 func registerToolsFromSpec(srv *mcp.Server, oasDoc *openapi3.T, serveOpts *ServeOptions) []string {
 	// Extract the API operations.
 	operations := openapi2mcp.ExtractOpenAPIOperations(oasDoc)
@@ -271,6 +310,10 @@ func registerToolsFromSpec(srv *mcp.Server, oasDoc *openapi3.T, serveOpts *Serve
 			if err != nil {
 				return nil, err
 			}
+
+			// Fix array query parameters that openapi-mcp encodes incorrectly
+			// Converts stringified format [value1 value2] to exploded format value1&param=value2
+			FixArrayQueryParameters(req.URL)
 
 			// Use the client's transport RoundTrip to avoid opaque Do sinks and automatic redirects.
 			transport := httpClient.Transport
