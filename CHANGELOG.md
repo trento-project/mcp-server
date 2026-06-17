@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.1 - 2026-06-17
+
+### What's Changed
+
+* Fix unhandled array parameters (#131) @balanza
+
+**Full Changelog**: https://github.com/trento-project/mcp-server/compare/1.1.0...1.1.1
+
 ## 1.1.0 - 2026-05-19
 
 ### What's Changed
@@ -50,10 +58,8 @@
 * Bump actions/upload-artifact from 5 to 6 (#86) @[dependabot[bot]](https://github.com/apps/dependabot)
 * Bump actions/cache from 4 to 5 (#85) @[dependabot[bot]](https://github.com/apps/dependabot)
 * Bump github.com/spf13/cobra from 1.10.1 to 1.10.2 (#84) @[dependabot[bot]](https://github.com/apps/dependabot)
-
 </details>
 **Full Changelog**: https://github.com/trento-project/mcp-server/compare/1.0.0...1.1.0
-
 ## 1.0.0 - 2025-12-01
 
 ### What's Changed
