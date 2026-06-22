@@ -28,7 +28,7 @@ Source1:        vendor.tar.gz
 ExclusiveArch:  x86_64 ppc64le s390x
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 BuildRequires:  make
-BuildRequires:  golang(API) = 1.25
+BuildRequires:  golang(API) = 1.26
 Provides:       %{name} = %{version}-%{release}
 
 %description
