@@ -26,3 +26,4 @@ header:
     - "LICENSE"
     - "VERSION"
     - "go.sum"
+    - "packaging/suse/rpm/mcp-server-trento.spec"
