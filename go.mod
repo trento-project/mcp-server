@@ -3,7 +3,7 @@
 
 module github.com/trento-project/mcp-server
 
-go 1.26.5
+go 1.26
 
 require (
 	github.com/alexliesenfeld/health v0.8.1
