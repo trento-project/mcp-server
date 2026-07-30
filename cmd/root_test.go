@@ -178,6 +178,7 @@ func TestConfigureCLI(t *testing.T) {
 		envVars       map[string]string
 		expected      server.ServeOptions
 		expectError   bool
+		errContains   string
 	}{
 		{
 			name: "custom configuration values",
@@ -275,6 +276,16 @@ func TestConfigureCLI(t *testing.T) {
 			viperSettings: map[string]any{},
 			expectError:   true,
 		},
+		{
+			name: "stateless combined with sse transport should fail",
+			viperSettings: map[string]any{
+				"STATELESS":  true,
+				"TRANSPORT":  "sse",
+				"TRENTO_URL": "http://trento.example.com",
+			},
+			expectError: true,
+			errContains: "stateless",
+		},
 	}
 
 	for _, tt := range tests {
@@ -300,7 +311,13 @@ func TestConfigureCLI(t *testing.T) {
 
 			if tt.expectError {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), "either a Trento URL or at least one OAS path must be provided")
+
+				expectedErr := tt.errContains
+				if expectedErr == "" {
+					expectedErr = "either a Trento URL or at least one OAS path must be provided"
+				}
+
+				assert.Contains(t, err.Error(), expectedErr)
 
 				return
 			}
@@ -517,7 +534,7 @@ func TestFlagConfigs(t *testing.T) {
 	configs := cmd.FlagConfigs()
 
 	// Verify we have the expected number of configs
-	assert.Len(t, configs, 13)
+	assert.Len(t, configs, 14)
 
 	// Test basic properties of each flag configuration
 	expectedFlags := []struct {
@@ -534,6 +551,7 @@ func TestFlagConfigs(t *testing.T) {
 		{"INSECURE_SKIP_TLS_VERIFY", "insecure-skip-tls-verify", "i"},
 		{"OAS_PATH", "oas-path", "P"},
 		{"PORT", "port", "p"},
+		{"STATELESS", "stateless", "s"},
 		{"TAG_FILTER", "tag-filter", "f"},
 		{"TRANSPORT", "transport", "t"},
 		{"TRENTO_URL", "trento-url", "u"},

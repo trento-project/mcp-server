@@ -5,6 +5,7 @@
 package server_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
@@ -14,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -80,6 +82,7 @@ func TestStartStreamableHTTPServer(t *testing.T) {
 	tests := []struct {
 		name        string
 		headerName  string
+		stateless   bool
 		expectError bool
 		checkPath   string
 	}{
@@ -91,6 +94,12 @@ func TestStartStreamableHTTPServer(t *testing.T) {
 		{
 			name:       "streamable server with different header name",
 			headerName: "X-Custom-Auth",
+			checkPath:  "/mcp",
+		},
+		{
+			name:       "successful stateless streamable server start",
+			headerName: "X-API-Key",
+			stateless:  true,
 			checkPath:  "/mcp",
 		},
 	}
@@ -110,7 +119,7 @@ func TestStartStreamableHTTPServer(t *testing.T) {
 			testServerShutdown(t, cancel, func() error {
 				serverErrChan := make(chan error, 1)
 
-				streamableServer, err := server.StartStreamableHTTPServer(ctx, srv, listenAddr, tt.headerName, serverErrChan)
+				streamableServer, err := server.StartStreamableHTTPServer(ctx, srv, listenAddr, tt.headerName, tt.stateless, serverErrChan)
 				if err != nil {
 					return err
 				}
@@ -118,6 +127,54 @@ func TestStartStreamableHTTPServer(t *testing.T) {
 				return waitForShutdownSingle(ctx, t, streamableServer, serverErrChan)
 			}, checkURL, "TestStartStreamableHTTPServer timed out waiting for shutdown")
 		})
+	}
+}
+
+func TestStatelessStreamableHTTPServerRejectsGetAndDelete(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	srv := server.CreateMCPServer(ctx, &server.ServeOptions{Name: "test", Version: "v1"})
+	port := getAvailablePort(t)
+	listenAddr := fmt.Sprintf(":%d", port)
+	mcpURL := (&url.URL{Scheme: utils.HTTPScheme, Host: fmt.Sprintf("localhost:%d", port), Path: "/mcp"}).String()
+
+	streamableServer, err := server.StartStreamableHTTPServer(ctx, srv, listenAddr, "Authorization", true, make(chan error, 1))
+	require.NoError(t, err)
+
+	defer func() {
+		cancel()
+		_ = streamableServer.Shutdown(context.Background()) //nolint:usetesting
+	}()
+
+	require.Eventually(t, func() bool {
+		req, reqErr := http.NewRequestWithContext(ctx, http.MethodGet, mcpURL, nil)
+		if reqErr != nil {
+			return false
+		}
+
+		resp, doErr := http.DefaultClient.Do(req)
+		if doErr != nil {
+			return false
+		}
+		defer resp.Body.Close() //nolint:errcheck
+
+		return true
+	}, 2*time.Second, 50*time.Millisecond, "stateless streamable server did not start in time")
+
+	for _, method := range []string{http.MethodGet, http.MethodDelete} {
+		req, reqErr := http.NewRequestWithContext(ctx, method, mcpURL, nil)
+		require.NoError(t, reqErr)
+
+		resp, doErr := http.DefaultClient.Do(req)
+		require.NoError(t, doErr)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode, "method %s should be rejected in stateless mode", method)
+		assert.Empty(t, resp.Header.Get("Mcp-Session-Id"), "stateless mode must never issue a session id")
+
+		require.NoError(t, resp.Body.Close())
 	}
 }
 
@@ -210,6 +267,184 @@ func TestWithLogger(t *testing.T) {
 			assert.IsType(t, mcp.MethodHandler(nil), middleware(nil))
 		})
 	}
+}
+
+const testBearerToken = "some-bearer-token"
+
+func TestWithStatelessAuthMiddleware(t *testing.T) {
+	// Not parallel: asserts on the process-global BEARER_TOKEN env var.
+	originalToken, hadOriginal := os.LookupEnv(server.BearerTokenEnv)
+
+	t.Cleanup(func() {
+		if hadOriginal {
+			require.NoError(t, os.Setenv(server.BearerTokenEnv, originalToken))
+		} else {
+			require.NoError(t, os.Unsetenv(server.BearerTokenEnv))
+		}
+	})
+
+	tests := []struct {
+		name          string
+		method        string
+		token         string
+		expectEnvSet  bool
+		expectedValue string
+	}{
+		{
+			name:          "injects the token from context on tools/call",
+			method:        server.MethodCallTool,
+			token:         testBearerToken,
+			expectEnvSet:  true,
+			expectedValue: testBearerToken,
+		},
+		{
+			name:         "continues without auth when context has no token",
+			method:       server.MethodCallTool,
+			token:        "",
+			expectEnvSet: false,
+		},
+		{
+			name:         "does not touch the env for non tools/call methods",
+			method:       "tools/list",
+			token:        testBearerToken,
+			expectEnvSet: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.NoError(t, os.Unsetenv(server.BearerTokenEnv))
+
+			ctx := t.Context()
+			if tt.token != "" {
+				ctx = context.WithValue(ctx, server.SessionBearerTokenKey, tt.token)
+			}
+
+			var observedEnv string
+
+			next := func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
+				observedEnv = os.Getenv(server.BearerTokenEnv)
+
+				return nil, nil //nolint:nilnil
+			}
+
+			middleware := server.WithStatelessAuthMiddleware()
+			_, err := middleware(next)(ctx, tt.method, nil)
+			require.NoError(t, err)
+
+			if tt.expectEnvSet {
+				assert.Equal(t, tt.expectedValue, observedEnv)
+			} else {
+				assert.Empty(t, observedEnv)
+			}
+
+			// The env var must always be restored after the call completes.
+			_, stillSet := os.LookupEnv(server.BearerTokenEnv)
+			assert.False(t, stillSet, "BEARER_TOKEN must not leak after middleware execution")
+		})
+	}
+}
+
+// TestWithAuthMiddlewareLegacySessionCaching exercises the legacy (non-stateless) auth flow
+// end-to-end over real HTTP: the bearer token is only sent once, on 'initialize', and must be
+// replayed by the server on a later 'tools/call' within the same Mcp-Session-Id - without the
+// client resending the header. This is the behavior withStatelessAuthMiddleware intentionally
+// does NOT provide (see TestWithStatelessAuthMiddleware and
+// TestStatelessStreamableHTTPServerRejectsGetAndDelete).
+//
+//nolint:paralleltest
+func TestWithAuthMiddlewareLegacySessionCaching(t *testing.T) {
+	// Not parallel: asserts on the process-global BEARER_TOKEN env var.
+	originalToken, hadOriginal := os.LookupEnv(server.BearerTokenEnv)
+
+	t.Cleanup(func() {
+		if hadOriginal {
+			require.NoError(t, os.Setenv(server.BearerTokenEnv, originalToken))
+		} else {
+			require.NoError(t, os.Unsetenv(server.BearerTokenEnv))
+		}
+	})
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	srv := server.CreateMCPServer(ctx, &server.ServeOptions{Name: "test", Version: "v1"})
+
+	var (
+		mu             sync.Mutex
+		observedTokens []string
+	)
+
+	mcp.AddTool(srv, &mcp.Tool{Name: "echo_token", Description: "records the current bearer token env var"},
+		func(_ context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+			mu.Lock()
+			observedTokens = append(observedTokens, os.Getenv(server.BearerTokenEnv))
+			mu.Unlock()
+
+			return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: "ok"}}}, nil, nil
+		})
+
+	port := getAvailablePort(t)
+	listenAddr := fmt.Sprintf(":%d", port)
+	mcpURL := (&url.URL{Scheme: utils.HTTPScheme, Host: fmt.Sprintf("localhost:%d", port), Path: "/mcp"}).String()
+
+	streamableServer, err := server.StartStreamableHTTPServer(
+		ctx, srv, listenAddr, "Authorization", false, make(chan error, 1),
+	)
+	require.NoError(t, err)
+
+	defer func() {
+		cancel()
+		_ = streamableServer.Shutdown(context.Background()) //nolint:usetesting
+	}()
+
+	post := func(body string, headers map[string]string) *http.Response {
+		req, reqErr := http.NewRequestWithContext(ctx, http.MethodPost, mcpURL, strings.NewReader(body))
+		require.NoError(t, reqErr)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json, text/event-stream")
+
+		for k, v := range headers {
+			req.Header.Set(k, v)
+		}
+
+		resp, doErr := http.DefaultClient.Do(req)
+		require.NoError(t, doErr)
+
+		return resp
+	}
+
+	// 'initialize' carries the auth header - this is the only time the client sends it.
+	initResp := post(
+		`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25",`+
+			`"capabilities":{},"clientInfo":{"name":"test-client","version":"1.0"}}}`,
+		map[string]string{"Authorization": "Bearer " + testBearerToken},
+	)
+	require.Equal(t, http.StatusOK, initResp.StatusCode)
+
+	sessionID := initResp.Header.Get("Mcp-Session-Id")
+	require.NotEmpty(t, sessionID, "non-stateless mode must issue a session id")
+	require.NoError(t, initResp.Body.Close())
+
+	notifyResp := post(
+		`{"jsonrpc":"2.0","method":"notifications/initialized"}`,
+		map[string]string{"Mcp-Session-Id": sessionID},
+	)
+	require.NoError(t, notifyResp.Body.Close())
+
+	// 'tools/call' does NOT resend the Authorization header - only the session id.
+	callResp := post(
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"echo_token","arguments":{}}}`,
+		map[string]string{"Mcp-Session-Id": sessionID},
+	)
+	require.Equal(t, http.StatusOK, callResp.StatusCode)
+	require.NoError(t, callResp.Body.Close())
+
+	mu.Lock()
+	defer mu.Unlock()
+	require.Len(t, observedTokens, 1)
+	assert.Equal(t, "Bearer "+testBearerToken, observedTokens[0],
+		"the token cached from 'initialize' must be replayed on 'tools/call' even without resending the header")
 }
 
 //nolint:goconst
@@ -597,6 +832,7 @@ func TestHandleMCPServerRun(t *testing.T) {
 	tests := []struct {
 		name        string
 		transport   utils.TransportType
+		stateless   bool
 		path        string
 		expectErr   bool
 		errContains string
@@ -604,6 +840,13 @@ func TestHandleMCPServerRun(t *testing.T) {
 		{
 			name:      "should start and stop streamable transport",
 			transport: utils.TransportStreamable,
+			path:      "/mcp",
+			expectErr: false,
+		},
+		{
+			name:      "should start and stop stateless streamable transport",
+			transport: utils.TransportStreamable,
+			stateless: true,
 			path:      "/mcp",
 			expectErr: false,
 		},
@@ -618,6 +861,13 @@ func TestHandleMCPServerRun(t *testing.T) {
 			transport:   "invalid-transport",
 			expectErr:   true,
 			errContains: "invalid transport type",
+		},
+		{
+			name:        "should fail combining sse transport with stateless mode",
+			transport:   utils.TransportSSE,
+			stateless:   true,
+			expectErr:   true,
+			errContains: "stateless",
 		},
 		{
 			name:        "should fail if port is in use for streamable",
@@ -657,6 +907,7 @@ func TestHandleMCPServerRun(t *testing.T) {
 			serveOpts := &server.ServeOptions{
 				Port:      port,
 				Transport: tt.transport,
+				Stateless: tt.stateless,
 			}
 
 			if tt.expectErr {
@@ -883,6 +1134,7 @@ func TestSetAPIKeyInContext(t *testing.T) {
 		headerName      string
 		headerValue     string
 		headerPresent   bool
+		stateless       bool
 		expectInContext bool
 		expectedAPIKey  string
 	}{
@@ -918,6 +1170,15 @@ func TestSetAPIKeyInContext(t *testing.T) {
 			expectInContext: true,
 			expectedAPIKey:  "custom-key-123",
 		},
+		{
+			name:            "should still store API key in context when stateless",
+			headerName:      testHeaderName,
+			headerValue:     "stateless-key",
+			headerPresent:   true,
+			stateless:       true,
+			expectInContext: true,
+			expectedAPIKey:  "stateless-key",
+		},
 	}
 
 	for _, tt := range tests {
@@ -932,7 +1193,7 @@ func TestSetAPIKeyInContext(t *testing.T) {
 				req.Header.Set(tt.headerName, tt.headerValue)
 			}
 
-			server.SetAPIKeyInContext(req, tt.headerName)
+			server.SetAPIKeyInContext(req, tt.headerName, tt.stateless)
 
 			// Get the value of the context key
 			ctxValue := req.Context().Value(server.SessionBearerTokenKey)
@@ -947,6 +1208,34 @@ func TestSetAPIKeyInContext(t *testing.T) {
 			}
 		})
 	}
+}
+
+//nolint:paralleltest
+func TestSetAPIKeyInContextStatelessSuppressesLogging(t *testing.T) {
+	originalLogger := slog.Default()
+	defer slog.SetDefault(originalLogger)
+
+	runWithCapturedLogs := func(stateless bool, headerPresent bool) string {
+		var buf bytes.Buffer
+
+		slog.SetDefault(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})))
+
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, "/mcp", nil)
+		require.NoError(t, err)
+
+		if headerPresent {
+			req.Header.Set("Authorization", "some-token")
+		}
+
+		server.SetAPIKeyInContext(req, "Authorization", stateless)
+
+		return buf.String()
+	}
+
+	assert.Empty(t, runWithCapturedLogs(true, true), "stateless mode must not log when the header is present")
+	assert.Empty(t, runWithCapturedLogs(true, false), "stateless mode must not log when the header is absent")
+	assert.NotEmpty(t, runWithCapturedLogs(false, true), "non-stateless mode should still log when the header is present")
+	assert.NotEmpty(t, runWithCapturedLogs(false, false), "non-stateless mode should still log when the header is absent")
 }
 
 //nolint:goconst

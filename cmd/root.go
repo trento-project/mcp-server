@@ -50,6 +50,7 @@ const (
 	defaultHealthPort            = 8080
 	defaultInsecureSkipTLSVerify = false
 	defaultPort                  = 5000
+	defaultStateless             = false
 	defaultTrentoURL             = ""
 	defaultVerbosity             = "info"
 
@@ -63,6 +64,7 @@ const (
 	configKeyInsecureSkipTLSVerify = "INSECURE_SKIP_TLS_VERIFY"
 	configKeyOASPath               = "OAS_PATH"
 	configKeyPort                  = "PORT"
+	configKeyStateless             = "STATELESS"
 	configKeyTagFilter             = "TAG_FILTER"
 	configKeyTransport             = "TRANSPORT"
 	configKeyTrentoURL             = "TRENTO_URL"
@@ -168,6 +170,14 @@ func flagConfigs() []utils.FlagConfig {
 			Description:  "The port on which to run the MCP server",
 		},
 		{
+			Key:          configKeyStateless,
+			DefaultValue: defaultStateless,
+			FlagType:     utils.FlagTypeBool,
+			FlagName:     "stateless",
+			Short:        "s",
+			Description:  "Enable MCP protocol 2026-07-28 stateless mode; cannot be combined with --transport sse (default false)",
+		},
+		{
 			Key:          configKeyTagFilter,
 			DefaultValue: defaultTagFilter,
 			FlagType:     utils.FlagTypeStringSlice,
@@ -239,6 +249,13 @@ func configureCLI(_ *cobra.Command, _ []string) error {
 	// If no TrentoURL or no OASPaths are provided, just error
 	if serveOpts.TrentoURL == "" && len(serveOpts.OASPath) == 0 {
 		return errors.New("either a Trento URL or at least one OAS path must be provided")
+	}
+
+	// The deprecated SSE transport cannot be used together with stateless mode.
+	if serveOpts.Stateless && serveOpts.Transport == utils.TransportSSE {
+		return errors.New(
+			"the sse transport is deprecated and cannot be used together with --stateless; use --transport streamable",
+		)
 	}
 
 	return nil

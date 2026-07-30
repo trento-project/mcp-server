@@ -127,7 +127,7 @@ func TestWaitForShutdown(t *testing.T) {
 				errChan chan<- error,
 			) (utils.StoppableServer, error) {
 				return server.StartStreamableHTTPServer(ctx,
-					mcpSrv, addr, headerName, errChan)
+					mcpSrv, addr, headerName, false, errChan)
 			},
 			checkPath: "/mcp",
 			expectErr: false,

@@ -77,7 +77,11 @@ func createMCPServer(ctx context.Context, serveOpts *ServeOptions) *mcp.Server {
 	srv := mcp.NewServer(impl, opts)
 
 	// Add authentication middleware FIRST - it must run before tool execution
-	srv.AddReceivingMiddleware(withAuthMiddleware())
+	if serveOpts.Stateless {
+		srv.AddReceivingMiddleware(withStatelessAuthMiddleware())
+	} else {
+		srv.AddReceivingMiddleware(withAuthMiddleware())
+	}
 
 	// Add logging middleware
 	srv.AddReceivingMiddleware(withLogger(slog.Default()))
@@ -463,10 +467,18 @@ func handleMCPServerRun(
 	// Depending on the chosen transport, we handle the MCP server startup.
 	switch serveOpts.Transport {
 	case utils.TransportSSE:
+		if serveOpts.Stateless {
+			return nil, errors.New(
+				"the sse transport is deprecated and cannot be used together with stateless mode; use streamable",
+			)
+		}
+
 		mcpServer, err = startSSEServer(ctx, srv, listenAddr, serveOpts.HeaderName, serverErrChan)
 
 	case utils.TransportStreamable:
-		mcpServer, err = startStreamableHTTPServer(ctx, srv, listenAddr, serveOpts.HeaderName, serverErrChan)
+		mcpServer, err = startStreamableHTTPServer(
+			ctx, srv, listenAddr, serveOpts.HeaderName, serveOpts.Stateless, serverErrChan,
+		)
 
 	default:
 		return nil, fmt.Errorf("invalid transport type: %s", serveOpts.Transport)
@@ -517,12 +529,15 @@ func startServer(
 
 // setAPIKeyInContext extracts the API key from the request header and stores it in the request context.
 // The middleware will later associate it with the session.
-func setAPIKeyInContext(r *http.Request, headerName string) {
+func setAPIKeyInContext(r *http.Request, headerName string, stateless bool) {
 	apiKey := r.Header.Get(headerName)
 	if apiKey != "" {
-		slog.DebugContext(r.Context(), "API key found in request, storing in context", "header", headerName)
+		if !stateless {
+			slog.DebugContext(r.Context(), "API key found in request, storing in context", "header", headerName)
+		}
+
 		*r = *r.WithContext(context.WithValue(r.Context(), sessionBearerTokenKey, apiKey))
-	} else {
+	} else if !stateless {
 		slog.DebugContext(r.Context(), "API key not found in request header", "header", headerName)
 	}
 }
@@ -533,15 +548,16 @@ func startStreamableHTTPServer(
 	mcpSrv *mcp.Server,
 	listenAddr string,
 	headerName string,
+	stateless bool,
 	errChan chan<- error,
 ) (utils.StoppableServer, error) {
 	streamableHandler := mcp.NewStreamableHTTPHandler(
 		func(r *http.Request) *mcp.Server {
-			setAPIKeyInContext(r, headerName)
+			setAPIKeyInContext(r, headerName, stateless)
 
 			return mcpSrv
 		},
-		&mcp.StreamableHTTPOptions{},
+		&mcp.StreamableHTTPOptions{Stateless: stateless},
 	)
 
 	httpServer := startServer(ctx, listenAddr, streamableHandler, utils.TransportStreamable, errChan)
@@ -559,7 +575,8 @@ func startSSEServer(
 ) (utils.StoppableServer, error) {
 	sseHandler := mcp.NewSSEHandler(
 		func(r *http.Request) *mcp.Server {
-			setAPIKeyInContext(r, headerName)
+			// SSE never runs in stateless mode (rejected in handleMCPServerRun), so logging always applies.
+			setAPIKeyInContext(r, headerName, false)
 
 			return mcpSrv
 		},
@@ -627,45 +644,78 @@ func withAuthMiddleware() mcp.Middleware {
 				"session.id", sessionID,
 			)
 
-			// Acquire lock to prevent race conditions with different tokens
-			envMutex.Lock()
-			defer envMutex.Unlock()
-
-			// Save original environment state
-			originalToken, hasOriginal := os.LookupEnv(bearerTokenEnv)
-
-			// Set session-specific token
-			err := os.Setenv(bearerTokenEnv, token)
-			if err != nil {
-				slog.ErrorContext(ctx, "failed to set bearer token",
-					"session.id", sessionID,
-					"error", err,
-				)
-
-				return nil, fmt.Errorf("failed to set authentication token: %w", err)
-			}
-
-			// Ensure environment is restored after tool execution
-			defer func() {
-				var restoreErr error
-				if hasOriginal {
-					restoreErr = os.Setenv(bearerTokenEnv, originalToken)
-				} else {
-					restoreErr = os.Unsetenv(bearerTokenEnv)
-				}
-
-				if restoreErr != nil {
-					slog.ErrorContext(ctx, "failed to restore environment after tool execution",
-						"session.id", sessionID,
-						"error", restoreErr,
-					)
-				}
-			}()
-
-			// Execute tool with session-specific authentication
-			return next(ctx, method, req)
+			return injectBearerToken(ctx, token, func() (mcp.Result, error) { return next(ctx, method, req) })
 		}
 	}
+}
+
+// withStatelessAuthMiddleware creates middleware that injects the bearer token carried on the
+// current request into the tool execution environment.
+// Under the MCP 2026-07-28 stateless model, the token is read directly from the request context on every 'tools/call' -
+func withStatelessAuthMiddleware() mcp.Middleware {
+	return func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+			// Only inject auth for tool calls,
+			// for now it's the only place where
+			// the API key is used.
+			if method != methodCallTool {
+				return next(ctx, method, req)
+			}
+
+			token, _ := ctx.Value(sessionBearerTokenKey).(string)
+
+			if token == "" {
+				slog.DebugContext(ctx, "no bearer token found for tool call",
+					"method", method,
+				)
+				// Continue without auth - the API will return 401 if authentication is required
+				return next(ctx, method, req)
+			}
+
+			slog.DebugContext(ctx, "injecting bearer token for tool execution")
+
+			return injectBearerToken(ctx, token, func() (mcp.Result, error) { return next(ctx, method, req) })
+		}
+	}
+}
+
+// injectBearerToken sets bearerTokenEnv to token for the duration of exec, restoring the
+// previous value afterward. Access is serialized via envMutex since openapi2mcp reads the
+// token through the process-global os.Getenv().
+func injectBearerToken(ctx context.Context, token string, exec func() (mcp.Result, error)) (mcp.Result, error) {
+	envMutex.Lock()
+	defer envMutex.Unlock()
+
+	// Save original environment state
+	originalToken, hasOriginal := os.LookupEnv(bearerTokenEnv)
+
+	// Set the request's token
+	if err := os.Setenv(bearerTokenEnv, token); err != nil {
+		slog.ErrorContext(ctx, "failed to set bearer token",
+			"error", err,
+		)
+
+		return nil, fmt.Errorf("failed to set authentication token: %w", err)
+	}
+
+	// Ensure environment is restored after tool execution
+	defer func() {
+		var restoreErr error
+		if hasOriginal {
+			restoreErr = os.Setenv(bearerTokenEnv, originalToken)
+		} else {
+			restoreErr = os.Unsetenv(bearerTokenEnv)
+		}
+
+		if restoreErr != nil {
+			slog.ErrorContext(ctx, "failed to restore environment after tool execution",
+				"error", restoreErr,
+			)
+		}
+	}()
+
+	// Execute tool with the request's authentication
+	return exec()
 }
 
 // withLogger returns a middleware to log each invocation of the mcp server.
