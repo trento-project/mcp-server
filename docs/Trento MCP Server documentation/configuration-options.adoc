@@ -46,6 +46,9 @@ OAS_PATH=http://localhost:4000/api/all/openapi,http://localhost:4001/wanda/api/a
 ## The port on which the MCP Server listens for incoming connections.
 PORT=5000
 
+## Enable MCP protocol 2026-07-28 stateless mode (no session state, no 'initialize' handshake). Cannot be combined with TRANSPORT=sse.
+STATELESS=false
+
 ## Comma-separated list of OpenAPI tags to filter which operations are exposed as MCP tools. Only operations with at least one matching tag will be available.
 TAG_FILTER=MCP
 
@@ -100,11 +103,52 @@ The `mcp-server-trento` binary accepts several command-line flags to configure i
 |`--insecure-skip-tls-verify, -i` |`TRENTO_MCP_INSECURE_SKIP_TLS_VERIFY` |`false` |Skip TLS certificate verification when fetching OpenAPI specifications from HTTPS URLs.
 |`--oas-path, -P` |`TRENTO_MCP_OAS_PATH` |`[]` |Path to OpenAPI specification file(s). Can be specified multiple times.
 |`--port, -p` |`TRENTO_MCP_PORT` |`5000` |The port on which the MCP server runs.
+|`--stateless, -s` |`TRENTO_MCP_STATELESS` |`false` |Enable MCP protocol 2026-07-28 stateless mode. Cannot be combined with `--transport sse`.
 |`--tag-filter, -f` |`TRENTO_MCP_TAG_FILTER` |`["MCP"]` |Only include operations with at least one of these tags. If empty, all operations are included.
 |`--transport, -t` |`TRENTO_MCP_TRANSPORT` |`streamable` |The protocol to use: "streamable" or "sse".
 |`--trento-url, -u` |`TRENTO_MCP_TRENTO_URL` |(empty) |URL for the target Trento server. Required for autodiscovery if `oas-path` is not set.
 |`--verbosity, -v` |`TRENTO_MCP_VERBOSITY` |`info` |Log level verbosity: debug, info, warning, or error.
 |===
+
+[[sec-mcp-stateless-mode]]
+== Stateless Mode
+
+The `--stateless` flag (or `STATELESS=true`) switches the `streamable` transport to the
+stateless model introduced by MCP protocol version `2026-07-28`. In this mode:
+
+* No `Mcp-Session-Id` is ever issued or read. Every request is handled as an independent,
+  self-contained call - there is no `initialize` handshake to establish state ahead of time.
+* `GET` and `DELETE` requests to the MCP endpoint return `405 Method Not Allowed`, since there is
+  no long-lived stream or session to open/close.
+* Older clients that still perform the legacy `initialize` handshake keep working, but the
+  handshake itself carries no state across calls - it is answered and immediately forgotten.
+
+[IMPORTANT]
+====
+Because there is no session to cache a bearer token against, **the client must send the
+authentication header (`--header-name`, `Authorization` by default) on every `tools/call`
+request**, not just once at connection setup. In the default (non-stateless) mode, the server
+caches the token seen during `initialize` and replays it on later calls within that session, so
+some clients only send it once; that shortcut does not exist in stateless mode.
+====
+
+[TIP]
+====
+Stateless mode also removes the need for session affinity ("sticky sessions") when running
+multiple replicas behind a load balancer. In the default mode, the token cache lives in a single
+server process's memory, so `initialize` and subsequent `tools/call` requests for the same client
+must land on the same replica. Stateless mode has no such requirement, since every request is
+authenticated independently.
+====
+
+`--stateless` cannot be combined with `--transport sse`: the HTTP+SSE transport is deprecated by
+the MCP specification and is inherently session-based, so it is rejected at startup when
+combined with `--stateless`.
+
+[source,console]
+----
+mcp-server-trento --stateless --trento-url https://prod.trento.io
+----
 
 == Configuration Examples
 

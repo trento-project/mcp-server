@@ -116,6 +116,10 @@ Replace `https://trento.example.com/mcp-server-trento/mcp` with your actual Tren
   ** If using Server-Sent Events (SSE) transport instead of the default streamable transport, change the path from `/mcp` to `/sse` - The transport type is configured on the Trento MCP Server using the `TRANSPORT` configuration key or `--transport` flag (see xref:../Trento MCP Server documentation/configuration-options.adoc[Configuration Options]).
 * Replace `your-trento-pat` with the API token you generated from your Trento instance.
 * If you configured a custom header name (using `HEADER_NAME` or `--header-name`), update `Authorization` accordingly.
+* If the Trento MCP Server is running with `--stateless` enabled (see
+  xref:../Trento MCP Server documentation/configuration-options.adoc#sec-mcp-stateless-mode[Stateless Mode]),
+  your client must send the authentication header on every tool call, not just once when the
+  connection is established - some clients that only send it once may need reconfiguring.
 
 === Troubleshooting
 
