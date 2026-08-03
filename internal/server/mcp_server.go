@@ -528,7 +528,7 @@ func startServer(
 }
 
 // setAPIKeyInContext extracts the API key from the request header and stores it in the request context.
-// The middleware will later associate it with the session.
+// The middleware will later associate it with the session if not in stateless mode.
 func setAPIKeyInContext(r *http.Request, headerName string, stateless bool) {
 	apiKey := r.Header.Get(headerName)
 	if apiKey != "" {
@@ -651,7 +651,7 @@ func withAuthMiddleware() mcp.Middleware {
 
 // withStatelessAuthMiddleware creates middleware that injects the bearer token carried on the
 // current request into the tool execution environment.
-// Under the MCP 2026-07-28 stateless model, the token is read directly from the request context on every 'tools/call' -
+// Under the MCP 2026-07-28 stateless model, the token is read directly from the request context on every 'tools/call'.
 func withStatelessAuthMiddleware() mcp.Middleware {
 	return func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
