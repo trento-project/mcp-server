@@ -175,7 +175,7 @@ func flagConfigs() []utils.FlagConfig {
 			FlagType:     utils.FlagTypeBool,
 			FlagName:     "stateless",
 			Short:        "s",
-			Description:  "Enable MCP protocol 2026-07-28 stateless mode; cannot be combined with --transport sse (default false)",
+			Description:  "Enable MCP protocol stateless mode; cannot be combined with --transport sse",
 		},
 		{
 			Key:          configKeyTagFilter,
