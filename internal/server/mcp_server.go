@@ -531,14 +531,17 @@ func startServer(
 // The middleware will later associate it with the session if not in stateless mode.
 func setAPIKeyInContext(r *http.Request, headerName string, stateless bool) {
 	apiKey := r.Header.Get(headerName)
-	if apiKey != "" {
-		if !stateless {
-			slog.DebugContext(r.Context(), "API key found in request, storing in context", "header", headerName)
-		}
 
+	if !stateless {
+		if apiKey != "" {
+			slog.DebugContext(r.Context(), "API key found in request, storing in context", "header", headerName)
+		} else {
+			slog.DebugContext(r.Context(), "API key not found in request header", "header", headerName)
+		}
+	}
+
+	if apiKey != "" {
 		*r = *r.WithContext(context.WithValue(r.Context(), sessionBearerTokenKey, apiKey))
-	} else if !stateless {
-		slog.DebugContext(r.Context(), "API key not found in request header", "header", headerName)
 	}
 }
 
@@ -636,14 +639,9 @@ func withAuthMiddleware() mcp.Middleware {
 					"session.id", sessionID,
 					"method", method,
 				)
-				// Continue without auth - the API will return 401 if authentication is required
-				return next(ctx, method, req)
 			}
 
-			slog.DebugContext(ctx, "injecting bearer token for tool execution",
-				"session.id", sessionID,
-			)
-
+			// Always go through injectBearerToken, to ensure serialized access to the global BEARER_TOKEN environment variable, even if the token is empty.
 			return injectBearerToken(ctx, token, func() (mcp.Result, error) { return next(ctx, method, req) })
 		}
 	}
@@ -668,12 +666,9 @@ func withStatelessAuthMiddleware() mcp.Middleware {
 				slog.DebugContext(ctx, "no bearer token found for tool call",
 					"method", method,
 				)
-				// Continue without auth - the API will return 401 if authentication is required
-				return next(ctx, method, req)
 			}
 
-			slog.DebugContext(ctx, "injecting bearer token for tool execution")
-
+			// Always go through injectBearerToken, to ensure serialized access to the global BEARER_TOKEN environment variable, even if the token is empty.
 			return injectBearerToken(ctx, token, func() (mcp.Result, error) { return next(ctx, method, req) })
 		}
 	}
@@ -685,6 +680,10 @@ func withStatelessAuthMiddleware() mcp.Middleware {
 func injectBearerToken(ctx context.Context, token string, exec func() (mcp.Result, error)) (mcp.Result, error) {
 	envMutex.Lock()
 	defer envMutex.Unlock()
+
+	if token != "" {
+		slog.DebugContext(ctx, "injecting bearer token for tool execution")
+	}
 
 	// Save original environment state
 	originalToken, hasOriginal := os.LookupEnv(bearerTokenEnv)

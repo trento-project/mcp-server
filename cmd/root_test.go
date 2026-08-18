@@ -275,6 +275,7 @@ func TestConfigureCLI(t *testing.T) {
 			name:          "no trento url and no oas path should fail",
 			viperSettings: map[string]any{},
 			expectError:   true,
+			errContains:   "either a Trento URL or at least one OAS path must be provided",
 		},
 		{
 			name: "stateless combined with sse transport should fail",
@@ -311,13 +312,7 @@ func TestConfigureCLI(t *testing.T) {
 
 			if tt.expectError {
 				require.Error(t, err)
-
-				expectedErr := tt.errContains
-				if expectedErr == "" {
-					expectedErr = "either a Trento URL or at least one OAS path must be provided"
-				}
-
-				assert.Contains(t, err.Error(), expectedErr)
+				assert.Contains(t, err.Error(), tt.errContains)
 
 				return
 			}
