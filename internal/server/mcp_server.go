@@ -640,7 +640,7 @@ func withAuthMiddleware() mcp.Middleware {
 				)
 			}
 
-			// Always go through injectBearerToken, to ensure serialized access to the global BEARER_TOKEN environment variable, even if the token is empty.
+			// Always go through injectBearerToken, to ensure serialized access to the env var, even if the token is empty.
 			return injectBearerToken(ctx, token, func() (mcp.Result, error) { return next(ctx, method, req) })
 		}
 	}
@@ -667,7 +667,7 @@ func withStatelessAuthMiddleware() mcp.Middleware {
 				)
 			}
 
-			// Always go through injectBearerToken, to ensure serialized access to the global BEARER_TOKEN environment variable, even if the token is empty.
+			// Always go through injectBearerToken, to ensure serialized access to the env var, even if the token is empty.
 			return injectBearerToken(ctx, token, func() (mcp.Result, error) { return next(ctx, method, req) })
 		}
 	}
