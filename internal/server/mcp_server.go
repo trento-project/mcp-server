@@ -533,11 +533,10 @@ func setAPIKeyInContext(r *http.Request, headerName string, stateless bool) {
 	apiKey := r.Header.Get(headerName)
 
 	if !stateless {
-		if apiKey != "" {
-			slog.DebugContext(r.Context(), "API key found in request, storing in context", "header", headerName)
-		} else {
-			slog.DebugContext(r.Context(), "API key not found in request header", "header", headerName)
-		}
+		slog.DebugContext(r.Context(), "processed API key from request header",
+			"header", headerName,
+			"found", apiKey != "",
+		)
 	}
 
 	if apiKey != "" {
