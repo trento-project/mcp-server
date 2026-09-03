@@ -9,7 +9,7 @@ require (
 	github.com/alexliesenfeld/health v0.8.1
 	github.com/carlmjohnson/versioninfo v0.22.5
 	github.com/evcc-io/openapi-mcp v0.6.0
-	github.com/getkin/kin-openapi v0.146.0
+	github.com/getkin/kin-openapi v0.147.0
 	github.com/modelcontextprotocol/go-sdk v1.7.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
