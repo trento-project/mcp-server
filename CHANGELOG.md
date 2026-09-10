@@ -1,5 +1,51 @@
 # Changelog
 
+## 1.1.2 - 2026-09-10
+
+### What's Changed
+
+* Fix unhandled array parameters (#131) @balanza, @antgamdia, Emanuele De Cupis
+
+#### Bug Fixes
+
+* Fix unhandled array parameters (#123) @antgamdia
+
+#### Maintenance
+
+* Delete local PR template (#152) @antgamdia
+* Enable backport action (#148) @skrech
+* Update license in spec file (#126) @skrech
+
+#### Dependencies
+
+<details>
+<summary>22 changes</summary>
+* Bump github.com/getkin/kin-openapi from 0.146.0 to 0.147.0 (#153) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump github.com/stretchr/testify from 1.12.0 to 1.12.1 (#149) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump the common-workflows group with 3 updates (#150) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump github.com/getkin/kin-openapi from 0.145.0 to 0.146.0 (#146) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump github.com/stretchr/testify from 1.11.1 to 1.12.0 (#147) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump actions/setup-go from 6.5.0 to 7.0.0 (#144) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump actions/checkout from 7.0.0 to 7.0.1 (#145) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Remove go patch version in go.mod (#142) @antgamdia
+* Update dependencies (#124) @antgamdia
+* Bump github.com/getkin/kin-openapi from 0.140.0 to 0.142.0 (#141) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump actions/checkout from 6.0.3 to 7.0.0 (#136) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump awalsh128/cache-apt-pkgs-action from 1.6.2 to 1.6.3 (#137) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump golangci/golangci-lint-action from 9.2.1 to 9.3.0 (#140) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump actions/cache from 5.0.5 to 6.1.0 (#138) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump actions/setup-go from 6.4.0 to 6.5.0 (#139) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump awalsh128/cache-apt-pkgs-action from 1.6.0 to 1.6.2 (#135) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump github.com/getkin/kin-openapi from 0.137.0 to 0.140.0 (#133) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump actions/checkout from 6.0.2 to 6.0.3 (#134) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump endorama/asdf-parse-tool-versions from 1.5.1 to 1.6.0 (#132) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump golangci/golangci-lint-action from 9.2.0 to 9.2.1 (#127) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump github.com/modelcontextprotocol/go-sdk from 1.6.0 to 1.6.1 (#128) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump github.com/modelcontextprotocol/go-sdk from 1.5.0 to 1.6.0 (#121) [@dependabot[bot]](https://github.com/apps/dependabot)
+
+</details>
+**Full Changelog**: https://github.com/trento-project/mcp-server/compare/1.1.0...1.1.2
+
 ## 1.1.1 - 2026-06-17
 
 ### What's Changed
@@ -61,7 +107,6 @@
 </details>
 **Full Changelog**: https://github.com/trento-project/mcp-server/compare/1.0.0...1.1.0
 ## 1.0.0 - 2025-12-01
-
 ### What's Changed
 
 * Bump version 1.0.0 (#83) @nelsonkopliku
