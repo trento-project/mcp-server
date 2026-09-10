@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: SUSE LLC
 # SPDX-License-Identifier: Apache-2.0
 
-ARG GO_VERSION=1.25
+ARG GO_VERSION=1.26
 ARG OS_VER=15.7
 
 ARG GOARCH
