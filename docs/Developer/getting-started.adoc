@@ -109,6 +109,14 @@ To run the server locally with default settings:
 make run
 ----
 
+To run it in MCP protocol 2026-07-28 stateless mode (see
+xref:../Trento MCP Server documentation/configuration-options.adoc#sec-mcp-stateless-mode[Stateless Mode]):
+
+[source,console]
+----
+make run-stateless
+----
+
 Or run the binary directly:
 
 [source,console]
@@ -194,7 +202,7 @@ Log levels:
 
 1. **OpenAPI Specification Issues**: Verify OAS documentation provided via `--oas-path` flag is valid and contains operations tagged with the tag selected via `--tag-filter` flag.
 2. **Authentication Problems**: Check that the provided Trento PAT is correct.
-3. **Transport Issues**: Try switching between `streamable` and `sse` transports.
+3. **Transport Issues**: Try switching between `streamable` and `sse` transports. Note that `--stateless` only works with `streamable`.
 4. **Port Conflicts**: Use `--port` flag to specify a different port.
 
 === Container Development
