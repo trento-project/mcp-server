@@ -27,6 +27,7 @@ type ServeOptions struct {
 	Name                  string              `mapstructure:"-"`
 	OASPath               []string            `mapstructure:"OAS_PATH"`
 	Port                  int                 `mapstructure:"PORT"`
+	Stateless             bool                `mapstructure:"STATELESS"`
 	TagFilter             []string            `mapstructure:"TAG_FILTER"`
 	Transport             utils.TransportType `mapstructure:"TRANSPORT"`
 	TrentoURL             string              `mapstructure:"TRENTO_URL"`
