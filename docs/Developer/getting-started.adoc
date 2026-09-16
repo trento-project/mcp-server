@@ -114,7 +114,7 @@ xref:../Trento MCP Server documentation/configuration-options.adoc#sec-mcp-state
 
 [source,console]
 ----
-make run-stateless
+go run main.go --port 5000 --verbosity=info --enable-health-check --trento-url https://demo.trento-project.io --stateless
 ----
 
 Or run the binary directly:
