@@ -19,7 +19,7 @@
 Name:           mcp-server-trento
 Version:        0
 Release:        0
-License:        Apache-2.0
+License:        GPL-3.0-or-later
 Summary:        Model Context Protocol server wrapping Trento API
 Group:          System/Monitoring
 URL:            https://github.com/trento-project/mcp-server
