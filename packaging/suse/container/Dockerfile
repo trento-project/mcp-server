@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: SUSE LLC
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 # Note: This file should be the same as the one in the root of the repository
 # Ref: https://openbuildservice.org/help/manuals/obs-user-guide/cha-obs-supported-formats
