@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: SUSE LLC
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 // Package server is the where the server logic is implemented.
 package server
@@ -27,6 +27,7 @@ type ServeOptions struct {
 	Name                  string              `mapstructure:"-"`
 	OASPath               []string            `mapstructure:"OAS_PATH"`
 	Port                  int                 `mapstructure:"PORT"`
+	Stateless             bool                `mapstructure:"STATELESS"`
 	TagFilter             []string            `mapstructure:"TAG_FILTER"`
 	Transport             utils.TransportType `mapstructure:"TRANSPORT"`
 	TrentoURL             string              `mapstructure:"TRENTO_URL"`

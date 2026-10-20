@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: SUSE LLC
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 ---
 name: Continuous Integration
@@ -51,7 +51,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         name: Checkout
       # Read tool versions for environment setup.
-      - uses: endorama/asdf-parse-tool-versions@e60863920ff5af9bf1c794ffbaaef91384b07eed # v1.6.0
+      - uses: endorama/asdf-parse-tool-versions@115a5df5884438dfd08a3a21e9c9efdf06dd907e # v1.7.0
         name: Read .tool-versions
         id: tool-versions
       # Setup Go environment.
@@ -75,7 +75,7 @@ jobs:
       - test-with-go
       - linters-result
     if: github.event_name == 'push'
-    uses: trento-project/.github/.github/workflows/publish-containers.yaml@7bdd3e4e59084a0edca7da6ece0456490defafb2 # v1.9.0
+    uses: trento-project/.github/.github/workflows/publish-containers.yaml@94dac57211d792dda649383e7f23326b24a9087b # v1.11.0
     with:
       image_name: mcp-server-trento
       tag: rolling
@@ -101,7 +101,7 @@ jobs:
   obs-sync:
     name: Update OBS packages
     if: fromJSON(vars.OBS_ENABLED) && github.event_name == 'push'
-    uses: trento-project/.github/.github/workflows/obs-sync.yaml@7bdd3e4e59084a0edca7da6ece0456490defafb2 # v1.9.0
+    uses: trento-project/.github/.github/workflows/obs-sync.yaml@94dac57211d792dda649383e7f23326b24a9087b # v1.11.0
     needs:
       - publish-containers
       - test-with-go
@@ -114,3 +114,20 @@ jobs:
       obs_user: ${{ secrets.OBS_USER }}
       obs_pass: ${{ secrets.OBS_PASS }}
       obs_ssh_key: ${{ secrets.OBS_SSH_KEY }}
+
+  dependabot-auto-merge:
+    name: Approve and merge Dependabot PRs
+    if: >
+      always() &&
+      !contains(needs.*.result, 'failure') &&
+      !contains(needs.*.result, 'cancelled') &&
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.user.login == 'dependabot[bot]'
+    needs:
+      - linters-result
+      - test-with-go
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: trento-project/.github/.github/workflows/dependabot-auto-merge.yaml@94dac57211d792dda649383e7f23326b24a9087b # v1.11.0

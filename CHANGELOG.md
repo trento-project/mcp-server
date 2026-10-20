@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.2.0 - 2026-10-20
+
+### What's Changed
+
+* Relicense under GPL-3.0-or-later (#162) @nelsonkopliku
+
+#### Features
+
+* Add support for stateless connections (#143) @antgamdia
+
+#### Maintenance
+
+* Use automerge reusable workflow (#157) @antgamdia
+
+#### Dependencies
+
+<details>
+<summary>6 changes</summary>
+* Bump the common-workflows group with 5 updates (#161) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump endorama/asdf-parse-tool-versions from 1.6.0 to 1.7.0 (#160) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump github.com/modelcontextprotocol/go-sdk from 1.7.0 to 1.8.0 (#159) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump the common-workflows group with 4 updates (#158) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump github.com/getkin/kin-openapi from 0.147.0 to 0.149.0 (#155) [@dependabot[bot]](https://github.com/apps/dependabot)
+* Bump apache/skywalking-eyes/header from 0.8.0 to 0.9.0 (#156) [@dependabot[bot]](https://github.com/apps/dependabot)
+
+</details>
+**Full Changelog**: https://github.com/trento-project/mcp-server/compare/1.1.2...1.2.0
+
 ## 1.1.2 - 2026-09-10
 
 ### What's Changed
@@ -42,10 +70,8 @@
 * Bump golangci/golangci-lint-action from 9.2.0 to 9.2.1 (#127) [@dependabot[bot]](https://github.com/apps/dependabot)
 * Bump github.com/modelcontextprotocol/go-sdk from 1.6.0 to 1.6.1 (#128) [@dependabot[bot]](https://github.com/apps/dependabot)
 * Bump github.com/modelcontextprotocol/go-sdk from 1.5.0 to 1.6.0 (#121) [@dependabot[bot]](https://github.com/apps/dependabot)
-
 </details>
 **Full Changelog**: https://github.com/trento-project/mcp-server/compare/1.1.0...1.1.2
-
 ## 1.1.1 - 2026-06-17
 
 ### What's Changed
@@ -108,7 +134,6 @@
 **Full Changelog**: https://github.com/trento-project/mcp-server/compare/1.0.0...1.1.0
 ## 1.0.0 - 2025-12-01
 ### What's Changed
-
 * Bump version 1.0.0 (#83) @nelsonkopliku
 * Revert release (#82) @nelsonkopliku
 * bump version 1.0.0 (#80) @nelsonkopliku

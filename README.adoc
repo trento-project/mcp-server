@@ -166,4 +166,4 @@ We welcome contributions! Report bugs, request features, or ask questions via li
 
 Copyright 2025-2026 SUSE LLC
 
-This project is licensed under the Apache License 2.0. See the link:https://github.com/trento-project/mcp-server/blob/main/LICENSE[LICENSE] file for details.
+This project is licensed under the GPL 3.0-or-later license. See the link:https://github.com/trento-project/mcp-server/blob/main/LICENSE[LICENSE] file for details.

@@ -1,33 +1,34 @@
 // SPDX-FileCopyrightText: SUSE LLC
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //nolint:gochecknoglobals
 package server
 
 var (
-	BearerTokenEnv             = bearerTokenEnv
-	CheckAPIServiceHealth      = checkAPIServiceHealth
-	CheckMCPServer             = checkMCPServer
-	CreateLivenessChecker      = createLivenessChecker
-	CreateMCPServer            = createMCPServer
-	CreateOASPathHealthChecks  = createOASPathHealthChecks
-	CreateReadinessChecker     = createReadinessChecker
-	CreateSingleOASHealthCheck = createSingleOASHealthCheck
-	HandleMCPServerRun         = handleMCPServerRun
-	HandleToolsRegistration    = handleToolsRegistration
-	LoadOpenAPISpec            = loadOpenAPISpec
-	LoadOpenAPISpecFromURL     = loadOpenAPISpecFromURL
-	MethodCallTool             = methodCallTool
-	MethodInitialize           = methodInitialize
-	RegisterToolsFromSpec      = registerToolsFromSpec
-	SessionBearerTokenKey      = sessionBearerTokenKey
-	SessionTokens              = &sessionTokens
-	SetAPIKeyInContext         = setAPIKeyInContext
-	StartHealthServer          = startHealthServer
-	StartSSEServer             = startSSEServer
-	StartServer                = startServer
-	StartStreamableHTTPServer  = startStreamableHTTPServer
-	WaitForShutdown            = waitForShutdown
-	WithAuthMiddleware         = withAuthMiddleware
-	WithLogger                 = withLogger
+	BearerTokenEnv              = bearerTokenEnv
+	CheckAPIServiceHealth       = checkAPIServiceHealth
+	CheckMCPServer              = checkMCPServer
+	CreateLivenessChecker       = createLivenessChecker
+	CreateMCPServer             = createMCPServer
+	CreateOASPathHealthChecks   = createOASPathHealthChecks
+	CreateReadinessChecker      = createReadinessChecker
+	CreateSingleOASHealthCheck  = createSingleOASHealthCheck
+	HandleMCPServerRun          = handleMCPServerRun
+	HandleToolsRegistration     = handleToolsRegistration
+	LoadOpenAPISpec             = loadOpenAPISpec
+	LoadOpenAPISpecFromURL      = loadOpenAPISpecFromURL
+	MethodCallTool              = methodCallTool
+	MethodInitialize            = methodInitialize
+	RegisterToolsFromSpec       = registerToolsFromSpec
+	SessionBearerTokenKey       = sessionBearerTokenKey
+	SessionTokens               = &sessionTokens
+	SetAPIKeyInContext          = setAPIKeyInContext
+	StartHealthServer           = startHealthServer
+	StartSSEServer              = startSSEServer
+	StartServer                 = startServer
+	StartStreamableHTTPServer   = startStreamableHTTPServer
+	WaitForShutdown             = waitForShutdown
+	WithAuthMiddleware          = withAuthMiddleware
+	WithLogger                  = withLogger
+	WithStatelessAuthMiddleware = withStatelessAuthMiddleware
 )

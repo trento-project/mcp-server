@@ -643,6 +643,11 @@ For the complete reference, including command-line flags and detailed examples, 
 |`streamable`
 |The protocol to use: "streamable" or "sse".
 
+|`STATELESS`
+|`false`
+|Enable MCP protocol 2026-07-28 stateless mode. Cannot be combined with `TRANSPORT=sse`. See
+xref:../Trento MCP Server documentation/configuration-options.adoc#sec-mcp-stateless-mode[Stateless Mode].
+
 |`TAG_FILTER`
 |`["MCP"]`
 |Only include operations with at least one of these tags. If empty, all operations are included.

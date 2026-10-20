@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: SUSE LLC
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 // Package server_test is the where the server logic is tested.
 //
@@ -127,7 +127,7 @@ func TestWaitForShutdown(t *testing.T) {
 				errChan chan<- error,
 			) (utils.StoppableServer, error) {
 				return server.StartStreamableHTTPServer(ctx,
-					mcpSrv, addr, headerName, errChan)
+					mcpSrv, addr, headerName, false, errChan)
 			},
 			checkPath: "/mcp",
 			expectErr: false,
