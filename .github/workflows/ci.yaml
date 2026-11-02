@@ -75,7 +75,7 @@ jobs:
       - test-with-go
       - linters-result
     if: github.event_name == 'push'
-    uses: trento-project/.github/.github/workflows/publish-containers.yaml@94dac57211d792dda649383e7f23326b24a9087b # v1.11.0
+    uses: trento-project/.github/.github/workflows/publish-containers.yaml@4ca871917ddcecb8cca455409a299d2be7bcbe11 # v1.12.0
     with:
       image_name: mcp-server-trento
       tag: rolling
@@ -101,7 +101,7 @@ jobs:
   obs-sync:
     name: Update OBS packages
     if: fromJSON(vars.OBS_ENABLED) && github.event_name == 'push'
-    uses: trento-project/.github/.github/workflows/obs-sync.yaml@94dac57211d792dda649383e7f23326b24a9087b # v1.11.0
+    uses: trento-project/.github/.github/workflows/obs-sync.yaml@4ca871917ddcecb8cca455409a299d2be7bcbe11 # v1.12.0
     needs:
       - publish-containers
       - test-with-go
